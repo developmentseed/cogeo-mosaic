@@ -1,0 +1,16 @@
+#!/bin/bash
+python3 -c 'from cogeo_mosaic import version as mos_version; print(mos_version)'
+
+echo "/mosaic/tilejson.json " && python3 -c 'from cogeo_mosaic.handlers.api import APP; resp = APP({"path": "/mosaic/tilejson.json", "queryStringParameters": {"url": "https://s3.amazonaws.com/opendata.remotepixel.ca/facebook/mosaic.json.gz"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET", "headers": {}}, None); print("OK") if resp["statusCode"] == 200 else print("NOK")'
+echo
+echo "/mosaic/info " && python3 -c 'from cogeo_mosaic.handlers.api import APP; resp = APP({"path": "/mosaic/info", "queryStringParameters": {"url": "https://s3.amazonaws.com/opendata.remotepixel.ca/facebook/mosaic.json.gz"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET", "headers": {}}, None); print("OK") if resp["statusCode"] == 200 else print("NOK")'
+echo
+echo "/mvt"
+python3 -c 'from cogeo_mosaic.handlers.api import APP; resp = APP({"path": "/mosaic/8/134/101.pbf", "queryStringParameters": {"url": "https://s3.amazonaws.com/opendata.remotepixel.ca/facebook/mosaic.json.gz"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET", "headers": {}}, None); print("OK") if resp["statusCode"] == 200 else print("NOK")'
+python3 -c 'from cogeo_mosaic.handlers.api import APP; resp = APP({"path": "/mosaic/8/134/101.pbf", "queryStringParameters": {"url": "https://s3.amazonaws.com/opendata.remotepixel.ca/facebook/mosaic.json.gz", "feature_type": "polygon"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET", "headers": {}}, None); print("OK") if resp["statusCode"] == 200 else print("NOK")'
+echo
+echo "/raster"
+python3 -c 'from cogeo_mosaic.handlers.api import APP; resp = APP({"path": "/mosaic/9/269/201.png", "queryStringParameters": {"url": "https://s3.amazonaws.com/opendata.remotepixel.ca/facebook/mosaic.json.gz", "indexes": "1", "rescale": "0,255"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET", "headers": {}}, None); print("OK") if resp["statusCode"] == 200 else print("NOK")'
+python3 -c 'from cogeo_mosaic.handlers.api import APP; resp = APP({"path": "/mosaic/9/269/201.jpg", "queryStringParameters": {"url": "https://s3.amazonaws.com/opendata.remotepixel.ca/facebook/mosaic.json.gz", "indexes": "1", "rescale": "0,15", "color_map": "cfastie"}, "pathParameters": "null", "requestContext": "null", "httpMethod": "GET", "headers": {}}, None);  print("OK") if resp["statusCode"] == 200 else print("NOK")'
+echo
+echo "Done"

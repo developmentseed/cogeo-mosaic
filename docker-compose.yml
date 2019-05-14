@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  base:
+    build: .
+    image: cogeo-mosaic:latest
+
+  lambda_setup: &lambda_setup
+    image: lambci/lambda:build-python3.6
+    ports:
+      - 5003:8000
+    environment:
+      - GDAL_CACHEMAX=512
+      - VSI_CACHE=TRUE
+      - VSI_CACHE_SIZE=536870912
+      - CPL_TMPDIR=/tmp
+      - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
+      - GDAL_HTTP_MULTIPLEX=YES
+      - GDAL_HTTP_VERSION=2
+      - PYTHONWARNINGS=ignore
+      - GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR
+      - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.TIF
+
+  package:
+    image: cogeo-mosaic:latest
+    volumes:
+      - './bin:/tmp/bin'
+      - '.:/local'
+    command: /tmp/bin/package.sh
+
+  test:
+    command: >
+      bash -c "unzip -q /local/package.zip -d /var/task/
+      && /local/bin/tests.sh"
+    volumes:
+      - '.:/local'
+    <<: *lambda_setup
+
+  bash:
+    command: /bin/bash
+    volumes:
+      - '.:/local'
+    <<: *lambda_setup

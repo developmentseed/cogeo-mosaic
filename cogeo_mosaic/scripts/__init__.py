@@ -1,0 +1,1 @@
+"""cogeo_mosaic: cli."""
