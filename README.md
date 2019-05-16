@@ -28,11 +28,12 @@ Commands:
 
 ```
 $ cogeo-mosaic create --help
-Usage: cogeo-mosaic create [OPTIONS] [INPUT_FILES] [THREADS]
+Usage: cogeo-mosaic create [OPTIONS] [INPUT_FILES]
 
   Create mosaic definition file.
 
 Options:
+  -o, --output PATH  Output file name
   --threads INTEGER  threads
   --help             Show this message and exit.
  ```

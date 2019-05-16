@@ -23,17 +23,23 @@ def cogeo_cli():
 
 @cogeo_cli.command(short_help="Create mosaic definition from list of files")
 @click.argument("input_files", type=click.File(mode="r"), default="-")
+@click.option('--output', '-o', type=click.Path(exists=False), help='Output file name')
 @click.option(
     "--threads",
     type=int,
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
-def create(input_files, threads):
+def create(input_files, output, threads):
     """Create mosaic definition file."""
     input_files = input_files.read().splitlines()
     mosaic_spec = create_mosaic(input_files, max_threads=threads)
-    click.echo(json.dumps(mosaic_spec))
+
+    if output:
+        with open(output, mode='w') as f:
+            f.write(json.dumps(mosaic_spec))
+    else:
+        click.echo(json.dumps(mosaic_spec))
 
 
 @cogeo_cli.command(short_help="Local Server")
