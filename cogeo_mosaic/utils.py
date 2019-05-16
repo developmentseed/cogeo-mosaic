@@ -155,10 +155,11 @@ def create_mosaic(
             parent = mercantile.Tile(x=x, y=y, z=z)
             quad = mercantile.quadkey(*parent)
             tile_geometry = box(*mercantile.bounds(parent))
-            fdataset = filter(
+            fdataset = list(filter(
                 lambda x: tile_geometry.intersects(x["geometry"]), dataset
-            )
-            mosaic_definition["tiles"][quad] = [f["path"] for f in fdataset]
+            ))
+            if len(fdataset):
+                mosaic_definition["tiles"][quad] = [f["path"] for f in fdataset]
     else:
         raise Exception(f"Invalid mosaicJSON version: {version}")
 
