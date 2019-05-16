@@ -2,7 +2,7 @@
 
 A lightweight and custom COG mosaic server based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec).
 
-![](https://user-images.githubusercontent.com/10407788/56006732-19dfcc80-5ca4-11e9-8150-082691a6d7d8.png)
+![mosaicJSON](https://user-images.githubusercontent.com/10407788/57888417-1fc75100-7800-11e9-93a3-b54d06fb4cd2.png)
 
 ## Install
 ```
