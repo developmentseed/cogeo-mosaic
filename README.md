@@ -1,6 +1,6 @@
 # cogeo-mosaic
 
-A lightweight and custom COG mosaic server based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec).
+Create and use COG mosaic based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec).
 
 ![mosaicJSON](https://user-images.githubusercontent.com/10407788/57888417-1fc75100-7800-11e9-93a3-b54d06fb4cd2.png)
 
@@ -9,23 +9,7 @@ A lightweight and custom COG mosaic server based on [mosaicJSON](https://github.
 $ pip install http://github.com/developmentseed/cogeo-mosaic
 ```
 
-## CLI
-
-```
-$ cogeo-mosaic --help
-Usage: cogeo-mosaic [OPTIONS] COMMAND [ARGS]...
-
-  cogeo_mosaic cli.
-
-Options:
-  --version  Show the version and exit.
-  --help     Show this message and exit.
-
-Commands:
-  create  Create mosaic definition from list of files
-  run     Local Server
-```
-
+## Create Mosaic definition
 ```
 $ cogeo-mosaic create --help
 Usage: cogeo-mosaic create [OPTIONS] [INPUT_FILES]
@@ -38,18 +22,24 @@ Options:
   --help             Show this message and exit.
  ```
 
-#### Example
-`$ cat list.txt | cogeo-mosaic create - | gzip > mosaic.json.gz`
+`[INPUT_FILES]` must be a list of valid Cloud Optimized GeoTIFF.
 
-## Usage
+```
+$ cogeo-mosaic create list.txt -o mosaic.json
 
-see [/demo](/demo)
+# or 
 
-## API
+$ cat list.txt | cogeo-mosaic create - | gzip > mosaic.json.gz
+```
 
-see [API.md](/doc/API.md)
+## Serverless Stack
 
-## Deployment
+A AWS Lambda function handler is included in this module.
+
+See [/doc/API.md](/doc/API.md) for the documentation. 
+
+
+### Deployment
 
 #### Package Lambda
 
@@ -75,7 +65,12 @@ $ terraform init
 $ terraform apply
 ```
 
-## Contribution & Development
+## DEMO
+
+see [/demo](/demo)
+
+
+### Contribution & Development
 
 Issues and pull requests are more than welcome.
 
