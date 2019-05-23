@@ -96,7 +96,9 @@ def test_mosaic_create():
     """Fetch info from dataset and create the mosaicJSON definition."""
     assets = [asset1, asset2]
     mosaic = utils.create_mosaic(assets)
-    assert [round(b, 3) for b in mosaic["bounds"]] == [round(b, 3) for b in mosaic_content["bounds"]]
+    assert [round(b, 3) for b in mosaic["bounds"]] == [
+        round(b, 3) for b in mosaic_content["bounds"]
+    ]
     assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
     assert mosaic["minzoom"] == mosaic_content["minzoom"]
     assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())

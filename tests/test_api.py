@@ -88,9 +88,7 @@ def test_get_mosaic_info(get_data, event):
 
     event["path"] = "/mosaic/info"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(
-        url="http://mymosaic.json"
-    )
+    event["queryStringParameters"] = dict(url="http://mymosaic.json")
 
     headers = {
         "Access-Control-Allow-Credentials": "true",
@@ -124,10 +122,7 @@ def test_tilejson(get_data, event):
 
     event["path"] = "/mosaic/tilejson.json"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(
-        url="http://mymosaic.json",
-        rescale="-1,1",
-    )
+    event["queryStringParameters"] = dict(url="http://mymosaic.json", rescale="-1,1")
 
     headers = {
         "Access-Control-Allow-Credentials": "true",
@@ -146,7 +141,7 @@ def test_tilejson(get_data, event):
     assert body["maxzoom"] == 9
     assert body["minzoom"] == 7
     assert body["name"] == "mymosaic.json"
-    assert body["tilejson"] == '2.1.0'
+    assert body["tilejson"] == "2.1.0"
     assert body["tiles"]
     get_data.assert_called_once()
 
@@ -168,9 +163,7 @@ def test_API_errors(get_assets, event):
     # empty assets
     event["path"] = f"/mosaic/9/150/182.png"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(
-        url="http://mymosaic.json",
-    )
+    event["queryStringParameters"] = dict(url="http://mymosaic.json")
     res = APP(event, {})
     assert res["statusCode"] == 204
     headers = res["headers"]
@@ -186,9 +179,7 @@ def test_API_tiles(get_assets, event):
     # empty assets
     event["path"] = f"/mosaic/9/150/182.png"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(
-        url="http://mymosaic.json",
-    )
+    event["queryStringParameters"] = dict(url="http://mymosaic.json")
     res = APP(event, {})
     assert res["statusCode"] == 200
     headers = res["headers"]
@@ -199,10 +190,7 @@ def test_API_tiles(get_assets, event):
     event["path"] = f"/mosaic/9/150/182.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(
-        url="http://mymosaic.json",
-        rescale="0,10000",
-        indexes="1",
-        color_map="cfastie",
+        url="http://mymosaic.json", rescale="0,10000", indexes="1", color_map="cfastie"
     )
     res = APP(event, {})
     assert res["statusCode"] == 200
@@ -219,9 +207,7 @@ def test_API_emptytiles(get_assets, event):
     # empty assets
     event["path"] = f"/mosaic/9/140/182.png"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(
-        url="http://mymosaic.json",
-    )
+    event["queryStringParameters"] = dict(url="http://mymosaic.json")
     res = APP(event, {})
     assert res["statusCode"] == 204
     headers = res["headers"]

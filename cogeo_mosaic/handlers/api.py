@@ -19,11 +19,7 @@ from rio_tiler.profiles import img_profiles
 
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 
-from cogeo_mosaic.utils import (
-    create_mosaic,
-    fetch_mosaic_definition,
-    get_assets,
-)
+from cogeo_mosaic.utils import create_mosaic, fetch_mosaic_definition, get_assets
 
 from lambda_proxy.proxy import API
 

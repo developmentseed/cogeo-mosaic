@@ -127,9 +127,7 @@ def create_mosaic(
         )
 
     if len(minzoom) > 1:
-        warnings.warn(
-            "Multiple MinZoom, Assets different minzoom values", UserWarning
-        )
+        warnings.warn("Multiple MinZoom, Assets different minzoom values", UserWarning)
 
     data_types = list(set([z[2] for z in checks]))
     if len(data_types) > 1:
@@ -160,9 +158,9 @@ def create_mosaic(
             parent = mercantile.Tile(x=x, y=y, z=z)
             quad = mercantile.quadkey(*parent)
             tile_geometry = box(*mercantile.bounds(parent))
-            fdataset = list(filter(
-                lambda x: tile_geometry.intersects(x["geometry"]), dataset
-            ))
+            fdataset = list(
+                filter(lambda x: tile_geometry.intersects(x["geometry"]), dataset)
+            )
             if len(fdataset):
                 mosaic_definition["tiles"][quad] = [f["path"] for f in fdataset]
     else:
