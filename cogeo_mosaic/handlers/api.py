@@ -1,4 +1,4 @@
-"""cogeo-mosaic.api: handle request for cogeo-mosaic."""
+"""cogeo-mosaic.handlers.api: handle request for cogeo-mosaic endpoints."""
 
 from typing import Any, Tuple
 
@@ -23,7 +23,6 @@ from cogeo_mosaic.utils import (
     create_mosaic,
     fetch_mosaic_definition,
     get_assets,
-    get_mosaic_content,
 )
 
 from lambda_proxy.proxy import API
@@ -75,7 +74,7 @@ def _get_tilejson(
         String encoded tileJSON
 
     """
-    mosaic_def = get_mosaic_content(url)
+    mosaic_def = fetch_mosaic_definition(url)
 
     bounds = mosaic_def["bounds"]
     center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2]
@@ -225,7 +224,7 @@ def mosaic_img(
 ):
     """Handle tile requests."""
     if not url:
-        return ("NOK", "text/plain", "Missing 'URL' parameter ")
+        return ("NOK", "text/plain", "Missing 'URL' parameter")
 
     assets = get_assets(url, x, y, z)
     if not assets:
@@ -251,7 +250,6 @@ def mosaic_img(
         return ("EMPTY", "text/plain", "empty tiles")
 
     rtile = _postprocess(tile, mask, rescale=rescale, color_formula=color_ops)
-
     if color_map:
         color_map = get_colormap(color_map, format="gdal")
 

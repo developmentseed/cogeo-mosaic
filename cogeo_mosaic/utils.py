@@ -1,6 +1,7 @@
 """cogeo_mosaic.utils: utility functions."""
 
 from typing import Dict, Tuple
+from typing.io import BinaryIO
 
 import os
 import zlib
@@ -37,11 +38,10 @@ def _compress_gz_json(data):
     )
 
 
-def _aws_put_data(key, bucket, body):
+def _aws_put_data(key: str, bucket: str, body: BinaryIO, options: Dict = {}) -> str:
     session = boto3_session()
     s3 = session.client("s3")
-
-    s3.put_object(ACL="public-read", Bucket=bucket, Key=key, Body=body)
+    s3.put_object(Bucket=bucket, Key=key, Body=body, **options)
     return key
 
 
@@ -124,6 +124,11 @@ def create_mosaic(
     if len(maxzoom) > 1:
         warnings.warn(
             "Multiple MaxZoom, Assets have multiple resolution values", UserWarning
+        )
+
+    if len(minzoom) > 1:
+        warnings.warn(
+            "Multiple MinZoom, Assets different minzoom values", UserWarning
         )
 
     data_types = list(set([z[2] for z in checks]))
