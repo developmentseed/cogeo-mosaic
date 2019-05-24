@@ -58,12 +58,12 @@ def test_API_favicon(event):
     assert res == resp
 
 
-def test_create_mosaic(event):
+def test_create_footprint(event):
     """Test /create_mosaic route."""
-    event["path"] = "/create_mosaic"
-    event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(
-        body=base64.b64encode(json.dumps([asset1, asset2]).encode()).decode("utf-8")
+    event["path"] = "/create_footprint"
+    event["httpMethod"] = "POST"
+    event["body"] = base64.b64encode(json.dumps([asset1, asset2]).encode()).decode(
+        "utf-8"
     )
 
     headers = {
@@ -73,6 +73,55 @@ def test_create_mosaic(event):
         "Content-Type": "application/json",
     }
     statusCode = 200
+
+    res = APP(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == statusCode
+    body = json.loads(res["body"])
+    assert body["type"] == "FeatureCollection"
+    assert len(body["features"]) == 2
+
+    event["path"] = "/create_footprint"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(
+        body=base64.b64encode(json.dumps([asset1, asset2]).encode()).decode("utf-8")
+    )
+
+    res = APP(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == statusCode
+    body = json.loads(res["body"])
+    assert body["type"] == "FeatureCollection"
+    assert len(body["features"]) == 2
+
+
+def test_create_mosaic(event):
+    """Test /create_mosaic route."""
+    event["path"] = "/create_mosaic"
+    event["httpMethod"] = "POST"
+    event["body"] = base64.b64encode(json.dumps([asset1, asset2]).encode()).decode(
+        "utf-8"
+    )
+
+    headers = {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET,POST",
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+    }
+    statusCode = 200
+
+    res = APP(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == statusCode
+    body = json.loads(res["body"])
+    assert body == mosaic_content
+
+    event["path"] = "/create_mosaic"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(
+        body=base64.b64encode(json.dumps([asset1, asset2]).encode()).decode("utf-8")
+    )
 
     res = APP(event, {})
     assert res["headers"] == headers

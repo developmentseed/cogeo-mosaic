@@ -1,16 +1,32 @@
 ## API
 
 
+### Create footprint GeoJSON
+`/create_footprint`
+
+- methods: GET | POST
+- **body**
+  - content: List of files
+  - format: **json**
+- returns: footprint geojson (application/json, compression: **gzip**)
+
+Note: equivalent of running `cogeo-mosaic footprint` locally 
+
+```bash
+$ curl -X POST -F 'json=@list.json' https://{endpoint-url}/create_footprint`
+```
+
+
 ### Create mosaic defintion file
 `/create_mosaic`
 
 - methods: GET | POST
 - **body**
   - content: List of files
-  - format: json
-- returns: mosaic definition (application/json)
+  - format: **json**
+- returns: mosaic definition (application/json, compression: **gzip**)
 
-Note: equivalent of running `cog-mosaic create` locally 
+Note: equivalent of running `cogeo-mosaic create` locally 
 
 ```bash
 $ curl -X POST -F 'json=@list.json' https://{endpoint-url}/create_mosaic`
@@ -22,11 +38,26 @@ $ curl -X POST -F 'json=@list.json' https://{endpoint-url}/create_mosaic`
 - methods: GET
 - **url** (required): mosaic definition url
 - **tile_format** (optional, str): output tile format (default: "png")
-- **kwargs** (in querytring): tiler independant options
-- returns: tijeson defintion (application/json)
+- **tile_scale** (optional, int): output tile scale (default: 1 = 256px)
+- **kwargs** (in querytring): tiler options
+- returns: tijeson defintion (application/json, compression: **gzip**)
 
 ```bash
 $ curl https://{endpoint-url}/mosaic/tilejson.json?url=s3://my_file.json.gz
+```
+
+```json
+meta = {
+    "bounds": [...],
+    "center": [lon, lat, minzoom],
+    "maxzoom": 22,
+    "minzoom": 18,
+    "name": "my_file.json.gz",
+    "tilejson": "2.1.0",
+    "tiles": [
+        "https://{endpoint-url}/mosaic/{{z}}/{{x}}/{{y}}@2x.<ext>"
+    ],
+}
 ```
 
 ### Mosaic Metadata
@@ -34,7 +65,7 @@ $ curl https://{endpoint-url}/mosaic/tilejson.json?url=s3://my_file.json.gz
 
 - methods: GET
 - **url** (in querytring): mosaic definition url
-- returns: mosaic defintion info (application/json)
+- returns: mosaic defintion info (application/json, compression: **gzip**)
 
 ```bash
 $ curl https://{endpoint-url}/mosaic/info?url=s3://my_file.json.gz)
@@ -42,18 +73,19 @@ $ curl https://{endpoint-url}/mosaic/info?url=s3://my_file.json.gz)
 
 ```json
 meta = {
-    "bounds": [...],          // mosaic bounds
-    "center": [lon, lat],     // mosaic center
-    "maxzoom": 22,            // mosaic max zoom
-    "minzoom": 18,            // mosaic min zoom
-    "name": "mosaic.json.gz", // mosaic basename
-    "quadkeys": [...],        // list of quakeys
-    "layers": [...] ,         // dataset band names
+    "bounds": [...],            // mosaic bounds
+    "center": [lon, lat, zoom], // mosaic center
+    "maxzoom": 22,              // mosaic max zoom
+    "minzoom": 18,              // mosaic min zoom
+    "name": "my_file.json.gz",   // mosaic basename
+    "quadkeys": [...],          // list of quakeys
+    "layers": [...] ,           // dataset band names
 }
 ```
 
 ### Get image tiles
 `/mosaic/<int:z>/<int:x>/<int:y>.<ext>`
+
 `/mosaic/<int:z>/<int:x>/<int:y>@2x.<ext>`
 
 - methods: GET

@@ -19,17 +19,42 @@ from rio_tiler.profiles import img_profiles
 
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 
-from cogeo_mosaic.utils import create_mosaic, fetch_mosaic_definition, get_assets
+from cogeo_mosaic.utils import (
+    create_mosaic,
+    fetch_mosaic_definition,
+    get_assets,
+    get_footprints,
+)
 
 from lambda_proxy.proxy import API
 
 APP = API(app_name="cogeo-mosaic")
 
 
-@APP.route("/create_mosaic", methods=["GET", "POST"], cors=True)
+@APP.route(
+    "/create_footprint",
+    methods=["GET", "POST"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
+def _create_footpring(body: str) -> Tuple[str, str, str]:
+    body = json.loads(base64.b64decode(body).decode())
+    return (
+        "OK",
+        "application/json",
+        json.dumps({"features": get_footprints(body), "type": "FeatureCollection"}),
+    )
+
+
+@APP.route(
+    "/create_mosaic",
+    methods=["GET", "POST"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
 def _create_mosaic(body: str) -> Tuple[str, str, str]:
-    # NEED TO BE VALIDATED
-    # API gateway should always transform json to base64encoded string
     body = json.loads(base64.b64decode(body).decode())
     return ("OK", "application/json", json.dumps(create_mosaic(body)))
 
@@ -43,7 +68,11 @@ def _create_mosaic(body: str) -> Tuple[str, str, str]:
 )
 @APP.pass_event
 def _get_tilejson(
-    request: dict, url: str, tile_format="png", **kwargs: Any
+    request: dict,
+    url: str,
+    tile_format: str = "png",
+    tile_scale: int = 1,
+    **kwargs: Any,
 ) -> Tuple[str, str, str]:
     """
     Handle /tilejson.json requests.
@@ -57,6 +86,8 @@ def _get_tilejson(
         Mosaic definition.
     tile_format : str
         Image format to return (default: png).
+    tile_scale : int, optional
+        Tile image scale (default: 1).
     kwargs: dict, optional
         Querystring parameters to forward to the tile url.
 
@@ -73,7 +104,11 @@ def _get_tilejson(
     mosaic_def = fetch_mosaic_definition(url)
 
     bounds = mosaic_def["bounds"]
-    center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2]
+    center = [
+        (bounds[0] + bounds[2]) / 2,
+        (bounds[1] + bounds[3]) / 2,
+        mosaic_def["minzoom"],
+    ]
 
     host = request["headers"].get(
         "X-Forwarded-Host", request["headers"].get("Host", "")
@@ -86,7 +121,7 @@ def _get_tilejson(
     scheme = "http" if host.startswith("127.0.0.1") else "https"
 
     qs = urllib.parse.urlencode(list(kwargs.items()))
-    tile_url = f"{scheme}://{host}/mosaic/{{z}}/{{x}}/{{y}}.{tile_format}?url={url}"
+    tile_url = f"{scheme}://{host}/mosaic/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?url={url}"
     if qs:
         tile_url += f"&{qs}"
 
@@ -143,7 +178,11 @@ def _get_mosaic_info(url: str) -> Tuple[str, str, str]:
     mosaic_def = fetch_mosaic_definition(url)
 
     bounds = mosaic_def["bounds"]
-    center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2]
+    center = [
+        (bounds[0] + bounds[2]) / 2,
+        (bounds[1] + bounds[3]) / 2,
+        mosaic_def["minzoom"],
+    ]
     quadkeys = list(mosaic_def["tiles"].keys())
 
     # read layernames from the first file
