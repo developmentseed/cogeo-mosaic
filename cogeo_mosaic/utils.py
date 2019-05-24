@@ -84,6 +84,27 @@ def get_dataset_info(src_path: str) -> Dict:
         }
 
 
+def get_footprints(dataset_list: Tuple, max_threads: int = 20) -> Tuple:
+    """
+    Create footprint GeoJSON.
+
+    Attributes
+    ----------
+    dataset_listurl : tuple or list, required
+        Dataset urls.
+    max_threads : int
+        Max threads to use (default: 20).
+
+    Returns
+    -------
+    out : tuple
+        tuple of footprint feature.
+
+    """
+    with futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+        return list(executor.map(get_dataset_info, dataset_list))
+
+
 def create_mosaic(
     dataset_list: Tuple, max_threads: int = 20, version: str = "0.0.1"
 ) -> Dict:
@@ -96,7 +117,7 @@ def create_mosaic(
     dataset_listurl : tuple or list, required
         Dataset urls.
     max_threads : int
-        Image format to return (default: png).
+        Max threads to use (default: 20).
     version: str, optional
         mosaicJSON definition version
 
@@ -106,31 +127,20 @@ def create_mosaic(
         Mosaic definition.
 
     """
-    with futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        results = list(executor.map(get_dataset_info, dataset_list))
+    results = get_footprints(dataset_list, max_threads=max_threads)
 
-    checks = [
-        (
-            feat["properties"]["minzoom"],
-            feat["properties"]["maxzoom"],
-            feat["properties"]["datatype"],
-        )
-        for feat in filter(None, results)
-    ]
+    minzoom = list(set([feat["properties"]["minzoom"] for feat in results]))
+    if len(minzoom) > 1:
+        warnings.warn("Multiple MinZoom, Assets different minzoom values", UserWarning)
 
-    minzoom = list(set([z[0] for z in checks]))
-    maxzoom = list(set([z[1] for z in checks]))
-
+    maxzoom = list(set([feat["properties"]["maxzoom"] for feat in results]))
     if len(maxzoom) > 1:
         warnings.warn(
             "Multiple MaxZoom, Assets have multiple resolution values", UserWarning
         )
 
-    if len(minzoom) > 1:
-        warnings.warn("Multiple MinZoom, Assets different minzoom values", UserWarning)
-
-    data_types = list(set([z[2] for z in checks]))
-    if len(data_types) > 1:
+    datatype = list(set([feat["properties"]["datatype"] for feat in results]))
+    if len(datatype) > 1:
         raise Exception("Dataset should have the same data type")
 
     tiles = burntiles.burn(results, max(minzoom))
@@ -150,7 +160,7 @@ def create_mosaic(
 
         dataset = [
             {"path": f["properties"]["path"], "geometry": shape(f["geometry"])}
-            for f in filter(None, results)
+            for f in results
         ]
 
         for parent in tiles:

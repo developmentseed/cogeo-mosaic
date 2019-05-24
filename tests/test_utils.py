@@ -92,6 +92,13 @@ def test_dataset_info():
     assert info["properties"]["maxzoom"] == 9
 
 
+def test_footprint():
+    """Fetch footprints from asset list."""
+    assets = [asset1, asset2]
+    foot = utils.get_footprints(assets)
+    assert len(foot) == 2
+
+
 def test_mosaic_create():
     """Fetch info from dataset and create the mosaicJSON definition."""
     assets = [asset1, asset2]

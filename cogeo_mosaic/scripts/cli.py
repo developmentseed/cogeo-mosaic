@@ -10,7 +10,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
-from cogeo_mosaic.utils import create_mosaic
+from cogeo_mosaic.utils import create_mosaic, get_footprints
 from cogeo_mosaic.handlers.api import APP
 
 
@@ -40,6 +40,30 @@ def create(input_files, output, threads):
             f.write(json.dumps(mosaic_spec))
     else:
         click.echo(json.dumps(mosaic_spec))
+
+
+@cogeo_cli.command(short_help="Create geojson from list of files")
+@click.argument("input_files", type=click.File(mode="r"), default="-")
+@click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
+@click.option(
+    "--threads",
+    type=int,
+    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
+    help="threads",
+)
+def footprint(input_files, output, threads):
+    """Create mosaic definition file."""
+    input_files = input_files.read().splitlines()
+    foot = {
+        "features": get_footprints(input_files, max_threads=threads),
+        "type": "FeatureCollection",
+    }
+
+    if output:
+        with open(output, mode="w") as f:
+            f.write(json.dumps(foot))
+    else:
+        click.echo(json.dumps(foot))
 
 
 @cogeo_cli.command(short_help="Local Server")
