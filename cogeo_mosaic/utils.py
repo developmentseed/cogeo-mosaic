@@ -244,7 +244,9 @@ def get_assets(url: str, x: int, y: int, z: int) -> Tuple[str]:
         quadkey = [mercantile.quadkey(*mercator_tile)]
 
     assets = list(
-        itertools.chain.from_iterable([mosaic_def["tiles"].get(qk) for qk in quadkey])
+        itertools.chain.from_iterable(
+            [mosaic_def["tiles"].get(qk, []) for qk in quadkey]
+        )
     )
 
     # check if we have a mosaic in the url (.json/.gz)
