@@ -83,6 +83,123 @@ meta = {
 }
 ```
 
+### wmts
+`/mosaic/wmts`
+
+- methods: GET
+- **url** (in querytring): mosaic definition url
+- **tile_format** (optional, str): output tile format (default: "png")
+- **tile_scale** (optional, int): output tile scale (default: 1 = 256px)
+- **kwargs** (in querytring): tiler options
+- returns: WMTS xml (application/xml, compression: **gzip**)
+
+```bash
+$ curl https://{endpoint-url}/mosaic/wmts?url=s3://my_file.json.gz)
+```
+<details>
+
+```xml
+<Capabilities
+        xmlns="http://www.opengis.net/wmts/1.0"
+        xmlns:ows="http://www.opengis.net/ows/1.1"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:gml="http://www.opengis.net/gml"
+        xsi:schemaLocation="http://www.opengis.net/wmts/1.0 http://schemas.opengis.net/wmts/1.0/wmtsGetCapabilities_response.xsd"
+        version="1.0.0">
+       <ows:ServiceIdentification>
+            <ows:Title>Cloud Optimizied GeoTIFF Mosaic</ows:Title>
+            <ows:ServiceType>OGC WMTS</ows:ServiceType>
+            <ows:ServiceTypeVersion>1.0.0</ows:ServiceTypeVersion>
+        </ows:ServiceIdentification>
+        <ows:OperationsMetadata>
+            <ows:Operation name="GetCapabilities">
+                <ows:DCP>
+                    <ows:HTTP>
+                        <ows:Get xlink:href="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/wmts?url=http%3A%2F%2Fmymosaic.json">
+                            <ows:Constraint name="GetEncoding">
+                                <ows:AllowedValues>
+                                    <ows:Value>RESTful</ows:Value>
+                                </ows:AllowedValues>
+                            </ows:Constraint>
+                        </ows:Get>
+                    </ows:HTTP>
+                </ows:DCP>
+            </ows:Operation>
+            <ows:Operation name="GetTile">
+                <ows:DCP>
+                    <ows:HTTP>
+                        <ows:Get xlink:href="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/wmts?url=http%3A%2F%2Fmymosaic.json">
+                            <ows:Constraint name="GetEncoding">
+                                <ows:AllowedValues>
+                                    <ows:Value>RESTful</ows:Value>
+                                </ows:AllowedValues>
+                            </ows:Constraint>
+                        </ows:Get>
+                    </ows:HTTP>
+                </ows:DCP>
+            </ows:Operation>
+        </ows:OperationsMetadata>
+        <Contents>
+            <Layer>
+                <ows:Title>Cloud Optimizied GeoTIFF Mosaic</ows:Title>
+                <ows:Identifier>mymosaic.json</ows:Identifier>
+                <ows:Abstract>cogeo-mosaic</ows:Abstract>
+                <ows:WGS84BoundingBox crs="urn:ogc:def:crs:OGC:2:84">
+                    <ows:LowerCorner>-75.98703377403767 44.93504283303786</ows:LowerCorner>
+                    <ows:UpperCorner>-71.337604724099 47.096855991923235</ows:UpperCorner>
+                </ows:WGS84BoundingBox>
+                <Style isDefault="true">
+                    <ows:Identifier>default</ows:Identifier>
+                </Style>
+                <Format>image/png</Format>
+                <TileMatrixSetLink>
+                    <TileMatrixSet>GoogleMapsCompatible</TileMatrixSet>
+                </TileMatrixSetLink>
+                <ResourceURL
+                    format="image/png"
+                    resourceType="tile"
+                    template="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/{TileMatrix}/{TileCol}/{TileRow}@1x.png?url=http%3A%2F%2Fmymosaic.json"/>
+            </Layer>
+            <TileMatrixSet>
+                <ows:Title>GoogleMapsCompatible</ows:Title>
+                <ows:Abstract>GoogleMapsCompatible EPSG:3857</ows:Abstract>
+                <ows:Identifier>GoogleMapsCompatible</ows:Identifier>
+                <ows:SupportedCRS>urn:ogc:def:crs:EPSG::3857</ows:SupportedCRS>
+                <TileMatrix>
+            <ows:Identifier>7</ows:Identifier>
+            <ScaleDenominator>4367830.187724375</ScaleDenominator>
+            <TopLeftCorner>-20037508.34278925 20037508.34278925</TopLeftCorner>
+            <TileWidth>256</TileWidth>
+            <TileHeight>256</TileHeight>
+            <MatrixWidth>128</MatrixWidth>
+            <MatrixHeight>128</MatrixHeight>
+        </TileMatrix>
+<TileMatrix>
+            <ows:Identifier>8</ows:Identifier>
+            <ScaleDenominator>2183915.0938621876</ScaleDenominator>
+            <TopLeftCorner>-20037508.34278925 20037508.34278925</TopLeftCorner>
+            <TileWidth>256</TileWidth>
+            <TileHeight>256</TileHeight>
+            <MatrixWidth>256</MatrixWidth>
+            <MatrixHeight>256</MatrixHeight>
+        </TileMatrix>
+<TileMatrix>
+            <ows:Identifier>9</ows:Identifier>
+            <ScaleDenominator>1091957.5469310938</ScaleDenominator>
+            <TopLeftCorner>-20037508.34278925 20037508.34278925</TopLeftCorner>
+            <TileWidth>256</TileWidth>
+            <TileHeight>256</TileHeight>
+            <MatrixWidth>512</MatrixWidth>
+            <MatrixHeight>512</MatrixHeight>
+        </TileMatrix>
+            </TileMatrixSet>
+        </Contents>
+        <ServiceMetadataURL xlink:href='https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/wmts?url=http%3A%2F%2Fmymosaic.json'/>
+    </Capabilities>
+```
+</details>
+
 ### Get image tiles
 `/mosaic/<int:z>/<int:x>/<int:y>.<ext>`
 

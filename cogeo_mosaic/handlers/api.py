@@ -224,6 +224,12 @@ def _get_mosaic_wmts(
     ----------
     url : str, required
         Mosaic definition url.
+    tile_format : str
+        Image format to return (default: png).
+    tile_scale : int, optional
+        Tile image scale (default: 1).
+    kwargs: dict, optional
+        Querystring parameters to forward to the tile url.
 
     Returns
     -------
