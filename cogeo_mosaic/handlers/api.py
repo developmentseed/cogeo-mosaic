@@ -19,6 +19,7 @@ from rio_tiler.profiles import img_profiles
 
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 
+from cogeo_mosaic.ogc import wmts_template
 from cogeo_mosaic.utils import (
     create_mosaic,
     fetch_mosaic_definition,
@@ -198,6 +199,87 @@ def _get_mosaic_info(url: str) -> Tuple[str, str, str]:
         "layers": _get_layer_names(src_path),
     }
     return ("OK", "application/json", json.dumps(meta))
+
+
+@APP.route(
+    "/mosaic/wmts",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+)
+@APP.pass_event
+def _get_mosaic_wmts(
+    request: dict,
+    url: str,
+    tile_format: str = "png",
+    tile_scale: int = 1,
+    title: str = "Cloud Optimizied GeoTIFF Mosaic",
+    **kwargs: Any,
+) -> Tuple[str, str, str]:
+    """
+    Handle /mosaic/wmts requests.
+
+    Attributes
+    ----------
+    url : str, required
+        Mosaic definition url.
+    tile_format : str
+        Image format to return (default: png).
+    tile_scale : int, optional
+        Tile image scale (default: 1).
+    kwargs: dict, optional
+        Querystring parameters to forward to the tile url.
+
+    Returns
+    -------
+    status : str
+        Status of the request (e.g. OK, NOK).
+    MIME type : str
+        response body MIME type (e.g. application/json).
+    body : str
+        String encoded JSON metata
+
+    """
+    if tile_scale is not None and isinstance(tile_scale, str):
+        tile_scale = int(tile_scale)
+
+    mosaic_def = fetch_mosaic_definition(url)
+
+    host = request["headers"].get(
+        "X-Forwarded-Host", request["headers"].get("Host", "")
+    )
+    # Check for API gateway stage
+    if ".execute-api." in host and ".amazonaws.com" in host:
+        stage = request["requestContext"].get("stage", "")
+        host = f"{host}/{stage}"
+
+    scheme = "http" if host.startswith("127.0.0.1") else "https"
+
+    kwargs.pop("SERVICE", None)
+    kwargs.pop("REQUEST", None)
+    kwargs.update(dict(url=url))
+    query_string = urllib.parse.urlencode(list(kwargs.items()))
+    query_string = query_string.replace(
+        "&", "&amp;"
+    )  # & is an invalid character in XML
+    endpoint = f"{scheme}://{host}"
+
+    return (
+        "OK",
+        "application/xml",
+        wmts_template(
+            endpoint,
+            os.path.basename(url),
+            query_string,
+            minzoom=mosaic_def["minzoom"],
+            maxzoom=mosaic_def["maxzoom"],
+            bounds=mosaic_def["bounds"],
+            tile_scale=tile_scale,
+            tile_format=tile_format,
+            title=title,
+        ),
+    )
 
 
 def _postprocess(

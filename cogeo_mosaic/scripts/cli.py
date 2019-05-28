@@ -4,6 +4,7 @@ import os
 import json
 import base64
 import multiprocessing
+from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qsl
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -12,6 +13,12 @@ import click
 from cogeo_mosaic import version as cogeo_mosaic_version
 from cogeo_mosaic.utils import create_mosaic, get_footprints
 from cogeo_mosaic.handlers.api import APP
+
+
+class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    """MultiThread."""
+
+    pass
 
 
 @click.group()
@@ -123,6 +130,6 @@ def run(port):
             else:
                 self.wfile.write(response["body"])
 
-    httpd = HTTPServer(server_address, Handler)
+    httpd = ThreadingSimpleServer(server_address, Handler)
     click.echo(f"Starting local server at http://127.0.0.1:{port}", err=True)
     httpd.serve_forever()

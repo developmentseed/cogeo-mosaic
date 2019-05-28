@@ -16,8 +16,7 @@ import requests
 
 import mercantile
 from shapely.geometry import shape, box
-from shapely.ops import cascaded_union
-from supermercado import burntiles, uniontiles
+from supermercado import burntiles
 
 import rasterio
 from rio_tiler.mercator import get_zooms
@@ -105,6 +104,15 @@ def get_footprints(dataset_list: Tuple, max_threads: int = 20) -> Tuple:
         return list(executor.map(get_dataset_info, dataset_list))
 
 
+def _tiles_bounds(features, zoom):
+    """Return bounding box for bounding tiles."""
+    bounds = burntiles.find_extrema(features)
+    extrema = burntiles.tile_extrema(bounds, zoom)
+    ulx, uly = mercantile.ul(extrema["x"]["min"], extrema["y"]["min"], zoom)
+    lrx, lry = mercantile.ul(extrema["x"]["max"], extrema["y"]["max"], zoom)
+    return [ulx, lry, lrx, uly]
+
+
 def create_mosaic(
     dataset_list: Tuple, max_threads: int = 20, version: str = "0.0.1"
 ) -> Dict:
@@ -139,22 +147,27 @@ def create_mosaic(
             "Multiple MaxZoom, Assets have multiple resolution values", UserWarning
         )
 
+    quadkey_zoom = max(minzoom)
+
     datatype = list(set([feat["properties"]["datatype"] for feat in results]))
     if len(datatype) > 1:
         raise Exception("Dataset should have the same data type")
 
-    tiles = burntiles.burn(results, max(minzoom))
+    tiles = burntiles.burn(results, quadkey_zoom)
     tiles = ["{2}-{0}-{1}".format(*tile.tolist()) for tile in tiles]
 
-    collection = cascaded_union(
-        [shape(f["geometry"]) for f in uniontiles.union(tiles, True)]
-    )
+    bounds = burntiles.find_extrema(results)
+
     if version == "0.0.1":
         mosaic_definition = dict(
             minzoom=max(minzoom),
             maxzoom=max(maxzoom),
-            bounds=list(collection.bounds),
-            center=[collection.centroid.x, collection.centroid.y],
+            bounds=bounds,
+            center=[
+                (bounds[0] + bounds[2]) / 2,
+                (bounds[1] + bounds[3]) / 2,
+                max(minzoom),
+            ],
             tiles={},
         )
 
@@ -244,7 +257,9 @@ def get_assets(url: str, x: int, y: int, z: int) -> Tuple[str]:
         quadkey = [mercantile.quadkey(*mercator_tile)]
 
     assets = list(
-        itertools.chain.from_iterable([mosaic_def["tiles"].get(qk) for qk in quadkey])
+        itertools.chain.from_iterable(
+            [mosaic_def["tiles"].get(qk, []) for qk in quadkey]
+        )
     )
 
     # check if we have a mosaic in the url (.json/.gz)
