@@ -51,12 +51,12 @@ def wmts_template(
     for zoom in range(minzoom, maxzoom + 1):
         tm = f"""<TileMatrix>
             <ows:Identifier>{zoom}</ows:Identifier>
-            <ScaleDenominator>{279541132.015 / tile_scale ** zoom}</ScaleDenominator>
+            <ScaleDenominator>{559082264.02872 / 2 ** zoom / tile_scale}</ScaleDenominator>
             <TopLeftCorner>-20037508.34278925 20037508.34278925</TopLeftCorner>
             <TileWidth>{tilesize}</TileWidth>
             <TileHeight>{tilesize}</TileHeight>
-            <MatrixWidth>{tile_scale ** zoom}</MatrixWidth>
-            <MatrixHeight>{tile_scale ** zoom}</MatrixHeight>
+            <MatrixWidth>{2 ** zoom}</MatrixWidth>
+            <MatrixHeight>{2 ** zoom}</MatrixHeight>
         </TileMatrix>"""
         tileMatrix.append(tm)
     tileMatrix = "\n".join(tileMatrix)
