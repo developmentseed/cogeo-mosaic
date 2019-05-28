@@ -59,7 +59,7 @@ def test_API_favicon(event):
 
 
 def test_create_footprint(event):
-    """Test /create_mosaic route."""
+    """Test /create_footprint route."""
     event["path"] = "/create_footprint"
     event["httpMethod"] = "POST"
     event["body"] = base64.b64encode(json.dumps([asset1, asset2]).encode()).decode(
@@ -128,6 +128,37 @@ def test_create_mosaic(event):
     assert res["statusCode"] == statusCode
     body = json.loads(res["body"])
     assert body == mosaic_content
+
+
+@patch("cogeo_mosaic.handlers.api.fetch_mosaic_definition")
+def test_get_mosaic_wmts(get_data):
+    """Test /mosaic/wmts route."""
+    get_data.return_value = mosaic_content
+
+    with open(request_json, "r") as f:
+        event = json.loads(f.read())
+
+    event["path"] = "/mosaic/wmts"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(url="http://mymosaic.json")
+
+    headers = {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/xml",
+    }
+    statusCode = 200
+
+    res = APP(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == statusCode
+    body = res["body"]
+    assert (
+        "https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/wmts"
+        in body
+    )
+    get_data.assert_called_once()
 
 
 @patch("cogeo_mosaic.handlers.api.fetch_mosaic_definition")
