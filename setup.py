@@ -13,7 +13,8 @@ inst_reqs = [
     "rio-color",
     "rio_tiler>=1.2.7",
     "rio_tiler_mosaic",
-    "lambda-proxy~=3.0",
+    "rio_tiler_mvt",
+    "lambda-proxy~=4.0",
 ]
 extra_reqs = {
     "test": ["pytest", "pytest-cov", "mock"],

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Demo</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
+
+    <link href="https://api.mapbox.com/mapbox-assembly/v0.23.2/assembly.min.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-assembly/v0.23.2/assembly.js"></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+
+    <style>
+        body { margin:0; padding:0; width:100%; height:100%;}
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+
+        #viz-selector {
+            position: absolute;
+            z-index: 1;
+            top: 5px;
+            right: 5px;
+        }
+
+        .zoom-info {
+            z-index: 10;
+            position: absolute;
+            bottom: 17px;
+            right: 0;
+            padding: 5px;
+            width: auto;
+            height: auto;
+            font-size: 12px;
+            color: #000;
+        }
+        .loading-map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            color: #FFF;
+            background-color: #000;
+            text-align: center;
+            opacity: 0.5;
+            font-size: 45px;
+        }
+        .loading-map.off{
+            opacity: 0;
+            -o-transition: all .5s ease;
+            -webkit-transition: all .5s ease;
+            -moz-transition: all .5s ease;
+            -ms-transition: all .5s ease;
+            transition: all ease .5s;
+            visibility:hidden;
+        }
+        .middle-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .middle-center * {
+            display: block;
+            padding: 5px;
+        }
+
+        #menu {
+          left: 0;
+          top: 0;
+          -o-transition: all .5s ease;
+          -webkit-transition: all .5s ease;
+          -moz-transition: all .5s ease;
+          -ms-transition: all .5s ease;
+          transition: all ease .5s;
+        }
+
+        #menu.off {
+          left: -300px;
+          -o-transition: all .5s ease;
+          -webkit-transition: all .5s ease;
+          -moz-transition: all .5s ease;
+          -ms-transition: all .5s ease;
+          transition: all ease .5s;
+        }
+        #hide-arrow {
+          -o-transition: all .5s ease;
+          -webkit-transition: all .5s ease;
+          -moz-transition: all .5s ease;
+          -ms-transition: all .5s ease;
+          transition: all ease .5s;
+        }
+
+        #hide-arrow.off {
+          transform: rotate(-180deg);
+        }
+
+        #btn-hide {
+          position: absolute;
+          top: 0;
+          height: 35px;
+          font-size: 35px;
+          line-height: 35px;
+          vertical-align: middle;
+          right: -35px;
+          color: #28333b;
+          background-color: #fff;
+        }
+
+        #btn-hide:hover {
+          color: #fff;
+          background-color: #28333b;
+          cursor: pointer;
+        }
+        @media(max-width: 767px) {
+
+          #menu.off {
+            left: -240px;
+            -o-transition: all .5s ease;
+            -webkit-transition: all .5s ease;
+            -moz-transition: all .5s ease;
+            -ms-transition: all .5s ease;
+            transition: all ease .5s;
+          }
+
+          .mapboxgl-ctrl-attrib {
+              font-size: 10px;
+          }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id='viz-selector' class='toggle-group bg-gray-faint' style="line-height: 0">
+  <label class='toggle-container'>
+    <input value="raster" checked="checked" name='toggle-viz' type='radio' />
+    <div title='Raster Viz' class='toggle color-gray-dark-on-hover'><svg class='icon icon--l inline-block w24 h24'><use xlink:href='#icon-raster'/></svg></div>
+  </label>
+  <label class='toggle-container'>
+    <input value="point" name='toggle-viz' type='radio' />
+    <div title='Point Viz' class='toggle color-gray-dark-on-hover'><svg class='icon icon--l inline-block w24 h24'><use xlink:href='#icon-circle'/></svg></div>
+  </label>
+  <label class='toggle-container'>
+    <input value="polygon" name='toggle-viz' type='radio' />
+    <div title='3D Viz' class='toggle color-gray-dark-on-hover'><svg class='icon icon--l inline-block w24 h24'><use xlink:href='#icon-extrusion'/></div>
+  </label>
+</div>
+
+<div id='menu' class='flex-child w240 w300-ml absolute bg-white z2 px12 py12 off'>
+
+  <div id='menu-content' class='relative'>
+
+    <!-- Band Selection -->
+    <div class='txt-h5 mb6 color-black'><svg class='icon icon--l inline-block'><use xlink:href='#icon-layers'/></svg> Layers</div>
+    <div class='select-container wmax-full'>
+      <select id='layer-selector' class='select select--s select--stroke wmax-full color-black'>
+      </select>
+      <div class='select-arrow color-black'></div>
+    </div>
+
+    <!-- Histogram Cut -->
+    <div class='txt-h5 mt6 mb6 color-black'><svg class='icon icon--l inline-block'><use xlink:href='#icon-smooth-ramp'/></svg> Linear Rescaling</div>
+    <div class='px6 py6'>
+      <input id="minCut" class='input input--s wmax60 inline-block align-center color-black' value="0" />
+      <input id="maxCut" class='input input--s wmax60 inline-block align-center color-black ml12' value="255" />
+      <button id="updateCuts" class='btn bts--xs btn--stroke bg-darken25-on-hover inline-block txt-s color-black ml12'>Apply</button>
+    </div>
+
+    <!-- Color Map -->
+    <div id='colormap-section'>
+      <div class='txt-h5 mb6 color-black'><svg class='icon icon--l inline-block'><use xlink:href='#icon-palette'/></svg> Color Map</div>
+      <div class='select-container wmax-full'>
+        <select id='colormap-selector' class='select select--s select--stroke wmax-full color-black'>
+          <option value='b&w'>Black and White</option>
+          <option value='cfastie'>cfastie</option>
+          <option value='rplumbo'>rplumbo</option>
+          <option value='schwarzwald'>schwarzwald (elevation)</option>
+        </select>
+        <div class='select-arrow color-black'></div>
+      </div>
+    </div>
+
+    <!-- V Exag -->
+    <div id='extrusion-section' class='none'>
+      <div class='txt-h5 mt6 mb6 color-black'>Vercital Exageration</div>
+      <div class='px6 py6'>
+        <input id="ex-value" class='input input--s wmax60 inline-block align-center color-black' value='1' />
+        <button id="updateExag" class='btn bts--xs btn--stroke bg-darken25-on-hover inline-block txt-s color-black ml12'>Apply</button>
+      </div>
+    </div>
+
+  </div>
+
+  <button id='btn-hide'><svg id='hide-arrow' class='icon'><use xlink:href='#icon-arrow-right'/></svg></button>
+</div>
+
+<div id='map'>
+  <div id='loader' class="loading-map z3">
+    <div class="middle-center">
+      <div class="round animation-spin animation--infinite animation--speed-1">
+        <svg class='icon icon--l inline-block'><use xlink:href='#icon-satellite'/></svg>
+      </div>
+    </div>
+  </div>
+  <div class="zoom-info"><span id="zoom"></span></div>
+</div>
+
+<script>
+var scope = {}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//                                CHANGE THIS                                 //
+const mosaicDefinition = 'https://s3.amazonaws.com/opendata.remotepixel.ca/facebook/mosaic.json.gz'
+const apiEndpoint = 'https://8x1jkjmy0i.execute-api.us-east-1.amazonaws.com/production'
+mapboxgl.accessToken = 'pk.eyJ1IjoidmluY2VudHNhcmFnbyIsImEiOiJjamxwa3JkaWkwZ3BjM3dudmZmazQwYjI2In0.eUzks_hqH-QVIlnXUKmKsA'
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+const layerName = mosaicDefinition.split('/').reverse()[0]
+
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/basic-v9',
+    center: [0, 0],
+    zoom: 1
+})
+
+map.on('zoom', function (e) {
+  const z = (map.getZoom()).toString().slice(0, 6)
+  document.getElementById('zoom').textContent = z
+})
+
+const switchViz = (vizType) => {
+  const active_layer = document.getElementById('layer-selector')[document.getElementById('layer-selector').selectedIndex]
+  const indexes = active_layer.getAttribute('data-indexes')
+
+  if (map.getLayer('raster')) map.removeLayer('raster')
+  if (map.getSource('raster')) map.removeSource('raster')
+
+  if (map.getLayer('mvt')) map.removeLayer('mvt')
+  if (map.getSource('mvt')) { map.removeSource('mvt') }
+
+  switch (vizType) {
+    case 'raster':
+      const cmap = document.getElementById('colormap-selector')[document.getElementById('colormap-selector').selectedIndex]
+      const minV = parseFloat(document.getElementById('minCut').value)
+      const maxV = parseFloat(document.getElementById('maxCut').value)
+
+      let url = `${apiEndpoint}/tilejson.json?url=${mosaicDefinition}&tile_format=png&indexes=${indexes}&rescale=${minV},${maxV}`
+      if (cmap.value !== 'b&w') url += `&color_map=${cmap.value}`
+      map.addSource('raster', {
+        type: 'raster',
+        url: url
+      })
+      addLayer(vizType)
+      break
+
+    case 'point':
+      map.addSource('mvt', {
+        type: 'vector',
+        url: `${apiEndpoint}/tilejson.json?url=${mosaicDefinition}&tile_format=pbf&feature_type=point`
+      })
+      addLayer(vizType)
+      break
+
+    case 'polygon':
+      map.addSource('mvt', {
+        type: 'vector',
+        url: `${apiEndpoint}/tilejson.json?url=${mosaicDefinition}&tile_format=pbf&feature_type=polygon`
+      })
+      addLayer(vizType)
+      break
+
+    default:
+      throw new Error(`Invalid ${vizType}`)
+  }
+}
+
+const addLayer = (layerType) => {
+  if (map.getLayer('raster')) map.removeLayer('raster')
+  if (map.getLayer('mvt')) map.removeLayer('mvt')
+
+  const active_layer = document.getElementById('layer-selector')[document.getElementById('layer-selector').selectedIndex]
+  const propName = active_layer.value
+  const minV = parseFloat(document.getElementById('minCut').value)
+  const maxV = parseFloat(document.getElementById('maxCut').value)
+  const exag = parseFloat(document.getElementById('ex-value').value)
+
+  switch (layerType) {
+    case 'raster':
+      map.addLayer({
+        id: 'raster',
+        type: 'raster',
+        source: 'raster'
+      })
+      break
+
+    case 'point':
+      map.addLayer({
+        id: 'mvt',
+        source: 'mvt',
+        'source-layer': layerName,
+        type: 'circle',
+        paint: {
+          'circle-color': [
+            'interpolate',
+            ['linear'],
+            ['to-number', ['get', propName]],
+            minV, '#3700f0',
+            maxV, '#ed0707'
+          ],
+          'circle-radius': {
+            'base': 1,
+            'stops': [
+              [0, 4],
+              [9, 2]
+            ]
+          }
+        }
+      })
+      break
+
+    case 'polygon':
+      map.addLayer({
+        id: 'mvt',
+        source: 'mvt',
+        'source-layer': layerName,
+        type: 'fill-extrusion',
+        paint: {
+          'fill-extrusion-opacity': 1,
+          'fill-extrusion-height': [
+            'interpolate',
+            ['linear'],
+            ['to-number', ['get', propName]],
+            minV, 0,
+            maxV, maxV * exag
+          ],
+          'fill-extrusion-color': [
+            'interpolate',
+            ['linear'],
+            ['to-number', ['get', propName]],
+            minV, '#3700f0',
+            maxV, '#ed0707'
+          ]
+        }
+      })
+      break
+
+    default:
+      throw new Error(`Invalid ${layerType}`)
+  }
+}
+
+document.getElementById('viz-selector').addEventListener('change', (e) => {
+  switch (e.target.value) {
+    case 'raster':
+      document.getElementById('colormap-section').classList.remove('none')
+      document.getElementById('extrusion-section').classList.add('none')
+      break
+
+    case 'point':
+      document.getElementById('colormap-section').classList.add('none')
+      document.getElementById('extrusion-section').classList.add('none')
+      break
+
+    case 'polygon':
+      document.getElementById('colormap-section').classList.add('none')
+      document.getElementById('extrusion-section').classList.remove('none')
+      break
+
+    default:
+  }
+  switchViz(e.target.value)
+})
+
+const updateViz = (newViz) => {
+  if (newViz === "raster") {
+    switchViz(document.getElementById('viz-selector').querySelector("input[name='toggle-viz']:checked").value)
+  } else {
+    addLayer(newViz)
+  }
+}
+
+document.getElementById('layer-selector').addEventListener('change', () => {
+  const newViz = document.getElementById('viz-selector').querySelector("input[name='toggle-viz']:checked").value
+  updateViz(newViz)
+})
+
+document.getElementById('btn-hide').addEventListener('click', () => {
+  document.getElementById('hide-arrow').classList.toggle('off')
+  document.getElementById('menu').classList.toggle('off')
+})
+
+document.getElementById('updateCuts').addEventListener('click', () => {
+  const newViz = document.getElementById('viz-selector').querySelector("input[name='toggle-viz']:checked").value
+  updateViz(newViz)
+})
+
+document.getElementById('updateExag').addEventListener('click', () => {
+  const newViz = document.getElementById('viz-selector').querySelector("input[name='toggle-viz']:checked").value
+  updateViz(newViz)
+})
+
+document.getElementById('colormap-selector').addEventListener('change', () => {
+  const newViz = document.getElementById('viz-selector').querySelector("input[name='toggle-viz']:checked").value
+  updateViz(newViz)
+})
+
+const addAOI = (bounds) => {
+  const geojson = {
+      "type": "FeatureCollection",
+      "features": [turf.bboxPolygon(bounds)]
+  }
+
+  map.addSource('aoi', {
+    'type': 'geojson',
+    'data': geojson
+  })
+
+  map.addLayer({
+    id: 'aoi-polygon',
+    type: 'line',
+    source: 'aoi',
+    layout: {
+      'line-cap': 'round',
+      'line-join': 'round'
+    },
+    paint: {
+      'line-color': '#3bb2d0',
+      'line-width': 2
+    }
+  })
+  return
+}
+
+map.on('load', () => {
+  fetch(`${apiEndpoint}/info?url=${mosaicDefinition}`)
+    .then(res => {
+      if (res.ok) return res.json()
+      throw new Error('Network response was not ok.')
+    })
+    .then(data => {
+      scope = data
+      console.log(scope)
+      const layerList = document.getElementById('layer-selector')
+      for (var i = 0; i < scope.layers.length; i++) {
+        let l = document.createElement('option')
+        l.value = scope.layers[i]
+        l.setAttribute('data-indexes', i + 1)
+        l.text = scope.layers[i]
+        layerList.appendChild(l)
+      }
+
+      // remove loader
+      document.getElementById('loader').classList.toggle('off')
+      document.getElementById('hide-arrow').classList.toggle('off')
+      document.getElementById('menu').classList.toggle('off')
+
+      // Add Layer 
+      const bounds = scope.bounds
+      addAOI(bounds)
+      map.fitBounds([[bounds[0], bounds[1]], [bounds[2], bounds[3]]])
+
+      switchViz('raster')
+    })
+    .catch(err => {
+      console.warn(err)
+    })
+
+  map.on('mousemove', (e) => {
+    if (!map.getLayer('mvt')) return
+    const mouseRadius = 1
+    const feature = map.queryRenderedFeatures([
+      [e.point.x - mouseRadius, e.point.y - mouseRadius],
+      [e.point.x + mouseRadius, e.point.y + mouseRadius]
+    ], { layers: ['mvt'] })[0]
+    if (feature) {
+      map.getCanvas().style.cursor = 'pointer'
+    } else {
+      map.getCanvas().style.cursor = 'inherit'
+    }
+  })
+
+  map.on('click', 'mvt', (e) => {
+    let html = '<table><tr><th>property</th><th>value</th></tr>'
+    Object.entries(e.features[0].properties).forEach(entry => {
+      let key = entry[0]
+      let value = entry[1]
+      if (key !== 'id') html += `<tr><td>${key}</td><td>${value}</td></tr>`
+    })
+    html += `<tr><td>lon</td><td>${e.lngLat.lng.toString().slice(0, 7)}</td></tr>`
+    html += `<tr><td>lat</td><td>${e.lngLat.lat.toString().slice(0, 7)}</td></tr>`
+    html += '</table>'
+    new mapboxgl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(html)
+      .addTo(map)
+  })
+})
+
+</script>
+
+</body>
+</html>

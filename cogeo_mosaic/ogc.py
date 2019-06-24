@@ -78,7 +78,7 @@ def wmts_template(
             <ows:Operation name="GetCapabilities">
                 <ows:DCP>
                     <ows:HTTP>
-                        <ows:Get xlink:href="{endpoint}/mosaic/wmts?{query_string}">
+                        <ows:Get xlink:href="{endpoint}/wmts?{query_string}">
                             <ows:Constraint name="GetEncoding">
                                 <ows:AllowedValues>
                                     <ows:Value>RESTful</ows:Value>
@@ -91,7 +91,7 @@ def wmts_template(
             <ows:Operation name="GetTile">
                 <ows:DCP>
                     <ows:HTTP>
-                        <ows:Get xlink:href="{endpoint}/mosaic/wmts?{query_string}">
+                        <ows:Get xlink:href="{endpoint}/wmts?{query_string}">
                             <ows:Constraint name="GetEncoding">
                                 <ows:AllowedValues>
                                     <ows:Value>RESTful</ows:Value>
@@ -121,7 +121,7 @@ def wmts_template(
                 <ResourceURL
                     format="{content_type}"
                     resourceType="tile"
-                    template="{endpoint}/mosaic/{{TileMatrix}}/{{TileCol}}/{{TileRow}}@{tile_scale}x.{tile_format}?{query_string}"/>
+                    template="{endpoint}/{{TileMatrix}}/{{TileCol}}/{{TileRow}}@{tile_scale}x.{tile_format}?{query_string}"/>
             </Layer>
             <TileMatrixSet>
                 <ows:Title>GoogleMapsCompatible</ows:Title>
@@ -131,7 +131,7 @@ def wmts_template(
                 {tileMatrix}
             </TileMatrixSet>
         </Contents>
-        <ServiceMetadataURL xlink:href='{endpoint}/mosaic/wmts?{query_string}'/>
+        <ServiceMetadataURL xlink:href='{endpoint}/wmts?{query_string}'/>
     </Capabilities>"""
 
     return xml

@@ -3,6 +3,7 @@
 import os
 import json
 import base64
+import urllib
 
 import pytest
 from mock import patch
@@ -59,8 +60,8 @@ def test_API_favicon(event):
 
 
 def test_create_footprint(event):
-    """Test /create_footprint route."""
-    event["path"] = "/create_footprint"
+    """Test /footprint route."""
+    event["path"] = "/footprint"
     event["httpMethod"] = "POST"
     event["body"] = base64.b64encode(json.dumps([asset1, asset2]).encode()).decode(
         "utf-8"
@@ -81,7 +82,7 @@ def test_create_footprint(event):
     assert body["type"] == "FeatureCollection"
     assert len(body["features"]) == 2
 
-    event["path"] = "/create_footprint"
+    event["path"] = "/footprint"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(
         body=base64.b64encode(json.dumps([asset1, asset2]).encode()).decode("utf-8")
@@ -96,8 +97,8 @@ def test_create_footprint(event):
 
 
 def test_create_mosaic(event):
-    """Test /create_mosaic route."""
-    event["path"] = "/create_mosaic"
+    """Test /mosaic route."""
+    event["path"] = "/mosaic"
     event["httpMethod"] = "POST"
     event["body"] = base64.b64encode(json.dumps([asset1, asset2]).encode()).decode(
         "utf-8"
@@ -117,7 +118,7 @@ def test_create_mosaic(event):
     body = json.loads(res["body"])
     assert body == mosaic_content
 
-    event["path"] = "/create_mosaic"
+    event["path"] = "/mosaic"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(
         body=base64.b64encode(json.dumps([asset1, asset2]).encode()).decode("utf-8")
@@ -132,15 +133,15 @@ def test_create_mosaic(event):
 
 @patch("cogeo_mosaic.handlers.api.fetch_mosaic_definition")
 def test_get_mosaic_wmts(get_data):
-    """Test /mosaic/wmts route."""
+    """Test /wmts route."""
     get_data.return_value = mosaic_content
 
     with open(request_json, "r") as f:
         event = json.loads(f.read())
 
-    event["path"] = "/mosaic/wmts"
+    event["path"] = "/wmts"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(url="http://mymosaic.json")
+    event["queryStringParameters"] = dict(tile_scale="2", url="http://mymosaic.json")
 
     headers = {
         "Access-Control-Allow-Credentials": "true",
@@ -155,18 +156,17 @@ def test_get_mosaic_wmts(get_data):
     assert res["statusCode"] == statusCode
     body = res["body"]
     assert (
-        "https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/wmts"
-        in body
+        "https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/wmts" in body
     )
     get_data.assert_called_once()
 
 
 @patch("cogeo_mosaic.handlers.api.fetch_mosaic_definition")
 def test_get_mosaic_info(get_data, event):
-    """Test /mosaic/info route."""
+    """Test /info route."""
     get_data.return_value = mosaic_content
 
-    event["path"] = "/mosaic/info"
+    event["path"] = "/info"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(url="http://mymosaic.json")
 
@@ -194,27 +194,27 @@ def test_get_mosaic_info(get_data, event):
 
 @patch("cogeo_mosaic.handlers.api.fetch_mosaic_definition")
 def test_tilejson(get_data, event):
-    """Test /mosaic/tilejson.json route."""
+    """Test /tilejson.json route."""
     get_data.return_value = mosaic_content
 
     with open(request_json, "r") as f:
         event = json.loads(f.read())
 
-    event["path"] = "/mosaic/tilejson.json"
+    event["path"] = "/tilejson.json"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(url="http://mymosaic.json", rescale="-1,1")
-
     headers = {
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET",
         "Access-Control-Allow-Origin": "*",
         "Content-Type": "application/json",
     }
-    statusCode = 200
+
+    # png 256px
+    event["queryStringParameters"] = dict(url="http://mymosaic.json", rescale="-1,1")
 
     res = APP(event, {})
     assert res["headers"] == headers
-    assert res["statusCode"] == statusCode
+    assert res["statusCode"] == 200
     body = json.loads(res["body"])
     assert body["bounds"]
     assert body["center"]
@@ -222,17 +222,49 @@ def test_tilejson(get_data, event):
     assert body["minzoom"] == 7
     assert body["name"] == "mymosaic.json"
     assert body["tilejson"] == "2.1.0"
-    assert body["tiles"]
-    get_data.assert_called_once()
+
+    url_info = urllib.parse.urlparse(body["tiles"][0])
+    assert url_info.netloc == "o4m49i49o5.execute-api.us-east-1.amazonaws.com"
+    assert url_info.path == "/production/{z}/{x}/{y}@1x.png"
+    qs = urllib.parse.parse_qs(url_info.query)
+    assert qs["url"][0] == "http://mymosaic.json"
+    assert qs["rescale"][0] == "-1,1"
+
+    # Jpeg 512px
+    event["queryStringParameters"] = dict(
+        url="http://mymosaic.json", tile_format="jpg", tile_scale=2
+    )
+
+    res = APP(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == 200
+    body = json.loads(res["body"])
+    url_info = urllib.parse.urlparse(body["tiles"][0])
+    assert url_info.netloc == "o4m49i49o5.execute-api.us-east-1.amazonaws.com"
+    assert url_info.path == "/production/{z}/{x}/{y}@2x.jpg"
+    qs = urllib.parse.parse_qs(url_info.query)
+    assert qs["url"][0] == "http://mymosaic.json"
+
+    event["queryStringParameters"] = dict(url="http://mymosaic.json", tile_format="pbf")
+
+    res = APP(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == 200
+    body = json.loads(res["body"])
+    url_info = urllib.parse.urlparse(body["tiles"][0])
+    assert url_info.netloc == "o4m49i49o5.execute-api.us-east-1.amazonaws.com"
+    assert url_info.path == "/production/{z}/{x}/{y}.pbf"
+    qs = urllib.parse.parse_qs(url_info.query)
+    assert qs["url"][0] == "http://mymosaic.json"
 
 
 @patch("cogeo_mosaic.handlers.api.get_assets")
 def test_API_errors(get_assets, event):
-    """Test /tiles route."""
+    """Test /tiles routes."""
     get_assets.return_value = []
 
     # missing URL
-    event["path"] = f"/mosaic/9/150/182.png"
+    event["path"] = f"/9/150/182.png"
     event["httpMethod"] = "GET"
     res = APP(event, {})
     assert res["statusCode"] == 400
@@ -241,7 +273,7 @@ def test_API_errors(get_assets, event):
     assert res["body"] == "Missing 'URL' parameter"
 
     # empty assets
-    event["path"] = f"/mosaic/9/150/182.png"
+    event["path"] = f"/9/150/182.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(url="http://mymosaic.json")
     res = APP(event, {})
@@ -253,11 +285,10 @@ def test_API_errors(get_assets, event):
 
 @patch("cogeo_mosaic.handlers.api.get_assets")
 def test_API_tiles(get_assets, event):
-    """Test /tiles route."""
+    """Test /tiles routes."""
     get_assets.return_value = [asset1, asset2]
 
-    # empty assets
-    event["path"] = f"/mosaic/9/150/182.png"
+    event["path"] = f"/9/150/182.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(url="http://mymosaic.json")
     res = APP(event, {})
@@ -266,8 +297,7 @@ def test_API_tiles(get_assets, event):
     assert headers["Content-Type"] == "image/png"
     assert res["body"]
 
-    # empty assets
-    event["path"] = f"/mosaic/9/150/182.png"
+    event["path"] = f"/9/150/182.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(
         url="http://mymosaic.json", rescale="0,10000", indexes="1", color_map="cfastie"
@@ -278,14 +308,23 @@ def test_API_tiles(get_assets, event):
     assert headers["Content-Type"] == "image/png"
     assert res["body"]
 
+    event["path"] = f"/9/150/182@2x.png"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(url="http://mymosaic.json", rescale="0,10000")
+    res = APP(event, {})
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "image/png"
+    assert res["body"]
+
 
 @patch("cogeo_mosaic.handlers.api.get_assets")
 def test_API_emptytiles(get_assets, event):
-    """Test /tiles route."""
+    """Test /tiles routes."""
     get_assets.return_value = [asset1, asset2]
 
     # empty assets
-    event["path"] = f"/mosaic/9/140/182.png"
+    event["path"] = f"/9/140/182.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(url="http://mymosaic.json")
     res = APP(event, {})
@@ -293,3 +332,33 @@ def test_API_emptytiles(get_assets, event):
     headers = res["headers"]
     assert headers["Content-Type"] == "text/plain"
     assert res["body"] == "empty tiles"
+
+
+@patch("cogeo_mosaic.handlers.api.get_assets")
+def test_API_MVTtiles(get_assets, event):
+    """Test /tiles routes."""
+    get_assets.return_value = [asset1, asset2]
+
+    event["path"] = f"/9/150/182.pbf"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = {}
+    res = APP(event, {})
+    assert res["statusCode"] == 500
+
+    event["path"] = f"/9/150/182.pbf"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(url="http://mymosaic.json", tile_size="64")
+    res = APP(event, {})
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "application/x-protobuf"
+    assert res["body"]
+
+    event["path"] = f"/9/150/182.mvt"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(url="http://mymosaic.json")
+    res = APP(event, {})
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "application/x-protobuf"
+    assert res["body"]

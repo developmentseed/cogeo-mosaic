@@ -1,6 +1,6 @@
 """cogeo-mosaic.handlers.api: handle request for cogeo-mosaic endpoints."""
 
-from typing import Any, Tuple
+from typing import Any, Tuple, Union
 
 import os
 import json
@@ -17,6 +17,7 @@ from rio_tiler.main import tile as cogeoTiler
 from rio_tiler.utils import array_to_image, get_colormap, linear_rescale
 from rio_tiler.profiles import img_profiles
 
+from rio_tiler_mvt.mvt import encoder as mvtEncoder
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 
 from cogeo_mosaic.ogc import wmts_template
@@ -29,15 +30,16 @@ from cogeo_mosaic.utils import (
 
 from lambda_proxy.proxy import API
 
-APP = API(app_name="cogeo-mosaic")
+APP = API(name="cogeo-mosaic")
 
 
 @APP.route(
-    "/create_footprint",
+    "/footprint",
     methods=["GET", "POST"],
     cors=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    tag=["mosaic"],
 )
 def _create_footpring(body: str) -> Tuple[str, str, str]:
     body = json.loads(base64.b64decode(body).decode())
@@ -49,11 +51,12 @@ def _create_footpring(body: str) -> Tuple[str, str, str]:
 
 
 @APP.route(
-    "/create_mosaic",
+    "/mosaic",
     methods=["GET", "POST"],
     cors=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    tag=["mosaic"],
 )
 def _create_mosaic(body: str) -> Tuple[str, str, str]:
     body = json.loads(base64.b64decode(body).decode())
@@ -61,11 +64,12 @@ def _create_mosaic(body: str) -> Tuple[str, str, str]:
 
 
 @APP.route(
-    "/mosaic/tilejson.json",
+    "/tilejson.json",
     methods=["GET"],
     cors=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    tag=["metadata"],
 )
 @APP.pass_event
 def _get_tilejson(
@@ -121,10 +125,15 @@ def _get_tilejson(
 
     scheme = "http" if host.startswith("127.0.0.1") else "https"
 
+    kwargs.update(dict(url=url))
     qs = urllib.parse.urlencode(list(kwargs.items()))
-    tile_url = f"{scheme}://{host}/mosaic/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?url={url}"
-    if qs:
-        tile_url += f"&{qs}"
+
+    if tile_format in ["pbf", "mvt"]:
+        tile_url = f"{scheme}://{host}/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
+    else:
+        tile_url = (
+            f"{scheme}://{host}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+        )
 
     meta = {
         "bounds": bounds,
@@ -151,11 +160,12 @@ def _get_layer_names(src_path):
 
 
 @APP.route(
-    "/mosaic/info",
+    "/info",
     methods=["GET"],
     cors=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    tag=["metadata"],
 )
 def _get_mosaic_info(url: str) -> Tuple[str, str, str]:
     """
@@ -202,11 +212,12 @@ def _get_mosaic_info(url: str) -> Tuple[str, str, str]:
 
 
 @APP.route(
-    "/mosaic/wmts",
+    "/wmts",
     methods=["GET"],
     cors=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    tag=["OGC"],
 )
 @APP.pass_event
 def _get_mosaic_wmts(
@@ -218,7 +229,7 @@ def _get_mosaic_wmts(
     **kwargs: Any,
 ) -> Tuple[str, str, str]:
     """
-    Handle /mosaic/wmts requests.
+    Handle /wmts requests.
 
     Attributes
     ----------
@@ -282,6 +293,67 @@ def _get_mosaic_wmts(
     )
 
 
+@APP.route(
+    "/<int:z>/<int:x>/<int:y>.pbf",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["tiles"],
+)
+@APP.route(
+    "/<int:z>/<int:x>/<int:y>.mvt",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["tiles"],
+)
+def mosaic_mvt(
+    z: int,
+    x: int,
+    y: int,
+    url: str,
+    tile_size: Union[str, int] = 256,
+    pixel_selection: str = "first",
+    feature_type: str = "point",
+    resampling_method: str = "nearest",
+):
+    """Handle MVT requests."""
+    assets = get_assets(url, x, y, z)
+    if not assets:
+        return ("EMPTY", "text/plain", f"No assets found for tile {z}-{x}-{y}")
+
+    if tile_size is not None and isinstance(tile_size, str):
+        tile_size = int(tile_size)
+
+    tile, mask = mosaic_tiler(
+        assets,
+        x,
+        y,
+        z,
+        cogeoTiler,
+        tilesize=tile_size,
+        pixel_selection=pixel_selection,
+        resampling_method=resampling_method,
+    )
+    if tile is None:
+        return ("EMPTY", "text/plain", "empty tiles")
+
+    band_descriptions = _get_layer_names(assets[0])
+    return (
+        "OK",
+        "application/x-protobuf",
+        mvtEncoder(
+            tile,
+            mask,
+            band_descriptions,
+            os.path.basename(url),
+            feature_type=feature_type,
+        ),
+    )
+
+
 def _postprocess(
     tile: numpy.ndarray,
     mask: numpy.ndarray,
@@ -312,18 +384,20 @@ def _postprocess(
 
 
 @APP.route(
-    "/mosaic/<int:z>/<int:x>/<int:y>.<ext>",
+    "/<int:z>/<int:x>/<int:y>.<ext>",
     methods=["GET"],
     cors=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    tag=["tiles"],
 )
 @APP.route(
-    "/mosaic/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
+    "/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
     methods=["GET"],
     cors=True,
     payload_compression_method="gzip",
     binary_b64encode=True,
+    tag=["tiles"],
 )
 def mosaic_img(
     z: int,
@@ -379,7 +453,7 @@ def mosaic_img(
     )
 
 
-@APP.route("/favicon.ico", methods=["GET"], cors=True)
+@APP.route("/favicon.ico", methods=["GET"], cors=True, tag=["other"])
 def favicon() -> Tuple[str, str, str]:
     """Favicon."""
     return ("EMPTY", "text/plain", "")
