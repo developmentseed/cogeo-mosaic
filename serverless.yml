@@ -1,0 +1,46 @@
+service: cogeo-mosaic
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: ${opt:stage, 'production'}
+  region: ${opt:region, 'us-east-1'}
+
+  iamRoleStatements:
+  -  Effect: "Allow"
+     Action:
+       - "*"
+     Resource:
+       - "arn:aws:s3:::${opt:bucket}*"
+
+  environment:
+    CPL_TMPDIR: /tmp
+    CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif
+    GDAL_CACHEMAX: 512
+    GDAL_DATA: /var/task/share/gdal
+    GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
+    GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
+    GDAL_HTTP_MULTIPLEX: YES
+    GDAL_HTTP_VERSION: 2
+    MAX_THREADS: 10
+    PYTHONWARNINGS: ignore
+    VSI_CACHE: TRUE
+    VSI_CACHE_SIZE: 536870912
+
+  apiGateway:
+    binaryMediaTypes:
+      - '*/*'
+
+package:
+  artifact: package.zip
+
+functions:
+  api:
+    handler: cogeo_mosaic.handlers.api.APP
+    memorySize: 3008
+    timeout: 10
+    events:
+      - http:
+          path: /{proxy+}
+          method: get
+          cors: true

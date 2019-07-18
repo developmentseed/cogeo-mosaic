@@ -106,7 +106,4 @@ ENV/
 
 package.zip
 
-#Terraform
-.terraform
-terraform.*
-backend.tf
+.serverless

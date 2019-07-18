@@ -3,8 +3,6 @@ echo "-----------------------"
 echo "Creating lambda package"
 echo "-----------------------"
 echo
-echo "Remove useless python files"
-# find $PACKAGE_PREFIX -name "*-info" -type d -exec rm -rdf {} +
 
 echo "Remove lambda python packages"
 rm -rdf $PACKAGE_PREFIX/boto3/ \
