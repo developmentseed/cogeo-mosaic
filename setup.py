@@ -11,8 +11,8 @@ inst_reqs = [
     "requests",
     "rasterio[s3]",
     "rio-color",
-    "rio_tiler>=1.2.7",
-    "rio_tiler_mosaic==0.0.1dev0",
+    "rio_tiler>=1.2.9",
+    "rio_tiler_mosaic==0.0.1dev1",
     "rio_tiler_mvt",
     "lambda-proxy~=4.0",
 ]
