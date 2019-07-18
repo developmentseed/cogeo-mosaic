@@ -55,17 +55,13 @@ $ docker-compose run --rm package
 
 #### Deploy to AWS
 
+This project uses [Serverless](https://serverless.com) to manage deploy on AWS.
 
 ```bash
-$ brew install terraform
+# Install and Configure serverless (https://serverless.com/framework/docs/providers/aws/guide/credentials/)
+$ npm install serverless -g 
 
-# (optional) add terraform backend
-# see https://github.com/developmentseed/terraform-state-store
-
-# Set ${AWS_ACCESS_KEY_ID} and ${AWS_SECRET_ACCESS_KEY} in your env
-$ terraform init
-
-$ terraform apply
+$ sls deploy --region us-east-1 --bucket a-bucket-where-you-store-data
 ```
 
 ## DEMO

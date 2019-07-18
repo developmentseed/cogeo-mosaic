@@ -60,9 +60,13 @@ $ aws s3 cp mosaic.json.gz s3://{my-bucket}/digitalglobe/post_idai/20190320/mosa
 ```bash
 $ git clone https://github.com/developmentseed/cogeo-mosaic.git
 
-# edit main.tf / backend.tf files 
-$ terraform init
-$ terraform apply
+# Create lambda package
+$ docker-compose build --no-cache
+$ docker-compose run --rm package
+
+# Deploy
+$ npm install serverless -g 
+$ sls deploy
 ```
 
 ### Edit [/index.html](index.html)
