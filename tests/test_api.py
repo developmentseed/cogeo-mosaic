@@ -300,6 +300,62 @@ def test_API_tiles(get_assets, event):
     event["path"] = f"/9/150/182.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(
+        url="http://mymosaic.json", pixel_selection="first"
+    )
+    res = APP(event, {})
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "image/png"
+    assert res["body"]
+
+    event["path"] = f"/9/150/182.png"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(
+        url="http://mymosaic.json", pixel_selection="highest"
+    )
+    res = APP(event, {})
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "image/png"
+    assert res["body"]
+
+    event["path"] = f"/9/150/182.png"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(
+        url="http://mymosaic.json", pixel_selection="lowest"
+    )
+    res = APP(event, {})
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "image/png"
+    assert res["body"]
+
+    # See https://github.com/cogeotiff/rio-tiler-mosaic/issues/4
+    # event["path"] = f"/9/150/182.png"
+    # event["httpMethod"] = "GET"
+    # event["queryStringParameters"] = dict(
+    #     url="http://mymosaic.json", pixel_selection="mean"
+    # )
+    # res = APP(event, {})
+    # assert res["statusCode"] == 200
+    # headers = res["headers"]
+    # assert headers["Content-Type"] == "image/png"
+    # assert res["body"]
+
+    # event["path"] = f"/9/150/182.png"
+    # event["httpMethod"] = "GET"
+    # event["queryStringParameters"] = dict(
+    #     url="http://mymosaic.json", pixel_selection="median"
+    # )
+    # res = APP(event, {})
+    # assert res["statusCode"] == 200
+    # headers = res["headers"]
+    # assert headers["Content-Type"] == "image/png"
+    # assert res["body"]
+
+    event["path"] = f"/9/150/182.png"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(
         url="http://mymosaic.json", rescale="0,10000", indexes="1", color_map="cfastie"
     )
     res = APP(event, {})
