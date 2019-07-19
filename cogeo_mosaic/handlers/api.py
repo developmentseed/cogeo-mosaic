@@ -25,7 +25,7 @@ from cogeo_mosaic.ogc import wmts_template
 from cogeo_mosaic.utils import (
     create_mosaic,
     fetch_mosaic_definition,
-    get_assets,
+    fetch_and_find_assets,
     get_footprints,
 )
 
@@ -328,7 +328,7 @@ def mosaic_mvt(
     resampling_method: str = "nearest",
 ):
     """Handle MVT requests."""
-    assets = get_assets(url, x, y, z)
+    assets = fetch_and_find_assets(url, x, y, z)
     if not assets:
         return ("EMPTY", "text/plain", f"No assets found for tile {z}-{x}-{y}")
 
@@ -426,7 +426,7 @@ def mosaic_img(
     if not url:
         return ("NOK", "text/plain", "Missing 'URL' parameter")
 
-    assets = get_assets(url, x, y, z)
+    assets = fetch_and_find_assets(url, x, y, z)
     if not assets:
         return ("EMPTY", "text/plain", f"No assets found for tile {z}-{x}-{y}")
 

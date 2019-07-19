@@ -258,7 +258,7 @@ def test_tilejson(get_data, event):
     assert qs["url"][0] == "http://mymosaic.json"
 
 
-@patch("cogeo_mosaic.handlers.api.get_assets")
+@patch("cogeo_mosaic.handlers.api.fetch_and_find_assets")
 def test_API_errors(get_assets, event):
     """Test /tiles routes."""
     get_assets.return_value = []
@@ -283,7 +283,7 @@ def test_API_errors(get_assets, event):
     assert res["body"] == "No assets found for tile 9-150-182"
 
 
-@patch("cogeo_mosaic.handlers.api.get_assets")
+@patch("cogeo_mosaic.handlers.api.fetch_and_find_assets")
 def test_API_tiles(get_assets, event):
     """Test /tiles routes."""
     get_assets.return_value = [asset1, asset2]
@@ -374,7 +374,7 @@ def test_API_tiles(get_assets, event):
     assert res["body"]
 
 
-@patch("cogeo_mosaic.handlers.api.get_assets")
+@patch("cogeo_mosaic.handlers.api.fetch_and_find_assets")
 def test_API_emptytiles(get_assets, event):
     """Test /tiles routes."""
     get_assets.return_value = [asset1, asset2]
@@ -390,7 +390,7 @@ def test_API_emptytiles(get_assets, event):
     assert res["body"] == "empty tiles"
 
 
-@patch("cogeo_mosaic.handlers.api.get_assets")
+@patch("cogeo_mosaic.handlers.api.fetch_and_find_assets")
 def test_API_MVTtiles(get_assets, event):
     """Test /tiles routes."""
     get_assets.return_value = [asset1, asset2]

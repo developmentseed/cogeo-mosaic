@@ -11,8 +11,9 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
-from cogeo_mosaic.utils import create_mosaic, get_footprints
+from cogeo_mosaic.utils import create_mosaic, get_footprints, fetch_mosaic_definition
 from cogeo_mosaic.handlers.api import APP
+from cogeo_mosaic.overviews import create_low_level_cogs
 
 
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
@@ -71,6 +72,38 @@ def footprint(input_files, output, threads):
             f.write(json.dumps(foot))
     else:
         click.echo(json.dumps(foot))
+
+
+@cogeo_cli.command(short_help="[EXPERIMENT] Create COG overviews for a mosaic")
+@click.argument("input_mosaic", type=click.Path())
+@click.option("--prefix", type=str, help="Output files prefix")
+@click.option(
+    "--threads",
+    type=int,
+    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
+    help="threads",
+)
+@click.option(
+    "--overview-zoom-level",
+    type=int,
+    default=6,
+    help="Max internal overivew level for the COG."
+    f"Will be used to get the size of each COG. Default is {256 * 2 **6}",
+)
+def overview(input_mosaic, prefix, threads, overview_zoom_level):
+    """Create COG overviews for a mosaic."""
+    mosaic_def = fetch_mosaic_definition(input_mosaic)
+    config = dict(
+        NUM_THREADS=threads,
+        GDAL_TIFF_INTERNAL_MASK=os.environ.get("GDAL_TIFF_INTERNAL_MASK", True),
+        GDAL_TIFF_OVR_BLOCKSIZE="128",
+    )
+    if not prefix:
+        prefix = os.path.basename(input_mosaic).split(".")[0]
+
+    create_low_level_cogs(
+        mosaic_def, prefix, max_overview_level=overview_zoom_level, config=config
+    )
 
 
 @cogeo_cli.command(short_help="Local Server")
