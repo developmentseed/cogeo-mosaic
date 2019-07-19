@@ -19,6 +19,7 @@ from rio_tiler.profiles import img_profiles
 
 from rio_tiler_mvt.mvt import encoder as mvtEncoder
 from rio_tiler_mosaic.mosaic import mosaic_tiler
+from rio_tiler_mosaic.methods import defaults
 
 from cogeo_mosaic.ogc import wmts_template
 from cogeo_mosaic.utils import (
@@ -30,6 +31,13 @@ from cogeo_mosaic.utils import (
 
 from lambda_proxy.proxy import API
 
+PIXSEL_METHODS = {
+    "first": defaults.FirstMethod,
+    "highest": defaults.HighestMethod,
+    "lowest": defaults.LowestMethod,
+    "mean": defaults.MeanMethod,
+    "median": defaults.MedianMethod,
+}
 APP = API(name="cogeo-mosaic")
 
 
@@ -327,6 +335,7 @@ def mosaic_mvt(
     if tile_size is not None and isinstance(tile_size, str):
         tile_size = int(tile_size)
 
+    pixsel_method = PIXSEL_METHODS[pixel_selection]
     tile, mask = mosaic_tiler(
         assets,
         x,
@@ -334,7 +343,7 @@ def mosaic_mvt(
         z,
         cogeoTiler,
         tilesize=tile_size,
-        pixel_selection=pixel_selection,
+        pixel_selection=pixsel_method(),
         resampling_method=resampling_method,
     )
     if tile is None:
@@ -425,6 +434,8 @@ def mosaic_img(
         indexes = list(map(int, indexes.split(",")))
 
     tilesize = 256 * scale
+
+    pixsel_method = PIXSEL_METHODS[pixel_selection]
     tile, mask = mosaic_tiler(
         assets,
         x,
@@ -433,7 +444,7 @@ def mosaic_img(
         cogeoTiler,
         indexes=indexes,
         tilesize=tilesize,
-        pixel_selection=pixel_selection,
+        pixel_selection=pixsel_method(),
         resampling_method=resampling_method,
     )
 
