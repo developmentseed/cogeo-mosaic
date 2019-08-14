@@ -11,6 +11,7 @@ inst_reqs = [
     "requests",
     "rasterio[s3]",
     "rio-color",
+    "rio-cogeo>=1.1.0",
     "rio_tiler>=1.2.10",
     "rio_tiler_mosaic>=0.0.1dev3",
     "rio_tiler_mvt",
