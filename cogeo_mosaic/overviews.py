@@ -70,18 +70,22 @@ def _split_extrema(extrema: Dict, max_ovr: int = 6, tilesize: int = 256):
 
 def create_low_level_cogs(
     mosaic_definition: Dict,
+    dst_kwargs: Dict,
     prefix: str = "mosaic_ovr",
+    add_mask: bool = True,
     max_overview_level: int = 6,
     config: Dict = None,
 ):
     """
-    Create Overview COG from a mosaic definition file.
+    Create WebOptimized Overview COG from a mosaic definition file.
 
     Attributes
     ----------
     mosaic_definition : dict, required
         Mosaic definition.
     prefix : str
+    add_mask, bool, optional
+        Force output dataset creation with a mask.
     max_overview_level : int
     config : dict
         Rasterio Env options.
@@ -110,31 +114,17 @@ def create_low_level_cogs(
         )
         transform = Affine(res, 0, w, 0, -res, n)
 
-        params = dict(add_alpha=True)
-        params.update(
-            dict(
-                driver="GTiff",
-                count=info[0],
-                dtype=info[1],
-                crs="epsg:3857",
-                transform=transform,
-                width=width,
-                height=height,
-            )
+        params = dict(
+            driver="GTiff",
+            count=info[0],
+            dtype=info[1],
+            crs="epsg:3857",
+            transform=transform,
+            width=width,
+            height=height,
         )
 
         dst_path = f"{prefix}_{ix}.tif"
-
-        # TODO: Should be configurable
-        dst_kwargs = {
-            "driver": "GTiff",
-            "interleave": "pixel",
-            "tiled": True,
-            "blockxsize": tilesize,
-            "blockysize": tilesize,
-            "compress": "DEFLATE",
-        }
-
         params.update(**dst_kwargs)
         params.pop("compress", None)
 
@@ -177,8 +167,8 @@ def create_low_level_cogs(
                                 )
 
                                 mem.write(tile, window=w)
-                                # TODO: Should be configurable
-                                mem.write_mask(mask.astype("uint8"), window=w)
+                                if add_mask:
+                                    mem.write_mask(mask.astype("uint8"), window=w)
 
                     overview_level = get_maximum_overview_level(mem, tilesize)
 
