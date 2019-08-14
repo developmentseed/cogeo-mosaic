@@ -11,10 +11,11 @@ inst_reqs = [
     "requests",
     "rasterio[s3]",
     "rio-color",
-    "rio_tiler>=1.2.9",
-    "rio_tiler_mosaic>=0.0.1dev2",
+    "rio_tiler>=1.2.10",
+    "rio_tiler_mosaic>=0.0.1dev3",
     "rio_tiler_mvt",
-    "lambda-proxy~=4.0",
+    "lambda-proxy==4.1.3",
+    "numpy==1.16",
 ]
 extra_reqs = {
     "test": ["pytest", "pytest-cov", "mock"],
