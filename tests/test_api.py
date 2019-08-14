@@ -33,6 +33,7 @@ def testing_env_var(monkeypatch):
 def event():
     """Event fixture."""
     return {
+        "resource": "/",
         "path": "/",
         "httpMethod": "GET",
         "headers": {},
@@ -136,10 +137,14 @@ def test_get_mosaic_wmts(get_data):
     """Test /wmts route."""
     get_data.return_value = mosaic_content
 
-    with open(request_json, "r") as f:
-        event = json.loads(f.read())
+    event = {
+        "resource": "/{proxy+}",
+        "pathParameters": {"proxy": "wmts"},
+        "path": "/wmts",
+        "headers": {"host": "afakeapi.execute-api.us-east-1.amazonaws.com"},
+        "requestContext": {"stage": "production"},
+    }
 
-    event["path"] = "/wmts"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(tile_scale="2", url="http://mymosaic.json")
 
@@ -156,7 +161,7 @@ def test_get_mosaic_wmts(get_data):
     assert res["statusCode"] == statusCode
     body = res["body"]
     assert (
-        "https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/wmts" in body
+        "https://afakeapi.execute-api.us-east-1.amazonaws.com/production/wmts" in body
     )
     get_data.assert_called_once()
 
@@ -197,9 +202,13 @@ def test_tilejson(get_data, event):
     """Test /tilejson.json route."""
     get_data.return_value = mosaic_content
 
-    with open(request_json, "r") as f:
-        event = json.loads(f.read())
-
+    event = {
+        "resource": "/{proxy+}",
+        "pathParameters": {"proxy": "tilejson.json"},
+        "path": "/tilejson.json",
+        "headers": {"host": "afakeapi.execute-api.us-east-1.amazonaws.com"},
+        "requestContext": {"stage": "production"},
+    }
     event["path"] = "/tilejson.json"
     event["httpMethod"] = "GET"
     headers = {
@@ -224,7 +233,7 @@ def test_tilejson(get_data, event):
     assert body["tilejson"] == "2.1.0"
 
     url_info = urllib.parse.urlparse(body["tiles"][0])
-    assert url_info.netloc == "o4m49i49o5.execute-api.us-east-1.amazonaws.com"
+    assert url_info.netloc == "afakeapi.execute-api.us-east-1.amazonaws.com"
     assert url_info.path == "/production/{z}/{x}/{y}@1x.png"
     qs = urllib.parse.parse_qs(url_info.query)
     assert qs["url"][0] == "http://mymosaic.json"
@@ -240,7 +249,7 @@ def test_tilejson(get_data, event):
     assert res["statusCode"] == 200
     body = json.loads(res["body"])
     url_info = urllib.parse.urlparse(body["tiles"][0])
-    assert url_info.netloc == "o4m49i49o5.execute-api.us-east-1.amazonaws.com"
+    assert url_info.netloc == "afakeapi.execute-api.us-east-1.amazonaws.com"
     assert url_info.path == "/production/{z}/{x}/{y}@2x.jpg"
     qs = urllib.parse.parse_qs(url_info.query)
     assert qs["url"][0] == "http://mymosaic.json"
@@ -252,7 +261,7 @@ def test_tilejson(get_data, event):
     assert res["statusCode"] == 200
     body = json.loads(res["body"])
     url_info = urllib.parse.urlparse(body["tiles"][0])
-    assert url_info.netloc == "o4m49i49o5.execute-api.us-east-1.amazonaws.com"
+    assert url_info.netloc == "afakeapi.execute-api.us-east-1.amazonaws.com"
     assert url_info.path == "/production/{z}/{x}/{y}.pbf"
     qs = urllib.parse.parse_qs(url_info.query)
     assert qs["url"][0] == "http://mymosaic.json"

@@ -25,6 +25,18 @@ from rasterio.warp import transform_bounds
 
 from boto3.session import Session as boto3_session
 
+from lambda_proxy.proxy import ApigwPath
+
+
+def get_apigw_url(event: Dict) -> str:
+    """Construct api gateway endpoint url."""
+    host = event["headers"].get("x-forwarded-host", event["headers"].get("host", ""))
+    path_info = ApigwPath(event)
+    host = host + path_info.apigw_stage
+
+    scheme = "http" if host.startswith("127.0.0.1") else "https"
+    return f"{scheme}://{host}"
+
 
 def _decompress_gz(gzip_buffer):
     return zlib.decompress(gzip_buffer, zlib.MAX_WBITS | 16).decode()
