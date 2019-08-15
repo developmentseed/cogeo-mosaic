@@ -16,8 +16,8 @@ inst_reqs = [
     "rio_tiler_mosaic>=0.0.1dev3",
     "rio_tiler_mvt",
     "lambda-proxy==4.1.3",
-    "numpy==1.16",
 ]
+
 extra_reqs = {
     "test": ["pytest", "pytest-cov", "mock"],
     "dev": ["pytest", "pytest-cov", "pre-commit", "mock"],
