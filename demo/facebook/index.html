@@ -213,7 +213,7 @@ const updateViz = () => {
   const minV = parseFloat(document.getElementById('minCut').value)
   const maxV = parseFloat(document.getElementById('maxCut').value)
 
-  let url = `${apiEndpoint}/mosaic/tilejson.json?url=${mosaicDefinition}&tile_format=png&indexes=${indexes}&rescale=${minV},${maxV}`
+  let url = `${apiEndpoint}/tilejson.json?url=${mosaicDefinition}&tile_format=png&indexes=${indexes}&rescale=${minV},${maxV}`
   if (cmap.value !== 'b&w') url += `&color_map=${cmap.value}`
   map.addSource('raster', {
     type: 'raster',
@@ -273,7 +273,7 @@ const addAOI = (bounds) => {
 }
 
 map.on('load', () => {
-  fetch(`${apiEndpoint}/mosaic/info?url=${mosaicDefinition}`)
+  fetch(`${apiEndpoint}/info?url=${mosaicDefinition}`)
     .then(res => {
       if (res.ok) return res.json()
       throw new Error('Network response was not ok.')

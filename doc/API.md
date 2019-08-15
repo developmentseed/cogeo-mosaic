@@ -1,8 +1,12 @@
 ## API
 
+### OpenAPI
+
+https://08lazntuxe.execute-api.us-east-1.amazonaws.com/production/docs
+
 
 ### Create footprint GeoJSON
-`/create_footprint`
+`/footprint`
 
 - methods: GET | POST
 - **body**
@@ -13,12 +17,12 @@
 Note: equivalent of running `cogeo-mosaic footprint` locally 
 
 ```bash
-$ curl -X POST -F 'json=@list.json' https://{endpoint-url}/create_footprint`
+$ curl -X POST -F 'json=@list.json' https://{endpoint-url}/footprint`
 ```
 
 
 ### Create mosaic defintion file
-`/create_mosaic`
+`/mosaic`
 
 - methods: GET | POST
 - **body**
@@ -29,11 +33,11 @@ $ curl -X POST -F 'json=@list.json' https://{endpoint-url}/create_footprint`
 Note: equivalent of running `cogeo-mosaic create` locally 
 
 ```bash
-$ curl -X POST -F 'json=@list.json' https://{endpoint-url}/create_mosaic`
+$ curl -X POST -F 'json=@list.json' https://{endpoint-url}/mosaic`
 ```
 
 ### TileJSON (2.1.0)
-`/mosaic/tilejson.json`
+`/tilejson.json`
 
 - methods: GET
 - **url** (required): mosaic definition url
@@ -43,7 +47,7 @@ $ curl -X POST -F 'json=@list.json' https://{endpoint-url}/create_mosaic`
 - returns: tijeson defintion (application/json, compression: **gzip**)
 
 ```bash
-$ curl https://{endpoint-url}/mosaic/tilejson.json?url=s3://my_file.json.gz
+$ curl https://{endpoint-url}/tilejson.json?url=s3://my_file.json.gz
 ```
 
 ```json
@@ -55,20 +59,20 @@ meta = {
     "name": "my_file.json.gz",
     "tilejson": "2.1.0",
     "tiles": [
-        "https://{endpoint-url}/mosaic/{{z}}/{{x}}/{{y}}@2x.<ext>"
+        "https://{endpoint-url}/{{z}}/{{x}}/{{y}}@2x.<ext>"
     ],
 }
 ```
 
 ### Mosaic Metadata
-`/mosaic/info`
+`/info`
 
 - methods: GET
 - **url** (in querytring): mosaic definition url
 - returns: mosaic defintion info (application/json, compression: **gzip**)
 
 ```bash
-$ curl https://{endpoint-url}/mosaic/info?url=s3://my_file.json.gz)
+$ curl https://{endpoint-url}/info?url=s3://my_file.json.gz)
 ```
 
 ```json
@@ -84,7 +88,7 @@ meta = {
 ```
 
 ### wmts
-`/mosaic/wmts`
+`/wmts`
 
 - methods: GET
 - **url** (in querytring): mosaic definition url
@@ -94,7 +98,7 @@ meta = {
 - returns: WMTS xml (application/xml, compression: **gzip**)
 
 ```bash
-$ curl https://{endpoint-url}/mosaic/wmts?url=s3://my_file.json.gz)
+$ curl https://{endpoint-url}/wmts?url=s3://my_file.json.gz)
 ```
 <details>
 
@@ -116,7 +120,7 @@ $ curl https://{endpoint-url}/mosaic/wmts?url=s3://my_file.json.gz)
             <ows:Operation name="GetCapabilities">
                 <ows:DCP>
                     <ows:HTTP>
-                        <ows:Get xlink:href="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/wmts?url=http%3A%2F%2Fmymosaic.json">
+                        <ows:Get xlink:href="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/wmts?url=http%3A%2F%2Fmymosaic.json">
                             <ows:Constraint name="GetEncoding">
                                 <ows:AllowedValues>
                                     <ows:Value>RESTful</ows:Value>
@@ -129,7 +133,7 @@ $ curl https://{endpoint-url}/mosaic/wmts?url=s3://my_file.json.gz)
             <ows:Operation name="GetTile">
                 <ows:DCP>
                     <ows:HTTP>
-                        <ows:Get xlink:href="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/wmts?url=http%3A%2F%2Fmymosaic.json">
+                        <ows:Get xlink:href="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/wmts?url=http%3A%2F%2Fmymosaic.json">
                             <ows:Constraint name="GetEncoding">
                                 <ows:AllowedValues>
                                     <ows:Value>RESTful</ows:Value>
@@ -159,7 +163,7 @@ $ curl https://{endpoint-url}/mosaic/wmts?url=s3://my_file.json.gz)
                 <ResourceURL
                     format="image/png"
                     resourceType="tile"
-                    template="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/{TileMatrix}/{TileCol}/{TileRow}@1x.png?url=http%3A%2F%2Fmymosaic.json"/>
+                    template="https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/{TileMatrix}/{TileCol}/{TileRow}@1x.png?url=http%3A%2F%2Fmymosaic.json"/>
             </Layer>
             <TileMatrixSet>
                 <ows:Title>GoogleMapsCompatible</ows:Title>
@@ -195,15 +199,15 @@ $ curl https://{endpoint-url}/mosaic/wmts?url=s3://my_file.json.gz)
         </TileMatrix>
             </TileMatrixSet>
         </Contents>
-        <ServiceMetadataURL xlink:href='https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/mosaic/wmts?url=http%3A%2F%2Fmymosaic.json'/>
+        <ServiceMetadataURL xlink:href='https://o4m49i49o5.execute-api.us-east-1.amazonaws.com/production/wmts?url=http%3A%2F%2Fmymosaic.json'/>
     </Capabilities>
 ```
 </details>
 
 ### Get image tiles
-`/mosaic/<int:z>/<int:x>/<int:y>.<ext>`
+`/<int:z>/<int:x>/<int:y>.<ext>`
 
-`/mosaic/<int:z>/<int:x>/<int:y>@2x.<ext>`
+`/<int:z>/<int:x>/<int:y>@2x.<ext>`
 
 - methods: GET
 - **z**: Mercator tile zoom value
@@ -216,11 +220,11 @@ $ curl https://{endpoint-url}/mosaic/wmts?url=s3://my_file.json.gz)
 - **rescale** (optional, str): min/max for data rescaling (default: None)
 - **color_ops** (optional, str): rio-color formula (default: None)
 - **color_map** (optional, str): rio-tiler colormap (default: None)
-- **pixel_selection** (optional, str): mosaic pixel selection (default: `scene`)
+- **pixel_selection** (optional, str): mosaic pixel selection (default: `first`)
 - **resampling_method** (optional, str): tiler resampling method (default: `nearest`)
 - compression: **gzip**
 - returns: image body (image/jpeg)
 
 ```bash
-$ curl https://{endpoint-url}/mosaic/8/32/22.png?url=s3://my_file.json.gz&indexes=1,2,3&rescale=100,3000&color_ops=Gamma RGB 3&pixel_selection=darkest
+$ curl https://{endpoint-url}/8/32/22.png?url=s3://my_file.json.gz&indexes=1,2,3&rescale=100,3000&color_ops=Gamma RGB 3&pixel_selection=first
 ```

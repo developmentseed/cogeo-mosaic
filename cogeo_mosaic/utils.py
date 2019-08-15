@@ -6,6 +6,7 @@ from typing.io import BinaryIO
 import os
 import zlib
 import json
+import hashlib
 import warnings
 import functools
 import itertools
@@ -23,6 +24,18 @@ from rio_tiler.mercator import get_zooms
 from rasterio.warp import transform_bounds
 
 from boto3.session import Session as boto3_session
+
+from lambda_proxy.proxy import ApigwPath
+
+
+def get_apigw_url(event: Dict) -> str:
+    """Construct api gateway endpoint url."""
+    host = event["headers"].get("x-forwarded-host", event["headers"].get("host", ""))
+    path_info = ApigwPath(event)
+    host = host + path_info.apigw_stage
+
+    scheme = "http" if host.startswith("127.0.0.1") else "https"
+    return f"{scheme}://{host}"
 
 
 def _decompress_gz(gzip_buffer):
@@ -50,6 +63,13 @@ def _aws_get_data(key, bucket):
 
     response = s3.get_object(Bucket=bucket, Key=key)
     return response["Body"].read()
+
+
+def get_hash(**kwargs: Dict) -> str:
+    """Create hash from a dict."""
+    return hashlib.sha224(
+        json.dumps(kwargs, sort_keys=True, default=str).encode()
+    ).hexdigest()
 
 
 def get_dataset_info(src_path: str) -> Dict:
@@ -225,16 +245,21 @@ def fetch_mosaic_definition(url: str) -> Dict:
     return get_mosaic_content(url)
 
 
-def get_assets(url: str, x: int, y: int, z: int) -> Tuple[str]:
-    """Get assets."""
-    mosaic_def = fetch_mosaic_definition(url)
-    min_zoom = mosaic_def["minzoom"]
-    max_zoom = mosaic_def["maxzoom"]
+def fetch_and_find_assets(mosaic_path: str, x: int, y: int, z: int) -> Tuple[str]:
+    """Fetch mosaic definition file and find assets."""
+    mosaic_def = fetch_mosaic_definition(mosaic_path)
+    return get_assets(mosaic_def, x, y, z)
+
+
+def get_assets(mosaic_definition: Dict, x: int, y: int, z: int) -> Tuple[str]:
+    """Find assets."""
+    min_zoom = mosaic_definition["minzoom"]
+    max_zoom = mosaic_definition["maxzoom"]
     if z > max_zoom or z < min_zoom:
         return []  # return empty asset
 
     mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-    quadkey_zoom = mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
+    quadkey_zoom = mosaic_definition.get("quadkey_zoom", min_zoom)  # 0.0.2
 
     # get parent
     if mercator_tile.z > quadkey_zoom:
@@ -258,7 +283,7 @@ def get_assets(url: str, x: int, y: int, z: int) -> Tuple[str]:
 
     assets = list(
         itertools.chain.from_iterable(
-            [mosaic_def["tiles"].get(qk, []) for qk in quadkey]
+            [mosaic_definition["tiles"].get(qk, []) for qk in quadkey]
         )
     )
 
@@ -266,7 +291,7 @@ def get_assets(url: str, x: int, y: int, z: int) -> Tuple[str]:
     return list(
         itertools.chain.from_iterable(
             [
-                get_assets(asset, x, y, z)
+                fetch_and_find_assets(asset, x, y, z)
                 if os.path.splitext(asset)[1] in [".json", ".gz"]
                 else [asset]
                 for asset in assets

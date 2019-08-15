@@ -11,8 +11,12 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
-from cogeo_mosaic.utils import create_mosaic, get_footprints
+from cogeo_mosaic.utils import create_mosaic, get_footprints, fetch_mosaic_definition
 from cogeo_mosaic.handlers.api import APP
+from cogeo_mosaic.overviews import create_low_level_cogs
+
+from rasterio.rio import options
+from rio_cogeo.profiles import cog_profiles
 
 
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
@@ -71,6 +75,59 @@ def footprint(input_files, output, threads):
             f.write(json.dumps(foot))
     else:
         click.echo(json.dumps(foot))
+
+
+@cogeo_cli.command(short_help="[EXPERIMENT] Create COG overviews for a mosaic")
+@click.argument("input_mosaic", type=click.Path())
+@click.option(
+    "--cog-profile",
+    "-p",
+    "cogeo_profile",
+    type=click.Choice(cog_profiles.keys()),
+    default="deflate",
+    help="CloudOptimized GeoTIFF profile (default: deflate).",
+)
+@click.option("--prefix", type=str, help="Output files prefix")
+@click.option(
+    "--threads",
+    type=int,
+    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
+    help="threads",
+)
+@click.option(
+    "--overview-level",
+    type=int,
+    default=6,
+    help="Max internal overivew level for the COG. "
+    f"Will be used to get the size of each COG. Default is {256 * 2 **6}",
+)
+@options.creation_options
+def overview(
+    input_mosaic, cogeo_profile, prefix, threads, overview_level, creation_options
+):
+    """Create COG overviews for a mosaic."""
+    mosaic_def = fetch_mosaic_definition(input_mosaic)
+
+    output_profile = cog_profiles.get(cogeo_profile)
+    output_profile.update(dict(BIGTIFF=os.environ.get("BIGTIFF", "IF_SAFER")))
+    if creation_options:
+        output_profile.update(creation_options)
+
+    config = dict(
+        NUM_THREADS=threads,
+        GDAL_TIFF_INTERNAL_MASK=os.environ.get("GDAL_TIFF_INTERNAL_MASK", True),
+        GDAL_TIFF_OVR_BLOCKSIZE="128",
+    )
+    if not prefix:
+        prefix = os.path.basename(input_mosaic).split(".")[0]
+
+    create_low_level_cogs(
+        mosaic_def,
+        output_profile,
+        prefix,
+        max_overview_level=overview_level,
+        config=config,
+    )
 
 
 @cogeo_cli.command(short_help="Local Server")

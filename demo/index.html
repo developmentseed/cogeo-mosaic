@@ -144,7 +144,7 @@ const addAOI = (bounds) => {
 }
 
 const addMosaic = (mosaicUrl, options) => {
-  return fetch(`${apiEndpoint}/mosaic/info?url=${mosaicUrl}`)
+  return fetch(`${apiEndpoint}/info?url=${mosaicUrl}`)
     .then(res => {
       if (res.ok) return res.json()
       throw new Error('Network response was not ok.')
@@ -154,7 +154,7 @@ const addMosaic = (mosaicUrl, options) => {
       document.getElementById('min-zoom').textContent = `Min Zoom: ${data.minzoom}`
       document.getElementById('max-zoom').textContent = `Max Zoom: ${data.maxzoom}`
       const tileParams = Object.keys(options).map(i => `${i}=${options[i]}`).join('&')
-      let url = `${apiEndpoint}/mosaic/tilejson.json?url=${mosaicUrl}&tile_format=png`
+      let url = `${apiEndpoint}/tilejson.json?url=${mosaicUrl}&tile_format=png`
       if (tileParams !== '') url += `&${tileParams}`
 
       map.addSource('raster', {

@@ -211,6 +211,6 @@ def test_get_mosaic_ContentGz(requests, s3get):
 def test_get_assets(getMosaic):
     """Fetch mosaic and get assets list."""
     getMosaic.return_value = mosaic_content
-    assert len(utils.get_assets("mymosaic.json", 150, 182, 9)) == 2
-    assert len(utils.get_assets("mymosaic.json", 147, 182, 9)) == 1
-    assert len(utils.get_assets("mymosaic.json", 147, 182, 12)) == 0
+    assert len(utils.fetch_and_find_assets("mymosaic.json", 150, 182, 9)) == 2
+    assert len(utils.fetch_and_find_assets("mymosaic.json", 147, 182, 9)) == 1
+    assert len(utils.fetch_and_find_assets("mymosaic.json", 147, 182, 12)) == 0

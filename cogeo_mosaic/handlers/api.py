@@ -25,8 +25,9 @@ from cogeo_mosaic.ogc import wmts_template
 from cogeo_mosaic.utils import (
     create_mosaic,
     fetch_mosaic_definition,
-    get_assets,
+    fetch_and_find_assets,
     get_footprints,
+    get_apigw_url,
 )
 
 from lambda_proxy.proxy import API
@@ -81,11 +82,7 @@ def _create_mosaic(body: str) -> Tuple[str, str, str]:
 )
 @APP.pass_event
 def _get_tilejson(
-    request: dict,
-    url: str,
-    tile_format: str = "png",
-    tile_scale: int = 1,
-    **kwargs: Any,
+    event: dict, url: str, tile_format: str = "png", tile_scale: int = 1, **kwargs: Any
 ) -> Tuple[str, str, str]:
     """
     Handle /tilejson.json requests.
@@ -123,25 +120,14 @@ def _get_tilejson(
         mosaic_def["minzoom"],
     ]
 
-    host = request["headers"].get(
-        "X-Forwarded-Host", request["headers"].get("Host", "")
-    )
-    # Check for API gateway stage
-    if ".execute-api." in host and ".amazonaws.com" in host:
-        stage = request["requestContext"].get("stage", "")
-        host = f"{host}/{stage}"
-
-    scheme = "http" if host.startswith("127.0.0.1") else "https"
-
+    endpoint = get_apigw_url(event)
     kwargs.update(dict(url=url))
     qs = urllib.parse.urlencode(list(kwargs.items()))
 
     if tile_format in ["pbf", "mvt"]:
-        tile_url = f"{scheme}://{host}/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
+        tile_url = f"{endpoint}/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
     else:
-        tile_url = (
-            f"{scheme}://{host}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
-        )
+        tile_url = f"{endpoint}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
 
     meta = {
         "bounds": bounds,
@@ -229,7 +215,7 @@ def _get_mosaic_info(url: str) -> Tuple[str, str, str]:
 )
 @APP.pass_event
 def _get_mosaic_wmts(
-    request: dict,
+    event: dict,
     url: str,
     tile_format: str = "png",
     tile_scale: int = 1,
@@ -265,15 +251,7 @@ def _get_mosaic_wmts(
 
     mosaic_def = fetch_mosaic_definition(url)
 
-    host = request["headers"].get(
-        "X-Forwarded-Host", request["headers"].get("Host", "")
-    )
-    # Check for API gateway stage
-    if ".execute-api." in host and ".amazonaws.com" in host:
-        stage = request["requestContext"].get("stage", "")
-        host = f"{host}/{stage}"
-
-    scheme = "http" if host.startswith("127.0.0.1") else "https"
+    endpoint = get_apigw_url(event)
 
     kwargs.pop("SERVICE", None)
     kwargs.pop("REQUEST", None)
@@ -282,7 +260,6 @@ def _get_mosaic_wmts(
     query_string = query_string.replace(
         "&", "&amp;"
     )  # & is an invalid character in XML
-    endpoint = f"{scheme}://{host}"
 
     return (
         "OK",
@@ -328,7 +305,7 @@ def mosaic_mvt(
     resampling_method: str = "nearest",
 ):
     """Handle MVT requests."""
-    assets = get_assets(url, x, y, z)
+    assets = fetch_and_find_assets(url, x, y, z)
     if not assets:
         return ("EMPTY", "text/plain", f"No assets found for tile {z}-{x}-{y}")
 
@@ -426,7 +403,7 @@ def mosaic_img(
     if not url:
         return ("NOK", "text/plain", "Missing 'URL' parameter")
 
-    assets = get_assets(url, x, y, z)
+    assets = fetch_and_find_assets(url, x, y, z)
     if not assets:
         return ("EMPTY", "text/plain", f"No assets found for tile {z}-{x}-{y}")
 
