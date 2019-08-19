@@ -12,11 +12,14 @@ import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
 from cogeo_mosaic.utils import create_mosaic, get_footprints, fetch_mosaic_definition
-from cogeo_mosaic.handlers.api import APP
 from cogeo_mosaic.overviews import create_low_level_cogs
 
 from rasterio.rio import options
 from rio_cogeo.profiles import cog_profiles
+
+from cogeo_mosaic.handlers.api import APP
+
+APP.https = False
 
 
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):

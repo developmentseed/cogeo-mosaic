@@ -15,7 +15,7 @@ inst_reqs = [
     "rio_tiler>=1.2.10",
     "rio_tiler_mosaic>=0.0.1dev3",
     "rio_tiler_mvt",
-    "lambda-proxy==4.1.3",
+    "lambda-proxy>=4.1.4",
 ]
 
 extra_reqs = {
@@ -25,7 +25,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="0.0.2",
+    version="0.0.3",
     description=u"Create and serve COG mosaics.",
     long_description=u"Create and serve COG mosaics.",
     python_requires=">=3",
