@@ -1,10 +1,9 @@
-"""cogeo-mosaic.handlers.api: handle request for cogeo-mosaic endpoints."""
+"""cogeo-mosaic.handlers.api_tiles: handle request for cogeo-mosaic endpoints."""
 
 from typing import Any, Tuple, Union
 
 import os
 import json
-import base64
 import urllib
 
 import numpy
@@ -21,14 +20,8 @@ from rio_tiler_mvt.mvt import encoder as mvtEncoder
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 from rio_tiler_mosaic.methods import defaults
 
-from cogeo_mosaic.templates import index
 from cogeo_mosaic.ogc import wmts_template
-from cogeo_mosaic.utils import (
-    create_mosaic,
-    fetch_mosaic_definition,
-    fetch_and_find_assets,
-    get_footprints,
-)
+from cogeo_mosaic.utils import fetch_mosaic_definition, fetch_and_find_assets
 
 from lambda_proxy.proxy import API
 
@@ -39,59 +32,10 @@ PIXSEL_METHODS = {
     "mean": defaults.MeanMethod,
     "median": defaults.MedianMethod,
 }
-APP = API(name="cogeo-mosaic")
+app = API(name="cogeo-mosaic-tiles")
 
 
-@APP.route("/", methods=["GET"], cors=True, tag=["landing page"])
-@APP.route("/index.html", methods=["GET"], cors=True, tag=["landing page"])
-def _index() -> Tuple[str, str, str]:
-    """
-    Handle / requests.
-
-    Returns
-    -------
-    status : str
-        Status of the request (e.g. OK, NOK).
-    MIME type : str
-        response body MIME type (e.g. application/json).
-    body : str
-        String encoded html
-
-    """
-    return ("OK", "text/html", index(APP.host))
-
-
-@APP.route(
-    "/footprint",
-    methods=["GET", "POST"],
-    cors=True,
-    payload_compression_method="gzip",
-    binary_b64encode=True,
-    tag=["mosaic"],
-)
-def _create_footpring(body: str) -> Tuple[str, str, str]:
-    body = json.loads(base64.b64decode(body).decode())
-    return (
-        "OK",
-        "application/json",
-        json.dumps({"features": get_footprints(body), "type": "FeatureCollection"}),
-    )
-
-
-@APP.route(
-    "/mosaic",
-    methods=["GET", "POST"],
-    cors=True,
-    payload_compression_method="gzip",
-    binary_b64encode=True,
-    tag=["mosaic"],
-)
-def _create_mosaic(body: str) -> Tuple[str, str, str]:
-    body = json.loads(base64.b64decode(body).decode())
-    return ("OK", "application/json", json.dumps(create_mosaic(body)))
-
-
-@APP.route(
+@app.route(
     "/tilejson.json",
     methods=["GET"],
     cors=True,
@@ -140,18 +84,19 @@ def _get_tilejson(
 
     kwargs.update(dict(url=url))
     qs = urllib.parse.urlencode(list(kwargs.items()))
-
     if tile_format in ["pbf", "mvt"]:
-        tile_url = f"{APP.host}/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
+        tile_url = f"{app.host}/tiles/{{z}}/{{x}}/{{y}}.{tile_format}?{qs}"
     else:
-        tile_url = f"{APP.host}/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+        tile_url = (
+            f"{app.host}/tiles/{{z}}/{{x}}/{{y}}@{tile_scale}x.{tile_format}?{qs}"
+        )
 
     meta = {
         "bounds": bounds,
         "center": center,
         "maxzoom": mosaic_def["maxzoom"],
         "minzoom": mosaic_def["minzoom"],
-        "name": os.path.basename(url),
+        "name": url,
         "tilejson": "2.1.0",
         "tiles": [tile_url],
     }
@@ -170,59 +115,7 @@ def _get_layer_names(src_path):
         return [_get_name(ix) for ix in src_dst.indexes]
 
 
-@APP.route(
-    "/info",
-    methods=["GET"],
-    cors=True,
-    payload_compression_method="gzip",
-    binary_b64encode=True,
-    tag=["metadata"],
-)
-def _get_mosaic_info(url: str) -> Tuple[str, str, str]:
-    """
-    Handle /info requests.
-
-    Attributes
-    ----------
-    url : str, required
-        Mosaic definition url.
-
-    Returns
-    -------
-    status : str
-        Status of the request (e.g. OK, NOK).
-    MIME type : str
-        response body MIME type (e.g. application/json).
-    body : str
-        String encoded JSON metata
-
-    """
-    mosaic_def = fetch_mosaic_definition(url)
-
-    bounds = mosaic_def["bounds"]
-    center = [
-        (bounds[0] + bounds[2]) / 2,
-        (bounds[1] + bounds[3]) / 2,
-        mosaic_def["minzoom"],
-    ]
-    quadkeys = list(mosaic_def["tiles"].keys())
-
-    # read layernames from the first file
-    src_path = mosaic_def["tiles"][quadkeys[0]][0]
-
-    meta = {
-        "bounds": bounds,
-        "center": center,
-        "maxzoom": mosaic_def["maxzoom"],
-        "minzoom": mosaic_def["minzoom"],
-        "name": os.path.basename(url),
-        "quadkeys": quadkeys,
-        "layers": _get_layer_names(src_path),
-    }
-    return ("OK", "application/json", json.dumps(meta))
-
-
-@APP.route(
+@app.route(
     "/wmts",
     methods=["GET"],
     cors=True,
@@ -278,7 +171,7 @@ def _get_mosaic_wmts(
         "OK",
         "application/xml",
         wmts_template(
-            APP.host,
+            app.host,
             os.path.basename(url),
             query_string,
             minzoom=mosaic_def["minzoom"],
@@ -291,7 +184,7 @@ def _get_mosaic_wmts(
     )
 
 
-@APP.route(
+@app.route(
     "/<int:z>/<int:x>/<int:y>.pbf",
     methods=["GET"],
     cors=True,
@@ -299,7 +192,7 @@ def _get_mosaic_wmts(
     binary_b64encode=True,
     tag=["tiles"],
 )
-@APP.route(
+@app.route(
     "/<int:z>/<int:x>/<int:y>.mvt",
     methods=["GET"],
     cors=True,
@@ -382,7 +275,7 @@ def _postprocess(
     return tile
 
 
-@APP.route(
+@app.route(
     "/<int:z>/<int:x>/<int:y>.<ext>",
     methods=["GET"],
     cors=True,
@@ -390,7 +283,7 @@ def _postprocess(
     binary_b64encode=True,
     tag=["tiles"],
 )
-@APP.route(
+@app.route(
     "/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
     methods=["GET"],
     cors=True,
@@ -454,7 +347,7 @@ def mosaic_img(
     )
 
 
-@APP.route("/favicon.ico", methods=["GET"], cors=True, tag=["other"])
+@app.route("/favicon.ico", methods=["GET"], cors=True, tag=["other"])
 def favicon() -> Tuple[str, str, str]:
     """Favicon."""
     return ("EMPTY", "text/plain", "")

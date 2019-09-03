@@ -13,34 +13,71 @@ provider:
      Resource:
        - "arn:aws:s3:::${opt:bucket}*"
 
-  environment:
-    CPL_TMPDIR: /tmp
-    CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif
-    GDAL_CACHEMAX: 512
-    GDAL_DATA: /var/task/share/gdal
-    GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
-    GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
-    GDAL_HTTP_MULTIPLEX: YES
-    GDAL_HTTP_VERSION: 2
-    MAX_THREADS: 10
-    PYTHONWARNINGS: ignore
-    VSI_CACHE: TRUE
-    VSI_CACHE_SIZE: 536870912
-
   apiGateway:
     binaryMediaTypes:
       - '*/*'
+    minimumCompressionSize: 0
 
 package:
   artifact: package.zip
 
 functions:
-  api:
-    handler: cogeo_mosaic.handlers.api.APP
-    memorySize: 3008
-    timeout: 10
+  web:
+    handler: cogeo_mosaic.handlers.web.app
+    memorySize: 128
+    timeout: 3
     events:
+      - http:
+          path: /
+          method: get
+          cors: true
       - http:
           path: /{proxy+}
           method: get
+          cors: true
+
+  tiler:
+    handler: cogeo_mosaic.handlers.tiles.app
+    memorySize: 3008
+    timeout: 10
+    environment:
+      CPL_TMPDIR: /tmp
+      CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif,.TIF
+      GDAL_CACHEMAX: 512
+      GDAL_DATA: /var/task/share/gdal
+      GDAL_DISABLE_READDIR_ON_OPEN: FALSE
+      GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
+      GDAL_HTTP_MULTIPLEX: YES
+      GDAL_HTTP_VERSION: 2
+      MAX_THREADS: 50
+      PYTHONWARNINGS: ignore
+      VSI_CACHE: TRUE
+      VSI_CACHE_SIZE: 536870912
+    events:
+      - http:
+          path: /tiles/{proxy+}
+          method: any
+          cors: true
+
+  mosaics:
+    handler: cogeo_mosaic.handlers.mosaic.app
+    memorySize: 3008
+    timeout: 30
+    environment:
+      CPL_TMPDIR: /tmp
+      CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif,.TIF
+      GDAL_CACHEMAX: 512
+      GDAL_DATA: /var/task/share/gdal
+      GDAL_DISABLE_READDIR_ON_OPEN: FALSE
+      GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
+      GDAL_HTTP_MULTIPLEX: YES
+      GDAL_HTTP_VERSION: 2
+      MAX_THREADS: 50
+      PYTHONWARNINGS: ignore
+      VSI_CACHE: TRUE
+      VSI_CACHE_SIZE: 536870912
+    events:
+      - http:
+          path: /mosaic/{proxy+}
+          method: any
           cors: true

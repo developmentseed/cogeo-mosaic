@@ -2,18 +2,43 @@
 
 [![CircleCI](https://circleci.com/gh/developmentseed/cogeo-mosaic.svg?style=svg)](https://circleci.com/gh/developmentseed/cogeo-mosaic)
 
-Create and use COG mosaic based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec).
+**Read the official announcement https://medium.com/devseed/cog-talk-part-2-mosaics-bbbf474e66df**
+
+
+Create and use mosaics of COGs based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec).
 
 ![mosaicJSON](https://user-images.githubusercontent.com/10407788/57888417-1fc75100-7800-11e9-93a3-b54d06fb4cd2.png)
 
+# What is this 
 
-## Install
-```
+This repo is a combination of a python (>3) module and a serverless stack (AWS).
+
+The python module provide a CLI to help create mosaicJSON localy.
+
+
+## Install the python module + cli
+```bash
+$ pip install pip -U
 $ pip install http://github.com/developmentseed/cogeo-mosaic
+
+$ cogeo-mosaic
+Usage: cogeo-mosaic [OPTIONS] COMMAND [ARGS]...
+
+  cogeo_mosaic cli.
+
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
+Commands:
+  create     Create mosaic definition from list of files
+  footprint  Create geojson from list of files
+  overview   [EXPERIMENT] Create COG overviews for a mosaic
+  run        Local Server
 ```
 
-## Create Mosaic definition
-```
+### Usage - Create Mosaic definition
+```bash
 $ cogeo-mosaic create --help
 Usage: cogeo-mosaic create [OPTIONS] [INPUT_FILES]
 
@@ -33,6 +58,16 @@ $ cogeo-mosaic create list.txt -o mosaic.json
 # or 
 
 $ cat list.txt | cogeo-mosaic create - | gzip > mosaic.json.gz
+```
+
+#### Create a mosaic from OAM
+
+```bash 
+# Create Footprint
+$ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.results.images[] | .uuid' | cogeo-mosaic footprint | gist -p -f test.geojson
+
+# Create Mosaic
+$ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.results.images[] | .uuid' | cogeo-mosaic create - | gzip >  5d6a0d1a2103c90007707fa0.json.gz
 ```
 
 ## Serverless Stack
@@ -66,7 +101,7 @@ $ sls deploy --region us-east-1 --bucket a-bucket-where-you-store-data
 
 ## DEMO
 
-see [/demo](/demo)
+To run your own see [/demo](/demo)
 
 
 ### Contribution & Development

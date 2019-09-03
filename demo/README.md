@@ -1,6 +1,8 @@
 # Demo
 
-#### Bring your own 
+A live demo is available over https://bl.ocks.org/vincentsarago/raw/815884188c243b636ab8d927d8942a4d/
+
+#### Set your own 
 
 The [`index.html`](index.html) template let you paste a mosaic url and then visualize it. You'll need to add your mosaic endpoint first ([line 105](https://github.com/developmentseed/cogeo-mosaic/blob/master/demo/index.html#L105)).
 
