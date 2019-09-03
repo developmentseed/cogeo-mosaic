@@ -11,7 +11,7 @@ from cogeo_mosaic.utils import create_mosaic, fetch_mosaic_definition, get_footp
 
 from lambda_proxy.proxy import API
 
-app = API(name="cogeo-mosaic-mosaic")
+app = API(name="cogeo-mosaic-mosaic", debug=True)
 
 
 @app.route(

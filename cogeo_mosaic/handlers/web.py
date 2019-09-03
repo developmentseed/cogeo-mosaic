@@ -4,7 +4,7 @@ from typing import Tuple
 from cogeo_mosaic import templates
 from lambda_proxy.proxy import API
 
-app = API(name="cogeo-mosaic-web", add_docs=False)
+app = API(name="cogeo-mosaic-web", add_docs=False, debug=True)
 
 
 @app.route("/", methods=["GET"], cors=True, tag=["landing page"])
