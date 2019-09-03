@@ -17,9 +17,14 @@ from cogeo_mosaic.overviews import create_low_level_cogs
 from rasterio.rio import options
 from rio_cogeo.profiles import cog_profiles
 
-from cogeo_mosaic.handlers.api import APP
+from cogeo_mosaic.handlers.web import app as app_web
+from cogeo_mosaic.handlers.tiles import app as app_tiles
+from cogeo_mosaic.handlers.mosaic import app as app_mosaic
 
-APP.https = False
+
+app_web.https = False
+app_tiles.https = False
+app_mosaic.https = False
 
 
 class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
@@ -145,13 +150,29 @@ def run(port):
         def do_GET(self):
             """Get requests."""
             q = urlparse(self.path)
+            pathParameters = {}
+            if q.path.startswith("/tiles/"):
+                application = app_tiles
+                resource = "/tiles/{proxy+}"
+                pathParameters = {"proxy": q.path.replace("/tiles/", "")}
+            elif q.path.startswith("/mosaic/"):
+                application = app_mosaic
+                resource = "/mosaic/{proxy+}"
+                pathParameters = {"proxy": q.path.replace("/mosaic/", "")}
+            else:
+                application = app_web
+                resource = "/{proxy+}"
+                pathParameters = {"proxy": q.path.replace("/", "")}
+
             request = {
+                "resource": resource,
+                "pathParameters": pathParameters,
                 "headers": dict(self.headers),
                 "path": q.path,
                 "queryStringParameters": dict(parse_qsl(q.query)),
                 "httpMethod": self.command,
             }
-            response = APP(request, None)
+            response = application(request, None)
 
             self.send_response(int(response["statusCode"]))
             for r in response["headers"]:
@@ -169,17 +190,32 @@ def run(port):
         def do_POST(self):
             """POST requests."""
             q = urlparse(self.path)
-            body = self.rfile.read(int(dict(self.headers).get("Content-Length")))
+            pathParameters = {}
+            if q.path.startswith("/tiles/"):
+                application = app_tiles
+                resource = "/tiles/{proxy+}"
+                pathParameters = {"proxy": q.path.replace("/tiles/", "")}
+            elif q.path.startswith("/mosaic/"):
+                application = app_mosaic
+                resource = "/mosaic/{proxy+}"
+                pathParameters = {"proxy": q.path.replace("/mosaic/", "")}
+            else:
+                application = app_web
+                resource = "/{proxy+}"
+                pathParameters = {"proxy": q.path.replace("/", "")}
 
+            body = self.rfile.read(int(dict(self.headers).get("Content-Length")))
+            body = base64.b64encode(body).decode()
             request = {
+                "resource": resource,
+                "pathParameters": pathParameters,
                 "headers": dict(self.headers),
                 "path": q.path,
                 "queryStringParameters": dict(parse_qsl(q.query)),
                 "body": body,
                 "httpMethod": self.command,
             }
-
-            response = APP(request, None)
+            response = application(request, None)
 
             self.send_response(int(response["statusCode"]))
             for r in response["headers"]:

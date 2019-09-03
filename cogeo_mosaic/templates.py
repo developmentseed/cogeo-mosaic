@@ -135,7 +135,7 @@ def index(endpoint: str) -> str:
         return
       }}
       const addMosaic = (mosaicUrl, options) => {{
-        return fetch(`{endpoint}/info?url=${{mosaicUrl}}`)
+        return fetch(`{endpoint}/mosaic/info?url=${{mosaicUrl}}`)
           .then(res => {{
             if (res.ok) return res.json()
             throw new Error('Network response was not ok.')
@@ -145,7 +145,7 @@ def index(endpoint: str) -> str:
             document.getElementById('min-zoom').textContent = `Min Zoom: ${{data.minzoom}}`
             document.getElementById('max-zoom').textContent = `Max Zoom: ${{data.maxzoom}}`
             const tileParams = Object.keys(options).map(i => `${{i}}=${{options[i]}}`).join('&')
-            let url = `{endpoint}/tilejson.json?url=${{mosaicUrl}}&tile_format=png`
+            let url = `{endpoint}/tiles/tilejson.json?url=${{mosaicUrl}}&tile_format=png`
             if (tileParams !== '') url += `&${{tileParams}}`
             map.addSource('raster', {{
               type: 'raster',
