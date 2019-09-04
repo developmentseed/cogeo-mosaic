@@ -1,6 +1,6 @@
 """cogeo-mosaic.handlers.api_mosaic: handle request for cogeo-mosaic endpoints."""
 
-from typing import Tuple
+from typing import Tuple, Union
 
 import json
 import base64
@@ -22,9 +22,19 @@ app = API(name="cogeo-mosaic-mosaic", debug=True)
     binary_b64encode=True,
     tag=["mosaic"],
 )
-def _create_mosaic(body: str) -> Tuple[str, str, str]:
+def _create_mosaic(
+    body: str, minzoom: Union[str, int] = None, maxzoom: Union[str, int] = None
+) -> Tuple[str, str, str]:
     body = json.loads(base64.b64decode(body).decode())
-    return ("OK", "application/json", json.dumps(create_mosaic(body)))
+
+    minzoom = int(minzoom) if isinstance(minzoom, str) else minzoom
+    maxzoom = int(maxzoom) if isinstance(maxzoom, str) else maxzoom
+
+    return (
+        "OK",
+        "application/json",
+        json.dumps(create_mosaic(body, minzoom=minzoom, maxzoom=maxzoom)),
+    )
 
 
 @app.route(
