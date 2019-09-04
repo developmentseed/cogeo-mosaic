@@ -25,18 +25,6 @@ from rasterio.warp import transform_bounds
 
 from boto3.session import Session as boto3_session
 
-from lambda_proxy.proxy import ApigwPath
-
-
-def get_apigw_url(event: Dict) -> str:
-    """Construct api gateway endpoint url."""
-    host = event["headers"].get("x-forwarded-host", event["headers"].get("host", ""))
-    path_info = ApigwPath(event)
-    host = host + path_info.apigw_stage
-
-    scheme = "http" if host.startswith("127.0.0.1") else "https"
-    return f"{scheme}://{host}"
-
 
 def _decompress_gz(gzip_buffer):
     return zlib.decompress(gzip_buffer, zlib.MAX_WBITS | 16).decode()
@@ -134,7 +122,11 @@ def _tiles_bounds(features, zoom):
 
 
 def create_mosaic(
-    dataset_list: Tuple, max_threads: int = 20, version: str = "0.0.1"
+    dataset_list: Tuple,
+    minzoom: int = None,
+    maxzoom: int = None,
+    max_threads: int = 20,
+    version: str = "0.0.1",
 ) -> Dict:
     """
     Create mosaic definition content.
@@ -157,17 +149,23 @@ def create_mosaic(
     """
     results = get_footprints(dataset_list, max_threads=max_threads)
 
-    minzoom = list(set([feat["properties"]["minzoom"] for feat in results]))
-    if len(minzoom) > 1:
-        warnings.warn("Multiple MinZoom, Assets different minzoom values", UserWarning)
+    if minzoom is None:
+        minzoom = list(set([feat["properties"]["minzoom"] for feat in results]))
+        if len(minzoom) > 1:
+            warnings.warn(
+                "Multiple MinZoom, Assets different minzoom values", UserWarning
+            )
+        minzoom = max(minzoom)
 
-    maxzoom = list(set([feat["properties"]["maxzoom"] for feat in results]))
-    if len(maxzoom) > 1:
-        warnings.warn(
-            "Multiple MaxZoom, Assets have multiple resolution values", UserWarning
-        )
+    if maxzoom is None:
+        maxzoom = list(set([feat["properties"]["maxzoom"] for feat in results]))
+        if len(maxzoom) > 1:
+            warnings.warn(
+                "Multiple MaxZoom, Assets have multiple resolution values", UserWarning
+            )
+        maxzoom = max(maxzoom)
 
-    quadkey_zoom = max(minzoom)
+    quadkey_zoom = minzoom  # mosaic spec 0.0.2 WIP
 
     datatype = list(set([feat["properties"]["datatype"] for feat in results]))
     if len(datatype) > 1:
@@ -180,14 +178,10 @@ def create_mosaic(
 
     if version == "0.0.1":
         mosaic_definition = dict(
-            minzoom=max(minzoom),
-            maxzoom=max(maxzoom),
+            minzoom=minzoom,
+            maxzoom=maxzoom,
             bounds=bounds,
-            center=[
-                (bounds[0] + bounds[2]) / 2,
-                (bounds[1] + bounds[3]) / 2,
-                max(minzoom),
-            ],
+            center=[(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom],
             tiles={},
         )
 

@@ -110,9 +110,21 @@ def test_mosaic_create():
     assert mosaic["minzoom"] == mosaic_content["minzoom"]
     assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
 
+    mosaic = utils.create_mosaic(assets, minzoom=7, maxzoom=9)
+    assert [round(b, 3) for b in mosaic["bounds"]] == [
+        round(b, 3) for b in mosaic_content["bounds"]
+    ]
+    assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
+    assert mosaic["minzoom"] == mosaic_content["minzoom"]
+    assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
+
     # Wrong MosaicJSON version
     with pytest.raises(Exception):
         utils.create_mosaic(assets, version="0.0.2")
+
+    with pytest.warns(None) as record:
+        mosaic = utils.create_mosaic([asset1_small, asset2], minzoom=7, maxzoom=9)
+        assert not len(record)
 
     # Multiple MaxZoom
     with pytest.warns(UserWarning):
