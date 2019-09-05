@@ -21,7 +21,11 @@ from rio_tiler_mosaic.mosaic import mosaic_tiler
 from rio_tiler_mosaic.methods import defaults
 
 from cogeo_mosaic.ogc import wmts_template
-from cogeo_mosaic.utils import fetch_mosaic_definition, fetch_and_find_assets
+from cogeo_mosaic.utils import (
+    fetch_mosaic_definition,
+    fetch_and_find_assets,
+    _create_path,
+)
 
 from lambda_proxy.proxy import API
 
@@ -43,8 +47,20 @@ app = API(name="cogeo-mosaic-tiles")
     binary_b64encode=True,
     tag=["metadata"],
 )
+@app.route(
+    "/<regex([0-9A-Fa-f]{56}):mosaicid>/tilejson.json",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["metadata"],
+)
 def _get_tilejson(
-    url: str, tile_format: str = "png", tile_scale: int = 1, **kwargs: Any
+    mosaicid: str = None,
+    url: str = None,
+    tile_format: str = "png",
+    tile_scale: int = 1,
+    **kwargs: Any,
 ) -> Tuple[str, str, str]:
     """
     Handle /tilejson.json requests.
@@ -73,6 +89,11 @@ def _get_tilejson(
         String encoded tileJSON
 
     """
+    if mosaicid:
+        url = _create_path(mosaicid)
+    elif url is None:
+        return ("NOK", "text/plain", "Missing 'URL' parameter")
+
     mosaic_def = fetch_mosaic_definition(url)
 
     bounds = mosaic_def["bounds"]
@@ -123,8 +144,17 @@ def _get_layer_names(src_path):
     binary_b64encode=True,
     tag=["OGC"],
 )
+@app.route(
+    "/<regex([0-9A-Fa-f]{56}):mosaicid>/wmts",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["metadata"],
+)
 def _get_mosaic_wmts(
-    url: str,
+    mosaicid: str = None,
+    url: str = None,
     tile_format: str = "png",
     tile_scale: int = 1,
     title: str = "Cloud Optimizied GeoTIFF Mosaic",
@@ -154,6 +184,11 @@ def _get_mosaic_wmts(
         String encoded JSON metata
 
     """
+    if mosaicid:
+        url = _create_path(mosaicid)
+    elif url is None:
+        return ("NOK", "text/plain", "Missing 'URL' parameter")
+
     if tile_scale is not None and isinstance(tile_scale, str):
         tile_scale = int(tile_scale)
 
@@ -193,7 +228,7 @@ def _get_mosaic_wmts(
     tag=["tiles"],
 )
 @app.route(
-    "/<int:z>/<int:x>/<int:y>.mvt",
+    "/<regex([0-9A-Fa-f]{56}):mosaicid>/<int:z>/<int:x>/<int:y>.pbf",
     methods=["GET"],
     cors=True,
     payload_compression_method="gzip",
@@ -201,16 +236,22 @@ def _get_mosaic_wmts(
     tag=["tiles"],
 )
 def mosaic_mvt(
-    z: int,
-    x: int,
-    y: int,
-    url: str,
+    mosaicid: str = None,
+    z: int = None,
+    x: int = None,
+    y: int = None,
+    url: str = None,
     tile_size: Union[str, int] = 256,
     pixel_selection: str = "first",
     feature_type: str = "point",
     resampling_method: str = "nearest",
 ):
     """Handle MVT requests."""
+    if mosaicid:
+        url = _create_path(mosaicid)
+    elif url is None:
+        return ("NOK", "text/plain", "Missing 'URL' parameter")
+
     assets = fetch_and_find_assets(url, x, y, z)
     if not assets:
         return ("EMPTY", "text/plain", f"No assets found for tile {z}-{x}-{y}")
@@ -291,10 +332,27 @@ def _postprocess(
     binary_b64encode=True,
     tag=["tiles"],
 )
+@app.route(
+    "/<regex([0-9A-Fa-f]{56}):mosaicid>/<int:z>/<int:x>/<int:y>.<ext>",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["tiles"],
+)
+@app.route(
+    "/<regex([0-9A-Fa-f]{56}):mosaicid>/<int:z>/<int:x>/<int:y>@<int:scale>x.<ext>",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["tiles"],
+)
 def mosaic_img(
-    z: int,
-    x: int,
-    y: int,
+    mosaicid: str = None,
+    z: int = None,
+    x: int = None,
+    y: int = None,
     scale: int = 1,
     ext: str = "png",
     url: str = None,
@@ -306,7 +364,9 @@ def mosaic_img(
     resampling_method: str = "nearest",
 ):
     """Handle tile requests."""
-    if not url:
+    if mosaicid:
+        url = _create_path(mosaicid)
+    elif url is None:
         return ("NOK", "text/plain", "Missing 'URL' parameter")
 
     assets = fetch_and_find_assets(url, x, y, z)

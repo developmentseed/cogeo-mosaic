@@ -68,3 +68,12 @@ def test_index(event):
     assert res["statusCode"] == 200
     assert "https://somewhere-over-the-rainbow.com/tiles/tilejson.json" in res["body"]
     assert "https://somewhere-over-the-rainbow.com/mosaic/info" in res["body"]
+
+
+def test_index_create(event):
+    """Test /create.html route."""
+    event["path"] = "/create.html"
+    res = app(event, {})
+    assert res["statusCode"] == 200
+    assert "https://somewhere-over-the-rainbow.com/mosaic/create" in res["body"]
+    assert "https://somewhere-over-the-rainbow.com/mosaic/footprint" in res["body"]

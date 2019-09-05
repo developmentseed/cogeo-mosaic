@@ -44,15 +44,27 @@ def cogeo_cli():
 @click.argument("input_files", type=click.File(mode="r"), default="-")
 @click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
 @click.option(
+    "--minzoom",
+    type=int,
+    help="An integer to overwrite the minimum zoom level derived from the COGs. ",
+)
+@click.option(
+    "--maxzoom",
+    type=int,
+    help="An integer to overwrite the maximum zoom level derived from the COGs. ",
+)
+@click.option(
     "--threads",
     type=int,
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
-def create(input_files, output, threads):
+def create(input_files, output, minzoom, maxzoom, threads):
     """Create mosaic definition file."""
     input_files = input_files.read().splitlines()
-    mosaic_spec = create_mosaic(input_files, max_threads=threads)
+    mosaic_spec = create_mosaic(
+        input_files, minzoom=minzoom, maxzoom=maxzoom, max_threads=threads
+    )
 
     if output:
         with open(output, mode="w") as f:
@@ -214,6 +226,7 @@ def run(port):
                 "queryStringParameters": dict(parse_qsl(q.query)),
                 "body": body,
                 "httpMethod": self.command,
+                "isBase64Encoded": True,
             }
             response = application(request, None)
 

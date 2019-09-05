@@ -19,7 +19,7 @@ The python module provide a CLI to help create mosaicJSON localy.
 ## Install the python module + cli
 ```bash
 $ pip install pip -U
-$ pip install http://github.com/developmentseed/cogeo-mosaic
+$ pip install git+http://github.com/developmentseed/cogeo-mosaic
 
 $ cogeo-mosaic
 Usage: cogeo-mosaic [OPTIONS] COMMAND [ARGS]...
