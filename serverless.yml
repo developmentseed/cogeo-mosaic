@@ -2,9 +2,14 @@ service: cogeo-mosaic
 
 provider:
   name: aws
-  runtime: python3.6
+  runtime: python3.7
   stage: ${opt:stage, 'production'}
   region: ${opt:region, 'us-east-1'}
+
+  apiGateway:
+    binaryMediaTypes:
+      - '*/*'
+    minimumCompressionSize: 0
 
   iamRoleStatements:
   -  Effect: "Allow"
@@ -12,11 +17,6 @@ provider:
        - "*"
      Resource:
        - "arn:aws:s3:::${opt:bucket}*"
-
-  apiGateway:
-    binaryMediaTypes:
-      - '*/*'
-    minimumCompressionSize: 0
 
 package:
   artifact: package.zip
@@ -26,6 +26,8 @@ functions:
     handler: cogeo_mosaic.handlers.web.app
     memorySize: 128
     timeout: 3
+    environment:
+      MAPBOX_ACCESS_TOKEN: ${opt:token, ""}
     events:
       - http:
           path: /
@@ -50,6 +52,8 @@ functions:
       GDAL_HTTP_MULTIPLEX: YES
       GDAL_HTTP_VERSION: 2
       MAX_THREADS: 50
+      MOSAIC_DEF_BUCKET: ${opt:bucket}
+      PROJ_LIB: /var/task/share/proj
       PYTHONWARNINGS: ignore
       VSI_CACHE: TRUE
       VSI_CACHE_SIZE: 536870912
@@ -73,6 +77,8 @@ functions:
       GDAL_HTTP_MULTIPLEX: YES
       GDAL_HTTP_VERSION: 2
       MAX_THREADS: 50
+      MOSAIC_DEF_BUCKET: ${opt:bucket}
+      PROJ_LIB: /var/task/share/proj
       PYTHONWARNINGS: ignore
       VSI_CACHE: TRUE
       VSI_CACHE_SIZE: 536870912

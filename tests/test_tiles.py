@@ -26,6 +26,7 @@ def testing_env_var(monkeypatch):
     monkeypatch.setenv("AWS_CONFIG_FILE", "/tmp/noconfigheere")
     monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "/tmp/noconfighereeither")
     monkeypatch.setenv("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+    monkeypatch.setenv("MOSAIC_DEF_BUCKET", "my-bucket")
 
 
 @pytest.fixture()
@@ -90,6 +91,40 @@ def test_get_mosaic_wmts(get_data):
 
 
 @patch("cogeo_mosaic.handlers.tiles.fetch_mosaic_definition")
+def test_get_mosaic_wmts_mosaicid(get_data):
+    """Test /wmts route."""
+    get_data.return_value = mosaic_content
+
+    event = {
+        "resource": "/{proxy+}",
+        "pathParameters": {
+            "proxy": "b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/wmts"
+        },
+        "path": "/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/wmts",
+        "headers": {"host": "somewhere-over-the-rainbow.com"},
+    }
+
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(tile_scale="2")
+
+    headers = {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/xml",
+    }
+    statusCode = 200
+
+    res = app(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == statusCode
+    body = res["body"]
+    assert "https://somewhere-over-the-rainbow.com/tiles/wmts" in body
+    assert "99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516" in body
+    get_data.assert_called_once()
+
+
+@patch("cogeo_mosaic.handlers.tiles.fetch_mosaic_definition")
 def test_tilejson(get_data, event):
     """Test /tilejson.json route."""
     get_data.return_value = mosaic_content
@@ -108,6 +143,8 @@ def test_tilejson(get_data, event):
         "Access-Control-Allow-Origin": "*",
         "Content-Type": "application/json",
     }
+    res = app(event, {})
+    assert res["statusCode"] == 400
 
     # png 256px
     event["queryStringParameters"] = dict(url="http://mymosaic.json", rescale="-1,1")
@@ -156,6 +193,54 @@ def test_tilejson(get_data, event):
     assert url_info.path == "/tiles/{z}/{x}/{y}.pbf"
     qs = urllib.parse.parse_qs(url_info.query)
     assert qs["url"][0] == "http://mymosaic.json"
+
+
+@patch("cogeo_mosaic.handlers.tiles.fetch_mosaic_definition")
+def test_tilejson_mosaicid(get_data):
+    """Test /tilejson.json route."""
+    get_data.return_value = mosaic_content
+
+    event = {
+        "resource": "/{proxy+}",
+        "pathParameters": {
+            "proxy": "b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/tilejson.json"
+        },
+        "path": "/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/tilejson.json",
+        "headers": {"host": "somewhere-over-the-rainbow.com"},
+    }
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(rescale="-1,1")
+
+    headers = {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+    }
+
+    res = app(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == 200
+    body = json.loads(res["body"])
+    assert body["bounds"]
+    assert body["center"]
+    assert body["maxzoom"] == 9
+    assert body["minzoom"] == 7
+    assert (
+        body["name"]
+        == "s3://my-bucket/mosaics/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516.json.gz"
+    )
+    assert body["tilejson"] == "2.1.0"
+
+    url_info = urllib.parse.urlparse(body["tiles"][0])
+    assert url_info.netloc == "somewhere-over-the-rainbow.com"
+    assert url_info.path == "/tiles/{z}/{x}/{y}@1x.png"
+    qs = urllib.parse.parse_qs(url_info.query)
+    assert (
+        qs["url"][0]
+        == "s3://my-bucket/mosaics/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516.json.gz"
+    )
+    assert qs["rescale"][0] == "-1,1"
 
 
 @patch("cogeo_mosaic.handlers.tiles.fetch_and_find_assets")
@@ -230,7 +315,6 @@ def test_API_tiles(get_assets, event):
     assert headers["Content-Type"] == "image/png"
     assert res["body"]
 
-    # See https://github.com/cogeotiff/rio-tiler-mosaic/issues/4
     event["path"] = f"/9/150/182.png"
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = dict(
@@ -273,6 +357,28 @@ def test_API_tiles(get_assets, event):
     assert headers["Content-Type"] == "image/png"
     assert res["body"]
 
+    event[
+        "path"
+    ] = f"/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/9/150/182.png"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = {}
+    res = app(event, {})
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "image/png"
+    assert res["body"]
+
+    event[
+        "path"
+    ] = f"/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/9/150/182@2x.png"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = {}
+    res = app(event, {})
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "image/png"
+    assert res["body"]
+
 
 @patch("cogeo_mosaic.handlers.tiles.fetch_and_find_assets")
 def test_API_emptytiles(get_assets, event):
@@ -299,7 +405,7 @@ def test_API_MVTtiles(get_assets, event):
     event["httpMethod"] = "GET"
     event["queryStringParameters"] = {}
     res = app(event, {})
-    assert res["statusCode"] == 500
+    assert res["statusCode"] == 400
 
     event["path"] = f"/9/150/182.pbf"
     event["httpMethod"] = "GET"
@@ -310,9 +416,11 @@ def test_API_MVTtiles(get_assets, event):
     assert headers["Content-Type"] == "application/x-protobuf"
     assert res["body"]
 
-    event["path"] = f"/9/150/182.mvt"
+    event[
+        "path"
+    ] = f"/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/9/150/182.pbf"
     event["httpMethod"] = "GET"
-    event["queryStringParameters"] = dict(url="http://mymosaic.json")
+    event["queryStringParameters"] = dict(url="http://mymosaic.json", tile_size="64")
     res = app(event, {})
     assert res["statusCode"] == 200
     headers = res["headers"]

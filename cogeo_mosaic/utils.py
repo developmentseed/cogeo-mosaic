@@ -1,7 +1,6 @@
 """cogeo_mosaic.utils: utility functions."""
 
-from typing import Dict, Tuple
-from typing.io import BinaryIO
+from typing import Dict, Tuple, BinaryIO
 
 import os
 import zlib
@@ -58,6 +57,13 @@ def get_hash(**kwargs: Dict) -> str:
     return hashlib.sha224(
         json.dumps(kwargs, sort_keys=True, default=str).encode()
     ).hexdigest()
+
+
+def _create_path(mosaicid: str) -> str:
+    """Get Mosaic definition info."""
+    key = f"mosaics/{mosaicid}.json.gz"
+    bucket = os.environ["MOSAIC_DEF_BUCKET"]
+    return f"s3://{bucket}/{key}"
 
 
 def get_dataset_info(src_path: str) -> Dict:
