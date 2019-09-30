@@ -46,12 +46,16 @@ def cogeo_cli():
 @click.option(
     "--minzoom",
     type=int,
-    help="An integer to overwrite the minimum zoom level derived from the COGs. ",
+    help="An integer to overwrite the minimum zoom level derived from the COGs.",
 )
 @click.option(
     "--maxzoom",
     type=int,
-    help="An integer to overwrite the maximum zoom level derived from the COGs. ",
+    help="An integer to overwrite the maximum zoom level derived from the COGs.",
+)
+@click.option("--min-tile-cover", type=float, help="Minimum % overlap")
+@click.option(
+    "--tile-cover-sort", help="Minimum % overlap", is_flag=True, default=False
 )
 @click.option(
     "--threads",
@@ -59,11 +63,33 @@ def cogeo_cli():
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
-def create(input_files, output, minzoom, maxzoom, threads):
+@click.option(
+    "--quiet",
+    "-q",
+    help="Remove progressbar and other non-error output.",
+    is_flag=True,
+    default=False,
+)
+def create(
+    input_files,
+    output,
+    minzoom,
+    maxzoom,
+    min_tile_cover,
+    tile_cover_sort,
+    threads,
+    quiet,
+):
     """Create mosaic definition file."""
     input_files = input_files.read().splitlines()
     mosaic_spec = create_mosaic(
-        input_files, minzoom=minzoom, maxzoom=maxzoom, max_threads=threads
+        input_files,
+        minzoom=minzoom,
+        maxzoom=maxzoom,
+        minimum_tile_cover=min_tile_cover,
+        tile_cover_sort=tile_cover_sort,
+        max_threads=threads,
+        quiet=quiet,
     )
 
     if output:
@@ -82,11 +108,18 @@ def create(input_files, output, minzoom, maxzoom, threads):
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
-def footprint(input_files, output, threads):
+@click.option(
+    "--quiet",
+    "-q",
+    help="Remove progressbar and other non-error output.",
+    is_flag=True,
+    default=False,
+)
+def footprint(input_files, output, threads, quiet):
     """Create mosaic definition file."""
     input_files = input_files.read().splitlines()
     foot = {
-        "features": get_footprints(input_files, max_threads=threads),
+        "features": get_footprints(input_files, max_threads=threads, quiet=quiet),
         "type": "FeatureCollection",
     }
 
@@ -134,7 +167,7 @@ def overview(
         output_profile.update(creation_options)
 
     config = dict(
-        NUM_THREADS=threads,
+        GDAL_NUM_THREADS=threads,
         GDAL_TIFF_INTERNAL_MASK=os.environ.get("GDAL_TIFF_INTERNAL_MASK", True),
         GDAL_TIFF_OVR_BLOCKSIZE="128",
     )

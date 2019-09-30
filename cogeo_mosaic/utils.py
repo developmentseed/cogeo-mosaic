@@ -3,6 +3,7 @@
 from typing import Dict, Tuple, BinaryIO
 
 import os
+import sys
 import zlib
 import json
 import hashlib
@@ -12,6 +13,7 @@ import itertools
 from concurrent import futures
 from urllib.parse import urlparse
 
+import click
 import requests
 
 import mercantile
@@ -97,7 +99,9 @@ def get_dataset_info(src_path: str) -> Dict:
         }
 
 
-def get_footprints(dataset_list: Tuple, max_threads: int = 20) -> Tuple:
+def get_footprints(
+    dataset_list: Tuple, max_threads: int = 20, quiet: bool = True
+) -> Tuple:
     """
     Create footprint GeoJSON.
 
@@ -114,8 +118,19 @@ def get_footprints(dataset_list: Tuple, max_threads: int = 20) -> Tuple:
         tuple of footprint feature.
 
     """
+    fout = os.devnull if quiet else sys.stderr
     with futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        return list(executor.map(get_dataset_info, dataset_list))
+        future_work = [executor.submit(get_dataset_info, item) for item in dataset_list]
+        with click.progressbar(
+            futures.as_completed(future_work),
+            file=fout,
+            length=len(future_work),
+            show_percent=True,
+        ) as future:
+            for res in future:
+                pass
+
+    return [future.result() for future in future_work]
 
 
 def _tiles_bounds(features, zoom):
@@ -127,25 +142,56 @@ def _tiles_bounds(features, zoom):
     return [ulx, lry, lrx, uly]
 
 
+def _intersect_percent(tile, geom):
+    """Return the overlap percent."""
+    inter = tile.intersection(geom)
+    return inter.area / tile.area if inter else 0.0
+
+
+def _filter_and_sort(tile, dataset, minimum_cover=0.0, sort_cover=False):
+    """Filter and/or sort dataset per intersection coverage."""
+    dataset = [(_intersect_percent(tile, x["geometry"]), x) for x in dataset]
+
+    if minimum_cover:
+        dataset = list(filter(lambda x: x[0] > minimum_cover, dataset))
+
+    if sort_cover:
+        dataset = sorted(dataset, key=lambda x: x[0], reverse=True)
+
+    return [x[1] for x in dataset]
+
+
 def create_mosaic(
     dataset_list: Tuple,
     minzoom: int = None,
     maxzoom: int = None,
     max_threads: int = 20,
+    minimum_tile_cover: float = 0.0,
+    tile_cover_sort: bool = False,
     version: str = "0.0.1",
+    quiet: bool = True,
 ) -> Dict:
     """
     Create mosaic definition content.
 
-
     Attributes
     ----------
-    dataset_listurl : tuple or list, required
+    dataset_list : tuple or list, required
         Dataset urls.
+    minzoom: int, optional
+        Force mosaic min-zoom.
+    maxzoom: int, optional
+        Force mosaic max-zoom.
+    minimum_tile_cover: float, optional (default: 0)
+        Filter files with low tile intersection coverage.
+    tile_cover_sort: bool, optional (default: None)
+        Sort intersecting files by coverage.
     max_threads : int
         Max threads to use (default: 20).
     version: str, optional
         mosaicJSON definition version
+    quiet: bool, optional (default: True)
+        Mask processing steps.
 
     Returns
     -------
@@ -153,7 +199,9 @@ def create_mosaic(
         Mosaic definition.
 
     """
-    results = get_footprints(dataset_list, max_threads=max_threads)
+    if not quiet:
+        click.echo("Get files footprint", err=True)
+    results = get_footprints(dataset_list, max_threads=max_threads, quiet=quiet)
 
     if minzoom is None:
         minzoom = list(set([feat["properties"]["minzoom"] for feat in results]))
@@ -177,10 +225,16 @@ def create_mosaic(
     if len(datatype) > 1:
         raise Exception("Dataset should have the same data type")
 
+    if not quiet:
+        click.echo(f"Get quadkey list for zoom: {quadkey_zoom}", err=True)
+
     tiles = burntiles.burn(results, quadkey_zoom)
     tiles = ["{2}-{0}-{1}".format(*tile.tolist()) for tile in tiles]
 
     bounds = burntiles.find_extrema(results)
+
+    if not quiet:
+        click.echo(f"Feed Quadkey index", err=True)
 
     if version == "0.0.1":
         mosaic_definition = dict(
@@ -190,24 +244,32 @@ def create_mosaic(
             center=[(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom],
             tiles={},
         )
-
-        dataset = [
-            {"path": f["properties"]["path"], "geometry": shape(f["geometry"])}
-            for f in results
-        ]
-
-        for parent in tiles:
-            z, x, y = list(map(int, parent.split("-")))
-            parent = mercantile.Tile(x=x, y=y, z=z)
-            quad = mercantile.quadkey(*parent)
-            tile_geometry = box(*mercantile.bounds(parent))
-            fdataset = list(
-                filter(lambda x: tile_geometry.intersects(x["geometry"]), dataset)
-            )
-            if len(fdataset):
-                mosaic_definition["tiles"][quad] = [f["path"] for f in fdataset]
     else:
         raise Exception(f"Invalid mosaicJSON version: {version}")
+
+    dataset = [
+        {"path": f["properties"]["path"], "geometry": shape(f["geometry"])}
+        for f in results
+    ]
+
+    for parent in tiles:
+        z, x, y = list(map(int, parent.split("-")))
+        parent = mercantile.Tile(x=x, y=y, z=z)
+        quad = mercantile.quadkey(*parent)
+        tile_geometry = box(*mercantile.bounds(parent))
+        fdataset = list(
+            filter(lambda x: tile_geometry.intersects(x["geometry"]), dataset)
+        )
+        if minimum_tile_cover or tile_cover_sort:
+            fdataset = _filter_and_sort(
+                tile_geometry,
+                fdataset,
+                minimum_cover=minimum_tile_cover,
+                sort_cover=tile_cover_sort,
+            )
+
+        if len(fdataset):
+            mosaic_definition["tiles"][quad] = [f["path"] for f in fdataset]
 
     return mosaic_definition
 

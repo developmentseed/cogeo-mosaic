@@ -1,0 +1,11 @@
+0.2.0 (2019-09-30)
+------------------
+- update for lambda-proxy~=5.0 (#15)
+- add `minimum_tile_cover` option for mosaic creation (#16)
+- add `tile_cover_sort` option (#16)
+- add verbosity for cli
+
+0.1.0 (2019-09-05)
+------------------
+- add /create.html endpoint (#14)
+- update to remotepixel/amazonlinux docker image
