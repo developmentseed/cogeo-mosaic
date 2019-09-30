@@ -1,10 +1,9 @@
 """cogeo-mosaic.handlers.api_mosaic: handle request for cogeo-mosaic endpoints."""
 
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Tuple, Union
 
 import os
 import json
-import base64
 import urllib
 
 from botocore.errorfactory import ClientError
@@ -35,28 +34,35 @@ app = API(name="cogeo-mosaic-mosaic", debug=True)
     binary_b64encode=True,
     tag=["mosaic"],
 )
-@app.pass_event
 def _create_mosaic(
-    event: Dict,
     body: str,
     minzoom: Union[str, int] = None,
     maxzoom: Union[str, int] = None,
+    min_tile_cover: Union[str, float] = None,
+    tile_cover_sort: Union[str, bool] = False,
     tile_format: str = "png",
     tile_scale: Union[str, int] = 1,
     **kwargs: Any,
 ) -> Tuple[str, str, str]:
-    if event.get("isBase64Encoded"):
-        body = base64.b64decode(body).decode()
-
     minzoom = int(minzoom) if isinstance(minzoom, str) else minzoom
     maxzoom = int(maxzoom) if isinstance(maxzoom, str) else maxzoom
+    min_tile_cover = (
+        float(min_tile_cover) if isinstance(min_tile_cover, float) else min_tile_cover
+    )
+
     mosaicid = get_hash(body=body, version=mosaic_version)
 
     try:
         mosaic_definition = fetch_mosaic_definition(_create_path(mosaicid))
     except ClientError:
         body = json.loads(body)
-        mosaic_definition = create_mosaic(body, minzoom=minzoom, maxzoom=maxzoom)
+        mosaic_definition = create_mosaic(
+            body,
+            minzoom=minzoom,
+            maxzoom=maxzoom,
+            minimum_tile_cover=min_tile_cover,
+            tile_cover_sort=tile_cover_sort,
+        )
 
         key = f"mosaics/{mosaicid}.json.gz"
         bucket = os.environ["MOSAIC_DEF_BUCKET"]
@@ -90,11 +96,7 @@ def _create_mosaic(
     binary_b64encode=True,
     tag=["mosaic"],
 )
-@app.pass_event
-def _create_footpring(event: Dict, body: str) -> Tuple[str, str, str]:
-    if event.get("isBase64Encoded"):
-        body = base64.b64decode(body).decode()
-
+def _create_footpring(body: str) -> Tuple[str, str, str]:
     mosaicid = get_hash(body=body, version=mosaic_version)
     key = f"mosaics/{mosaicid}.geojson"
     bucket = os.environ["MOSAIC_DEF_BUCKET"]

@@ -96,10 +96,8 @@ def test_create_footprint(aws_put_data, get_mosaic, event):
 
     event["path"] = "/footprint"
     event["httpMethod"] = "GET"
-    event["isBase64Encoded"] = "true"
-    event["queryStringParameters"] = dict(
-        body=base64.b64encode(json.dumps([asset1, asset2]).encode()).decode("utf-8")
-    )
+    event.pop("isBase64Encoded", None)
+    event["queryStringParameters"] = dict(body=json.dumps([asset1, asset2]))
 
     res = app(event, {})
     assert res["headers"] == headers
@@ -191,10 +189,7 @@ def test_create_mosaic(aws_put_data, get_mosaic, event):
 def test_create_mosaic_cache(aws_put_data, get_mosaic, event):
     event["path"] = "/create"
     event["httpMethod"] = "GET"
-    event["isBase64Encoded"] = "true"
-    event["queryStringParameters"] = dict(
-        body=base64.b64encode(json.dumps([asset1, asset2]).encode()).decode("utf-8")
-    )
+    event["queryStringParameters"] = dict(body=json.dumps([asset1, asset2]).encode())
     headers = {
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Methods": "GET,POST",

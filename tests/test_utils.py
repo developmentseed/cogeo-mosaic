@@ -118,6 +118,15 @@ def test_mosaic_create():
     assert mosaic["minzoom"] == mosaic_content["minzoom"]
     assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
 
+    # 5% tile cover filter
+    mosaic = utils.create_mosaic(assets, minimum_tile_cover=0.05)
+    assert not list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
+
+    # sort by tile cover
+    mosaic = utils.create_mosaic(assets, tile_cover_sort=True)
+    assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
+    assert not mosaic["tiles"] == mosaic_content["tiles"]
+
     # Wrong MosaicJSON version
     with pytest.raises(Exception):
         utils.create_mosaic(assets, version="0.0.2")
