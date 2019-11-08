@@ -20,10 +20,14 @@ from rio_tiler_mvt.mvt import encoder as mvtEncoder
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 from rio_tiler_mosaic.methods import defaults
 
+from cogeo_mosaic import custom_methods
+from cogeo_mosaic.custom_cmaps import get_custom_cmap
 from cogeo_mosaic.ogc import wmts_template
 from cogeo_mosaic.utils import (
     fetch_mosaic_definition,
     fetch_and_find_assets,
+    fetch_and_find_assets_point,
+    get_point_values,
     _create_path,
 )
 
@@ -35,6 +39,8 @@ PIXSEL_METHODS = {
     "lowest": defaults.LowestMethod,
     "mean": defaults.MeanMethod,
     "median": defaults.MedianMethod,
+    "stdev": defaults.StdevMethod,
+    "bdix_stdev": custom_methods.bidx_stddev,
 }
 app = API(name="cogeo-mosaic-tiles")
 
@@ -396,7 +402,10 @@ def mosaic_img(
 
     rtile = _postprocess(tile, mask, rescale=rescale, color_formula=color_ops)
     if color_map:
-        color_map = get_colormap(color_map, format="gdal")
+        if color_map.startswith("custom_"):
+            color_map = get_custom_cmap(color_map)
+        else:
+            color_map = get_colormap(color_map, format="gdal")
 
     driver = "jpeg" if ext == "jpg" else ext
     options = img_profiles.get(driver, {})
@@ -405,6 +414,48 @@ def mosaic_img(
         f"image/{ext}",
         array_to_image(rtile, mask, img_format=driver, color_map=color_map, **options),
     )
+
+
+@app.route(
+    "/point",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["tiles"],
+)
+@app.route(
+    "/<regex([0-9A-Fa-f]{56}):mosaicid>/point",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["tiles"],
+)
+def mosaic_point(
+    mosaicid: str = None, lng: float = None, lat: float = None, url: str = None
+):
+    """Handle point requests."""
+    if mosaicid:
+        url = _create_path(mosaicid)
+    elif url is None:
+        return ("NOK", "text/plain", "Missing 'URL' parameter")
+
+    if not lat or not lng:
+        return ("NOK", "text/plain", "Missing 'Lon/Lat' parameter")
+
+    if isinstance(lng, str):
+        lng = float(lng)
+
+    if isinstance(lat, str):
+        lat = float(lat)
+
+    assets = fetch_and_find_assets_point(url, lng, lat)
+    if not assets:
+        return ("EMPTY", "text/plain", f"No assets found for lat/lng ({lat}, {lng})")
+
+    meta = {"coordinates": [lng, lat], "values": get_point_values(assets, lng, lat)}
+    return ("OK", "application/json", json.dumps(meta))
 
 
 @app.route("/favicon.ico", methods=["GET"], cors=True, tag=["other"])

@@ -54,22 +54,32 @@ $ curl -X POST -F 'json=@list.json' https://{endpoint-url}/mosaic/create`
 Note: equivalent of running `cogeo-mosaic footprint` locally 
 
 ```bash
-$ curl -X POST -F 'json=@list.json' https://{endpoint-url}/mosaic/footprint`
+ $ curl -X POST -F 'json=@list.json' https://{endpoint-url}/mosaic/footprint
 ```
 
 ### Mosaic Metadata
 `/mosaic/info`
-
 - methods: GET
 - **url** (in querytring): mosaic definition url
 - returns: mosaic defintion info (application/json, compression: **gzip**)
 
 ```bash
-$ curl https://{endpoint-url}/info?url=s3://my_file.json.gz)
+$ curl https://{endpoint-url}/mosaic/info?url=https://my-mosaic.json.gz
+```
+
+`/mosaic/<mosaicid>/info`
+- methods: GET
+- **mosaicid** (in path): mosaic definition id
+- returns: mosaic defintion info (application/json, compression: **gzip**)
+
+
+```bash
+$ curl https://{endpoint-url}/mosaic/0505ad234b5fb97df134001709b8a42eddce5d
+03b200eb8f7f4540d6/info
 ```
 
 ```json
-meta = {
+{
     "bounds": [...],                // mosaic bounds
     "center": [lon, lat, zoom],     // mosaic center
     "maxzoom": 22,                  // mosaic max zoom
@@ -77,6 +87,53 @@ meta = {
     "name": "s3://my_file.json.gz", // mosaic basename
     "quadkeys": [...],              // list of quakeys
     "layers": [...] ,               // dataset band names
+}
+```
+
+### Mosaic GeoJSON
+
+`/mosaic/geojson`
+- methods: GET
+- **url** (in querytring): mosaic definition url
+- returns: mosaic-json as geojson (application/json, compression: **gzip**)
+
+```bash
+$ curl https://{endpoint-url}/mosaic/geojson?url=s3://my_file.json.gz
+```
+
+`/mosaic/<mosaicid>/geojson`
+- methods: GET
+- **mosaicid** (in path): mosaic definition id
+- returns: mosaic-json as geojson (application/json, compression: **gzip**)
+
+```bash
+$ curl https://{endpoint-url}/mosaic/0505ad234b5fb97df134001709b8a42eddce5d
+03b200eb8f7f4540d6/geojson
+```
+
+
+
+```json
+{
+    "type":"FeatureCollection",
+    "features":[
+        {
+            "type":"Feature",
+            "bbox":[...],
+            "id":"Tile(x=21, y=20, z=7)",
+            "geometry":{
+                "type":"Polygon",
+                "coordinates":[[
+                    ...
+                ]]
+            },
+            "properties":{
+                "title":"XYZ tile Tile(x=21, y=20, z=7)",
+                "files":["s3://ds-satellite/cogs/ABoVE_LandCover_1984_2014/ABoVE_LandCover_Bh15v03_cog.tif"]
+            }
+        }
+        ...
+    ]
 }
 ```
 
@@ -93,14 +150,28 @@ https://08lazntuxe.execute-api.us-east-1.amazonaws.com/production/tiles/docs
 - **tile_format** (optional, str): output tile format (default: "png")
 - **tile_scale** (optional, int): output tile scale (default: 1 = 256px)
 - **kwargs** (in querytring): tiler options
-- returns: tijeson defintion (application/json, compression: **gzip**)
+- returns: tileJSON defintion (application/json, compression: **gzip**)
 
 ```bash
 $ curl https://{endpoint-url}/tiles/tilejson.json?url=s3://my_file.json.gz
 ```
 
+`/tiles/<mosaicid>/tilejson.json`
+
+- methods: GET
+- **mosaicid** (in path): mosaic definition id
+- **tile_format** (optional, str): output tile format (default: "png")
+- **tile_scale** (optional, int): output tile scale (default: 1 = 256px)
+- **kwargs** (in querytring): tiler options
+- returns: tileJSON defintion (application/json, compression: **gzip**)
+
+```bash
+$ curl https://{endpoint-url}/tiles/0505ad234b5fb97df134001709b8a42eddce5d
+03b200eb8f7f4540d6/tilejson.json
+```
+
 ```json
-meta = {
+{
     "bounds": [...],
     "center": [lon, lat, minzoom],
     "maxzoom": 22,
@@ -120,11 +191,27 @@ meta = {
 - **url** (in querytring): mosaic definition url
 - **tile_format** (optional, str): output tile format (default: "png")
 - **tile_scale** (optional, int): output tile scale (default: 1 = 256px)
+- **title** (optional, str): layer name (default: "Cloud Optimizied GeoTIFF Mosaic")
 - **kwargs** (in querytring): tiler options
 - returns: WMTS xml (application/xml, compression: **gzip**)
 
 ```bash
 $ curl https://{endpoint-url}/tiles/wmts?url=s3://my_file.json.gz)
+```
+
+`/tiles/<mosaicid>/wmts`
+
+- methods: GET
+- **mosaicid** (in path): mosaic definition id
+- **tile_format** (optional, str): output tile format (default: "png")
+- **tile_scale** (optional, int): output tile scale (default: 1 = 256px)
+- **title** (optional, str): layer name (default: "Cloud Optimizied GeoTIFF Mosaic")
+- **kwargs** (in querytring): tiler options
+- returns: WMTS xml (application/xml, compression: **gzip**)
+
+```bash
+$ curl https://{endpoint-url}/tiles/0505ad234b5fb97df134001709b8a42eddce5d
+03b200eb8f7f4540d6/wmts)
 ```
 <details>
 
@@ -255,8 +342,32 @@ $ curl https://{endpoint-url}/tiles/wmts?url=s3://my_file.json.gz)
 $ curl https://{endpoint-url}/tiles/8/32/22.png?url=s3://my_file.json.gz&indexes=1,2,3&rescale=100,3000&color_ops=Gamma RGB 3&pixel_selection=first
 ```
 
+`/tiles/<mosaicid>/<int:z>/<int:x>/<int:y>.<ext>`
+
+`/tiles/<mosaicid>/<int:z>/<int:x>/<int:y>@2x.<ext>`
+
+- methods: GET
+- **mosaicid** (in path): mosaic definition id
+- **z**: Mercator tile zoom value
+- **x**: Mercator tile x value
+- **y**: Mercator tile y value
+- **scale**: Tile scale (default: 1)
+- **ext**: Output tile format (e.g `jpg`)
+- **indexes** (optional, str): dataset band indexes (default: None)
+- **rescale** (optional, str): min/max for data rescaling (default: None)
+- **color_ops** (optional, str): rio-color formula (default: None)
+- **color_map** (optional, str): rio-tiler colormap (default: None)
+- **pixel_selection** (optional, str): mosaic pixel selection (default: `first`)
+- **resampling_method** (optional, str): tiler resampling method (default: `nearest`)
+- compression: **gzip**
+- returns: image body (image/jpeg)
+
+```bash
+$ curl https://{endpoint-url}/tiles/0505ad234b5fb97df134001709b8a42eddce5d
+03b200eb8f7f4540d6/8/32/22.png?indexes=1,2,3&rescale=100,3000&color_ops=Gamma RGB 3&pixel_selection=first
+```
+
 ### Get Vector tiles
-`/tiles/<int:z>/<int:x>/<int:y>.<mvt>`
 
 `/tiles/<int:z>/<int:x>/<int:y>.<pbf>`
 
@@ -266,6 +377,7 @@ $ curl https://{endpoint-url}/tiles/8/32/22.png?url=s3://my_file.json.gz&indexes
 - **y**: Mercator tile y value
 - **ext**: Output tile format (e.g `jpg`)
 - **url** (required): mosaic definition url
+- **tile_size**: (optional, int) Tile size (default: 256)
 - **pixel_selection** (optional, str): mosaic pixel selection (default: `first`)
 - **feature_type** (optional, str): feature type (default: `point`)
 - **resampling_method** (optional, str): tiler resampling method (default: `nearest`)
@@ -275,3 +387,53 @@ $ curl https://{endpoint-url}/tiles/8/32/22.png?url=s3://my_file.json.gz&indexes
 ```bash
 $ curl https://{endpoint-url}/tiles/8/32/22.pbf?url=s3://my_file.json.gz&pixel_selection=first
 ```
+
+`/tiles/<mosaicid>/<int:z>/<int:x>/<int:y>.<pbf>`
+
+- methods: GET
+- **mosaicid** (in path): mosaic definition id
+- **z**: Mercator tile zoom value
+- **x**: Mercator tile x value
+- **y**: Mercator tile y value
+- **tile_size**: (optional, int) Tile size (default: 256)
+- **pixel_selection** (optional, str): mosaic pixel selection (default: `first`)
+- **feature_type** (optional, str): feature type (default: `point`)
+- **resampling_method** (optional, str): tiler resampling method (default: `nearest`)
+- compression: **gzip**
+- returns: tile body (application/x-protobuf)
+
+```bash
+$ curl https://{endpoint-url}/tiles/0505ad234b5fb97df134001709b8a42eddce5d
+03b200eb8f7f4540d6/8/32/22.pbf?pixel_selection=first
+```
+
+
+### Get Point Value
+
+`/tiles/point`
+
+- methods: GET
+- **lng** (required, float): longitude
+- **lat** (required, float): lattitude
+- **url** (required): mosaic definition url
+- compression: **gzip**
+- returns: json(application/json, compression: **gzip**)
+
+```bash
+$ curl https://{endpoint-url}/tiles/point?url=s3://my_file.json.gz&lng=10&lat=-10
+```
+
+`/tiles/<mosaicid>/point`
+
+- methods: GET
+- **mosaicid** (in path): mosaic definition id
+- **lng** (required, float): longitude
+- **lat** (required, float): lattitude
+- compression: **gzip**
+- returns: tile body (application/x-protobuf)
+
+```bash
+$ curl https://{endpoint-url}/tiles/0505ad234b5fb97df134001709b8a42eddce5d
+03b200eb8f7f4540d6/point?lng=10&lat=-10
+```
+

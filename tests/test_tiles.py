@@ -426,3 +426,24 @@ def test_API_MVTtiles(get_assets, event):
     headers = res["headers"]
     assert headers["Content-Type"] == "application/x-protobuf"
     assert res["body"]
+
+
+@patch("cogeo_mosaic.handlers.tiles.fetch_and_find_assets_point")
+def test_API_points(get_assets, event):
+    """Test /point routes."""
+    get_assets.return_value = [asset1, asset2]
+
+    event["path"] = f"/point"
+    event["httpMethod"] = "GET"
+    event["queryStringParameters"] = dict(
+        url="http://mymosaic.json", lng="-73", lat="45"
+    )
+    res = app(event, {})
+    print(res)
+    assert res["statusCode"] == 200
+    headers = res["headers"]
+    assert headers["Content-Type"] == "application/json"
+    body = json.loads(res["body"])
+    assert body["coordinates"]
+    assert body["values"]
+    assert len(body["values"]) == 2

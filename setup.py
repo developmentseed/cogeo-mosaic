@@ -25,7 +25,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="0.2.0",
+    version="0.3.0",
     description=u"Create and serve COG mosaics.",
     long_description=u"Create and serve COG mosaics.",
     python_requires=">=3",

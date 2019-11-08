@@ -6,6 +6,12 @@ provider:
   stage: ${opt:stage, 'production'}
   region: ${opt:region, 'us-east-1'}
 
+  deploymentBucket: ${opt:bucket}
+
+  # Add Tags to resources
+  stackTags:
+    project: labs
+  
   apiGateway:
     binaryMediaTypes:
       - '*/*'
@@ -26,6 +32,8 @@ functions:
     handler: cogeo_mosaic.handlers.web.app
     memorySize: 128
     timeout: 3
+    layers:
+      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:1
     environment:
       MAPBOX_ACCESS_TOKEN: ${opt:token, ""}
     events:
@@ -42,18 +50,20 @@ functions:
     handler: cogeo_mosaic.handlers.tiles.app
     memorySize: 3008
     timeout: 10
+    layers:
+      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:1
     environment:
       CPL_TMPDIR: /tmp
       CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif,.TIF
-      GDAL_CACHEMAX: 512
-      GDAL_DATA: /var/task/share/gdal
+      GDAL_CACHEMAX: 25%
+      GDAL_DATA: /opt/share/gdal
       GDAL_DISABLE_READDIR_ON_OPEN: FALSE
       GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
       GDAL_HTTP_MULTIPLEX: YES
       GDAL_HTTP_VERSION: 2
       MAX_THREADS: 50
       MOSAIC_DEF_BUCKET: ${opt:bucket}
-      PROJ_LIB: /var/task/share/proj
+      PROJ_LIB: /opt/share/proj
       PYTHONWARNINGS: ignore
       VSI_CACHE: TRUE
       VSI_CACHE_SIZE: 536870912
@@ -67,18 +77,20 @@ functions:
     handler: cogeo_mosaic.handlers.mosaic.app
     memorySize: 3008
     timeout: 30
+    layers:
+      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:1
     environment:
       CPL_TMPDIR: /tmp
       CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif,.TIF
-      GDAL_CACHEMAX: 512
-      GDAL_DATA: /var/task/share/gdal
+      GDAL_CACHEMAX: 25%
+      GDAL_DATA: /opt/share/gdal
       GDAL_DISABLE_READDIR_ON_OPEN: FALSE
       GDAL_HTTP_MERGE_CONSECUTIVE_RANGES: YES
       GDAL_HTTP_MULTIPLEX: YES
       GDAL_HTTP_VERSION: 2
       MAX_THREADS: 50
       MOSAIC_DEF_BUCKET: ${opt:bucket}
-      PROJ_LIB: /var/task/share/proj
+      PROJ_LIB: /opt/share/proj
       PYTHONWARNINGS: ignore
       VSI_CACHE: TRUE
       VSI_CACHE_SIZE: 536870912

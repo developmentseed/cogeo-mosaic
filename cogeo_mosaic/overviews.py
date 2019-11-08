@@ -127,6 +127,7 @@ def create_low_level_cogs(
         dst_path = f"{prefix}_{ix}.tif"
         params.update(**dst_kwargs)
         params.pop("compress", None)
+        params.pop("photometric", None)
 
         config = config or {}
         with rasterio.Env(**config):
