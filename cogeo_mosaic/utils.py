@@ -6,6 +6,7 @@ import os
 import sys
 import zlib
 import json
+import logging
 import hashlib
 import warnings
 import functools
@@ -16,6 +17,8 @@ from urllib.parse import urlparse
 import click
 import requests
 
+import numpy
+
 import mercantile
 from shapely.geometry import shape, box
 from supermercado import burntiles
@@ -25,6 +28,10 @@ from rio_tiler.mercator import get_zooms
 from rasterio.warp import transform_bounds
 
 from boto3.session import Session as boto3_session
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def _decompress_gz(gzip_buffer):
@@ -68,11 +75,33 @@ def _create_path(mosaicid: str) -> str:
     return f"s3://{bucket}/{key}"
 
 
+def _filter_futures(tasks):
+    """
+    Filter future task to remove Exceptions.
+
+    Attributes
+    ----------
+    tasks : list
+        List of 'concurrent.futures._base.Future'
+
+    Yields
+    ------
+    Successful task's result
+
+    """
+    for future in tasks:
+        try:
+            yield future.result()
+        except Exception as err:
+            logger.info(str(err))
+            pass
+
+
 def get_dataset_info(src_path: str) -> Dict:
     """Get rasterio dataset meta."""
     with rasterio.open(src_path) as src_dst:
         bounds = transform_bounds(
-            *[src_dst.crs, "epsg:4326"] + list(src_dst.bounds), densify_pts=21
+            src_dst.crs, "epsg:4326", *src_dst.bounds, densify_pts=21
         )
         min_zoom, max_zoom = get_zooms(src_dst, ensure_global_max_zoom=True)
         return {
@@ -130,16 +159,48 @@ def get_footprints(
             for res in future:
                 pass
 
-    return [future.result() for future in future_work]
+    return list(_filter_futures(future_work))
 
 
-def _tiles_bounds(features, zoom):
-    """Return bounding box for bounding tiles."""
-    bounds = burntiles.find_extrema(features)
-    extrema = burntiles.tile_extrema(bounds, zoom)
+def tiles_to_bounds(tiles):
+    """Get bounds from a set of mercator tiles."""
+    zoom = tiles[0].z
+    xyz = numpy.array([[t.x, t.y, t.z] for t in tiles])
+    extrema = {
+        "x": {"min": xyz[:, 0].min(), "max": xyz[:, 0].max() + 1},
+        "y": {"min": xyz[:, 1].min(), "max": xyz[:, 1].max() + 1},
+    }
     ulx, uly = mercantile.ul(extrema["x"]["min"], extrema["y"]["min"], zoom)
     lrx, lry = mercantile.ul(extrema["x"]["max"], extrema["y"]["max"], zoom)
     return [ulx, lry, lrx, uly]
+
+
+def get_point_values(assets: Tuple[str], lng: float, lat: float) -> Tuple:
+    """Read assets and return point values."""
+
+    def _get_point(asset: str, coordinates: Tuple[float, float]) -> dict:
+        with rasterio.open(asset) as src_dst:
+            lng_srs, lat_srs = rasterio.warp.transform(
+                "epsg:4326", src_dst.crs, [coordinates[0]], [coordinates[1]]
+            )
+
+            if not (
+                (src_dst.bounds[0] < lng_srs[0] < src_dst.bounds[2])
+                and (src_dst.bounds[1] < lat_srs[0] < src_dst.bounds[3])
+            ):
+                raise Exception("Outside bounds")
+
+            return {
+                "asset": asset,
+                "values": list(
+                    src_dst.sample([(lng_srs[0], lat_srs[0])], indexes=src_dst.indexes)
+                )[0].tolist(),
+            }
+
+    _points = functools.partial(_get_point, coordinates=[lng, lat])
+    with futures.ThreadPoolExecutor() as executor:
+        future_work = [executor.submit(_points, item) for item in assets]
+        return list(_filter_futures(future_work))
 
 
 def _intersect_percent(tile, geom):
@@ -148,11 +209,10 @@ def _intersect_percent(tile, geom):
     return inter.area / tile.area if inter else 0.0
 
 
-def _filter_and_sort(tile, dataset, minimum_cover=0.0, sort_cover=False):
+def _filter_and_sort(tile, dataset, minimum_cover=None, sort_cover=False):
     """Filter and/or sort dataset per intersection coverage."""
     dataset = [(_intersect_percent(tile, x["geometry"]), x) for x in dataset]
-
-    if minimum_cover:
+    if minimum_cover is not None:
         dataset = list(filter(lambda x: x[0] > minimum_cover, dataset))
 
     if sort_cover:
@@ -166,7 +226,7 @@ def create_mosaic(
     minzoom: int = None,
     maxzoom: int = None,
     max_threads: int = 20,
-    minimum_tile_cover: float = 0.0,
+    minimum_tile_cover: float = None,
     tile_cover_sort: bool = False,
     version: str = "0.0.1",
     quiet: bool = True,
@@ -201,6 +261,7 @@ def create_mosaic(
     """
     if not quiet:
         click.echo("Get files footprint", err=True)
+
     results = get_footprints(dataset_list, max_threads=max_threads, quiet=quiet)
 
     if minzoom is None:
@@ -209,6 +270,7 @@ def create_mosaic(
             warnings.warn(
                 "Multiple MinZoom, Assets different minzoom values", UserWarning
             )
+
         minzoom = max(minzoom)
 
     if maxzoom is None:
@@ -217,6 +279,7 @@ def create_mosaic(
             warnings.warn(
                 "Multiple MaxZoom, Assets have multiple resolution values", UserWarning
             )
+
         maxzoom = max(maxzoom)
 
     quadkey_zoom = minzoom  # mosaic spec 0.0.2 WIP
@@ -260,7 +323,7 @@ def create_mosaic(
         fdataset = list(
             filter(lambda x: tile_geometry.intersects(x["geometry"]), dataset)
         )
-        if minimum_tile_cover or tile_cover_sort:
+        if minimum_tile_cover is not None or tile_cover_sort:
             fdataset = _filter_and_sort(
                 tile_geometry,
                 fdataset,
@@ -272,6 +335,74 @@ def create_mosaic(
             mosaic_definition["tiles"][quad] = [f["path"] for f in fdataset]
 
     return mosaic_definition
+
+
+def update_mosaic(
+    dataset_list: Tuple,
+    mosaic_def: dict,
+    max_threads: int = 20,
+    minimum_tile_cover: float = None,
+    version: str = "0.0.1",
+) -> Dict:
+    """
+    Create mosaic definition content.
+
+    Attributes
+    ----------
+    dataset_list : tuple or list, required
+        Dataset urls.
+    minimum_tile_cover: float, optional (default: 0)
+        Filter files with low tile intersection coverage.
+    max_threads : int
+        Max threads to use (default: 20).
+    version: str, optional
+        mosaicJSON definition version
+
+    Returns
+    -------
+    mosaic_definition : dict
+        Mosaic definition.
+
+    """
+    results = get_footprints(dataset_list, max_threads=max_threads)
+    min_zoom = mosaic_def["minzoom"]
+    quadkey_zoom = mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
+
+    for r in results:
+        tiles = burntiles.burn([r], quadkey_zoom)
+        tiles = ["{2}-{0}-{1}".format(*tile.tolist()) for tile in tiles]
+
+        dataset = [{"path": r["properties"]["path"], "geometry": shape(r["geometry"])}]
+        for parent in tiles:
+            z, x, y = list(map(int, parent.split("-")))
+            parent = mercantile.Tile(x=x, y=y, z=z)
+            quad = mercantile.quadkey(*parent)
+            tile_geometry = box(*mercantile.bounds(parent))
+
+            fdataset = dataset
+            if minimum_tile_cover is not None:
+                fdataset = _filter_and_sort(
+                    tile_geometry, fdataset, minimum_cover=minimum_tile_cover
+                )
+
+            if len(fdataset):
+                dst_quad = mosaic_def["tiles"].get(quad, [])
+                for f in fdataset:
+                    dst_quad.append(f["path"])
+
+                mosaic_def["tiles"][quad] = dst_quad
+
+    tiles = [mercantile.quadkey_to_tile(qk) for qk in mosaic_def["tiles"].keys()]
+    bounds = tiles_to_bounds(tiles)
+
+    mosaic_def["bounds"] = bounds
+    mosaic_def["center"] = [
+        (bounds[0] + bounds[2]) / 2,
+        (bounds[1] + bounds[3]) / 2,
+        mosaic_def["minzoom"],
+    ]
+
+    return mosaic_def
 
 
 def get_mosaic_content(url: str) -> Dict:
@@ -311,6 +442,16 @@ def fetch_and_find_assets(mosaic_path: str, x: int, y: int, z: int) -> Tuple[str
     """Fetch mosaic definition file and find assets."""
     mosaic_def = fetch_mosaic_definition(mosaic_path)
     return get_assets(mosaic_def, x, y, z)
+
+
+def fetch_and_find_assets_point(mosaic_path: str, lng: float, lat: float) -> Tuple[str]:
+    """Fetch mosaic definition file and find assets."""
+    mosaic_def = fetch_mosaic_definition(mosaic_path)
+    min_zoom = mosaic_def["minzoom"]
+    quadkey_zoom = mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
+    tile = mercantile.tile(lng, lat, quadkey_zoom)
+
+    return get_assets(mosaic_def, tile.x, tile.y, tile.z)
 
 
 def get_assets(mosaic_definition: Dict, x: int, y: int, z: int) -> Tuple[str]:

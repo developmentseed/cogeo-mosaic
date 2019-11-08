@@ -2,27 +2,14 @@
 echo "-----------------------"
 echo "Creating lambda package"
 echo "-----------------------"
-echo
-
-echo "Remove lambda python packages"
-rm -rdf $PACKAGE_PREFIX/boto3/ \
-  && rm -rdf $PACKAGE_PREFIX/botocore/ \
-  && rm -rdf $PACKAGE_PREFIX/docutils/ \
-  && rm -rdf $PACKAGE_PREFIX/dateutil/ \
-  && rm -rdf $PACKAGE_PREFIX/jmespath/ \
-  && rm -rdf $PACKAGE_PREFIX/s3transfer/ \
-  && rm -rdf $PACKAGE_PREFIX/numpy/doc/
-
 echo "Remove uncompiled python scripts"
-find $PACKAGE_PREFIX -type f -name '*.pyc' | while read f; do n=$(echo $f | sed 's/__pycache__\///' | sed 's/.cpython-[2-3][0-9]//'); cp $f $n; done;
-find $PACKAGE_PREFIX -type d -a -name '__pycache__' -print0 | xargs -0 rm -rf
-find $PACKAGE_PREFIX -type f -a -name '*.py' -print0 | xargs -0 rm -f
-
-echo "Strip shared libraries"
-cd $PREFIX && find lib -name \*.so\* -exec strip {} \;
+# Leave module precompiles for faster Lambda startup
+cd ${PYTHONUSERBASE}/lib/python3.7/site-packages/
+find . -type f -name '*.pyc' | while read f; do n=$(echo $f | sed 's/__pycache__\///' | sed 's/.cpython-[2-3][0-9]//'); cp $f $n; done;
+find . -type d -a -name '__pycache__' -print0 | xargs -0 rm -rf
+find . -type f -a -name '*.py' -print0 | xargs -0 rm -f
 
 echo "Create archive"
-cd $PACKAGE_PREFIX && zip -r9q /tmp/package.zip *
-cd $PREFIX && zip -r9q --symlinks /tmp/package.zip lib/*.so* share
+zip -r9q /tmp/package.zip *
 
 cp /tmp/package.zip /local/package.zip

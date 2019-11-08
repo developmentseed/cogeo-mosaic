@@ -1,3 +1,15 @@
+0.3.0 (2019-11-07)
+------------------
+- use aws lambda layer
+- add `update_mosaic` utility function
+- add `/tiles/point` endpoint to get points values from a mosaic
+- add logs for mosaic creation
+- add custom pixel methods
+- add custom color maps
+
+**API breacking change**
+- rename `/mosaic/info/<mosaicid>` to `/mosaic/<mosaicid>/info`
+
 0.2.0 (2019-09-30)
 ------------------
 - update for lambda-proxy~=5.0 (#15)

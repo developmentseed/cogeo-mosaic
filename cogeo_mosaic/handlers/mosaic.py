@@ -9,6 +9,7 @@ import urllib
 from botocore.errorfactory import ClientError
 
 import rasterio
+import mercantile
 
 from cogeo_mosaic.utils import (
     create_mosaic,
@@ -132,7 +133,7 @@ def _get_layer_names(src_path):
     tag=["metadata"],
 )
 @app.route(
-    "/info/<regex([0-9A-Fa-f]{56}):mosaicid>",
+    "/<regex([0-9A-Fa-f]{56}):mosaicid>/info",
     methods=["GET"],
     cors=True,
     payload_compression_method="gzip",
@@ -186,6 +187,59 @@ def _get_mosaic_info(mosaicid: str = None, url: str = None) -> Tuple[str, str, s
         "layers": _get_layer_names(src_path),
     }
     return ("OK", "application/json", json.dumps(meta))
+
+
+@app.route(
+    "/geojson",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["metadata"],
+)
+@app.route(
+    "/<regex([0-9A-Fa-f]{56}):mosaicid>/geojson",
+    methods=["GET"],
+    cors=True,
+    payload_compression_method="gzip",
+    binary_b64encode=True,
+    tag=["metadata"],
+)
+def _get_geojson(mosaicid: str = None, url: str = None) -> Tuple[str, str, str]:
+    """
+    Handle /geojson requests.
+
+    Attributes
+    ----------
+    url : str, required
+        Mosaic definition url.
+
+    Returns
+    -------
+    status : str
+        Status of the request (e.g. OK, NOK).
+    MIME type : str
+        response body MIME type (e.g. application/json).
+    body : str
+        String encoded JSON metata
+
+    """
+    if mosaicid:
+        url = _create_path(mosaicid)
+    elif url is None:
+        return ("NOK", "text/plain", "Missing 'URL' parameter")
+
+    mosaic_def = fetch_mosaic_definition(url)
+
+    geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            mercantile.feature(mercantile.quadkey_to_tile(qk), props=dict(files=files))
+            for qk, files in mosaic_def["tiles"].items()
+        ],
+    }
+
+    return ("OK", "application/json", json.dumps(geojson))
 
 
 @app.route("/favicon.ico", methods=["GET"], cors=True, tag=["other"])

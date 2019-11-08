@@ -11,7 +11,12 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
-from cogeo_mosaic.utils import create_mosaic, get_footprints, fetch_mosaic_definition
+from cogeo_mosaic.utils import (
+    create_mosaic,
+    get_footprints,
+    fetch_mosaic_definition,
+    update_mosaic,
+)
 from cogeo_mosaic.overviews import create_low_level_cogs
 
 from rasterio.rio import options
@@ -55,7 +60,7 @@ def cogeo_cli():
 )
 @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
 @click.option(
-    "--tile-cover-sort", help="Minimum % overlap", is_flag=True, default=False
+    "--tile-cover-sort", help="Sort files by covering %", is_flag=True, default=False
 )
 @click.option(
     "--threads",
@@ -90,6 +95,33 @@ def create(
         tile_cover_sort=tile_cover_sort,
         max_threads=threads,
         quiet=quiet,
+    )
+
+    if output:
+        with open(output, mode="w") as f:
+            f.write(json.dumps(mosaic_spec))
+    else:
+        click.echo(json.dumps(mosaic_spec))
+
+
+@cogeo_cli.command(short_help="Create mosaic definition from list of files")
+@click.argument("input_files", type=click.File(mode="r"), default="-")
+@click.argument("input_mosaic", type=click.Path())
+@click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
+@click.option("--min-tile-cover", type=float, help="Minimum % overlap")
+@click.option(
+    "--threads",
+    type=int,
+    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
+    help="threads",
+)
+def update(input_files, input_mosaic, output, min_tile_cover, threads):
+    """Update mosaic definition file."""
+    input_files = input_files.read().splitlines()
+    mosaic_def = fetch_mosaic_definition(input_mosaic)
+
+    mosaic_spec = update_mosaic(
+        input_files, mosaic_def, minimum_tile_cover=min_tile_cover, max_threads=threads
     )
 
     if output:

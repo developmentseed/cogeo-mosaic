@@ -249,7 +249,7 @@ def test_get_mosaic_info_mosaicid(get_data, event):
     """Test /info route."""
     get_data.return_value = mosaic_content
 
-    event["path"] = "/info/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516"
+    event["path"] = "/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/info"
     event["httpMethod"] = "GET"
 
     headers = {
@@ -274,4 +274,29 @@ def test_get_mosaic_info_mosaicid(get_data, event):
     )
     assert len(body["quadkeys"]) == 9
     assert body["layers"] == ["band1", "band2", "band3"]
+    get_data.assert_called_once()
+
+
+@patch("cogeo_mosaic.handlers.mosaic.fetch_mosaic_definition")
+def test_get_mosaic_geojson_mosaicid(get_data, event):
+    """Test /geojson route."""
+    get_data.return_value = mosaic_content
+
+    event["path"] = "/b99dd7e8cc284c6da4d2899e16b6ff85c8ab97041ae7b459eb67e516/geojson"
+    event["httpMethod"] = "GET"
+
+    headers = {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET",
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+    }
+    statusCode = 200
+
+    res = app(event, {})
+    assert res["headers"] == headers
+    assert res["statusCode"] == statusCode
+    body = json.loads(res["body"])
+    assert body["type"] == "FeatureCollection"
+    assert len(body["features"]) == 9
     get_data.assert_called_once()
