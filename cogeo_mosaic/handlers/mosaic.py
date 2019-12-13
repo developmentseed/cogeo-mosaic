@@ -112,16 +112,14 @@ def _create_footpring(body: str) -> Tuple[str, str, str]:
     return ("OK", "application/json", json.dumps(geojson))
 
 
-def _get_layer_names(src_path):
-    with rasterio.open(src_path) as src_dst:
+def _get_layer_names(src_dst):
+    def _get_name(ix):
+        name = src_dst.descriptions[ix - 1]
+        if not name:
+            name = f"band{ix}"
+        return name
 
-        def _get_name(ix):
-            name = src_dst.descriptions[ix - 1]
-            if not name:
-                name = f"band{ix}"
-            return name
-
-        return [_get_name(ix) for ix in src_dst.indexes]
+    return [_get_name(ix) for ix in src_dst.indexes]
 
 
 @app.route(
@@ -176,6 +174,9 @@ def _get_mosaic_info(mosaicid: str = None, url: str = None) -> Tuple[str, str, s
 
     # read layernames from the first file
     src_path = mosaic_def["tiles"][quadkeys[0]][0]
+    with rasterio.open(src_path) as src_dst:
+        layer_names = _get_layer_names(src_dst)
+        dtype = src_dst.dtypes[0]
 
     meta = {
         "bounds": bounds,
@@ -184,7 +185,8 @@ def _get_mosaic_info(mosaicid: str = None, url: str = None) -> Tuple[str, str, s
         "minzoom": mosaic_def["minzoom"],
         "name": url,
         "quadkeys": quadkeys,
-        "layers": _get_layer_names(src_path),
+        "layers": layer_names,
+        "dtype": dtype,
     }
     return ("OK", "application/json", json.dumps(meta))
 

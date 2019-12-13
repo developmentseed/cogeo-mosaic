@@ -199,7 +199,7 @@ def overview(
         output_profile.update(creation_options)
 
     config = dict(
-        GDAL_NUM_THREADS=threads,
+        GDAL_NUM_THREADS="ALL_CPU",
         GDAL_TIFF_INTERNAL_MASK=os.environ.get("GDAL_TIFF_INTERNAL_MASK", True),
         GDAL_TIFF_OVR_BLOCKSIZE="128",
     )
@@ -212,6 +212,7 @@ def overview(
         prefix,
         max_overview_level=overview_level,
         config=config,
+        threads=threads,
     )
 
 

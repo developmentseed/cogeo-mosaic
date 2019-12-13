@@ -5,26 +5,6 @@ services:
     build: .
     image: cogeo-mosaic:latest
 
-  lambda_setup: &lambda_setup
-    image: remotepixel/amazonlinux:gdal3.0-py3.7-cogeo
-    ports:
-      - 5003:8000
-    environment:
-      - CPL_TMPDIR=/tmp
-      - CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif,.TIF
-      - GDAL_CACHEMAX=512
-      - GDAL_DATA=/opt/share/gdal
-      - GDAL_DISABLE_READDIR_ON_OPEN=FALSE
-      - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
-      - GDAL_HTTP_MULTIPLEX=YES
-      - GDAL_HTTP_VERSION=2
-      - MAX_THREADS=50
-      - MOSAIC_DEF_BUCKET=""
-      - PROJ_LIB=/opt/share/proj
-      - PYTHONWARNINGS=ignore
-      - VSI_CACHE=TRUE
-      - VSI_CACHE_SIZE=536870912
-
   package:
     image: cogeo-mosaic:latest
     volumes:
@@ -33,15 +13,35 @@ services:
     command: /tmp/bin/package.sh
 
   test:
-    command: >
-      bash -c "unzip -q /local/package.zip -d /var/task/
-      && /local/bin/tests.sh"
+    image: remotepixel/amazonlinux:gdal3.0-py3.7-cogeo
     volumes:
       - '.:/local'
-    <<: *lambda_setup
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - MOSAIC_DEF_BUCKET=${MOSAIC_DEF_BUCKET}
+    command: >
+      bash -c "unzip -q /local/package.zip -d /var/task/ && /local/bin/tests.sh"
 
   bash:
-    command: /bin/bash
+    image: cogeo-mosaic:latest
     volumes:
       - '.:/local'
-    <<: *lambda_setup
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - MOSAIC_DEF_BUCKET=${MOSAIC_DEF_BUCKET}
+    command: /bin/bash
+
+  serve:
+    image: cogeo-mosaic:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - '.:/local'
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - MOSAIC_DEF_BUCKET=${MOSAIC_DEF_BUCKET}
+    command: >
+      bash -c "/var/task/bin/cogeo-mosaic run"

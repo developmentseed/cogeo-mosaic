@@ -3,8 +3,8 @@
 from typing import Dict
 
 import os
-import sys
-import itertools
+import random
+from concurrent import futures
 
 import click
 
@@ -14,24 +14,32 @@ from supermercado.burntiles import tile_extrema
 
 import rasterio
 from rasterio.io import MemoryFile
-from rasterio.enums import Resampling as ResamplingEnums
-from rasterio.shutil import copy
+from rasterio.windows import Window
 
 from rio_tiler.main import tile as cogeoTiler
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 from rio_tiler_mosaic.methods import defaults
 
-from rio_cogeo.utils import _meters_per_pixel, get_maximum_overview_level
+from rio_cogeo.cogeo import cog_translate
+from rio_cogeo.utils import _meters_per_pixel, has_mask_band
 
-from cogeo_mosaic.utils import get_mosaic_content, get_assets
+from cogeo_mosaic.utils import get_mosaic_content, get_assets, _filter_futures
 
 
 def _get_info(asset: str) -> Dict:
-    with rasterio.open(asset) as dst_src:
+    with rasterio.open(asset) as src_dst:
         description = [
-            dst_src.descriptions[b - 1] for i, b in enumerate(dst_src.indexes)
+            src_dst.descriptions[b - 1] for i, b in enumerate(src_dst.indexes)
         ]
-        return dst_src.count, dst_src.dtypes[0], description, dst_src.tags()
+        mask = has_mask_band(src_dst)
+        return (
+            src_dst.count,
+            src_dst.dtypes[0],
+            description,
+            src_dst.tags(),
+            src_dst.nodata,
+            mask,
+        )
 
 
 def _get_asset_example(mosaic_def: Dict) -> str:
@@ -68,14 +76,22 @@ def _split_extrema(extrema: Dict, max_ovr: int = 6, tilesize: int = 256):
     return extr
 
 
+def _get_blocks(extrema):
+    for j in range(extrema["y"]["max"] - extrema["y"]["min"]):
+        row = j * 256
+        for i in range(extrema["x"]["max"] - extrema["x"]["min"]):
+            col = i * 256
+            yield (j, i), Window(col_off=col, row_off=row, width=256, height=256)
+
+
 def create_low_level_cogs(
     mosaic_definition: Dict,
-    dst_kwargs: Dict,
+    output_profile: Dict,
     prefix: str = "mosaic_ovr",
-    add_mask: bool = True,
     max_overview_level: int = 6,
     config: Dict = None,
-):
+    threads=1,
+) -> None:
     """
     Create WebOptimized Overview COG from a mosaic definition file.
 
@@ -90,99 +106,92 @@ def create_low_level_cogs(
     config : dict
         Rasterio Env options.
 
-    Returns
-    -------
-
     """
     tilesize = 256
 
+    base_zoom = mosaic_definition["minzoom"] - 1
+    bounds = mosaic_definition["bounds"]
     asset = _get_asset_example(mosaic_definition)
     info = _get_info(asset)
 
-    base_zoom = mosaic_definition["minzoom"] - 1
-    bounds = mosaic_definition["bounds"]
     extrema = tile_extrema(bounds, base_zoom)
     res = _meters_per_pixel(base_zoom, 0, tilesize=tilesize)
 
     # Create multiples files if coverage is too big
     extremas = _split_extrema(extrema, max_ovr=max_overview_level, tilesize=tilesize)
     for ix, extrema in enumerate(extremas):
+        blocks = list(_get_blocks(extrema))
+        random.shuffle(blocks)
+
         width = (extrema["x"]["max"] - extrema["x"]["min"]) * tilesize
         height = (extrema["y"]["max"] - extrema["y"]["min"]) * tilesize
         w, n = mercantile.xy(
             *mercantile.ul(extrema["x"]["min"], extrema["y"]["min"], base_zoom)
         )
-        transform = Affine(res, 0, w, 0, -res, n)
 
         params = dict(
             driver="GTiff",
-            count=info[0],
             dtype=info[1],
-            crs="epsg:3857",
-            transform=transform,
+            count=info[0],
             width=width,
             height=height,
+            crs="epsg:3857",
+            transform=Affine(res, 0, w, 0, -res, n),
+            nodata=info[4],
+            tiled=True,
+            blockxsize=256,
+            blockysize=256,
         )
-
-        dst_path = f"{prefix}_{ix}.tif"
-        params.update(**dst_kwargs)
-        params.pop("compress", None)
-        params.pop("photometric", None)
 
         config = config or {}
         with rasterio.Env(**config):
             with MemoryFile() as memfile:
                 with memfile.open(**params) as mem:
-                    wind = list(mem.block_windows(1))
-                    with click.progressbar(
-                        wind,
-                        length=len(wind),
-                        file=sys.stderr,
-                        show_percent=True,
-                        label=dst_path,
-                    ) as windows:
-                        for ij, w in windows:
-                            x = extrema["x"]["min"] + ij[1]
-                            y = extrema["y"]["min"] + ij[0]
-                            tile = mercantile.Tile(x=x, y=y, z=base_zoom)
-                            assets = list(
-                                itertools.chain.from_iterable(
-                                    [
-                                        get_assets(mosaic_definition, t.x, t.y, t.z)
-                                        for t in mercantile.children(tile)
-                                    ]
-                                )
+
+                    def _get_tile(wind):
+                        idx, window = wind
+                        x = extrema["x"]["min"] + idx[1]
+                        y = extrema["y"]["min"] + idx[0]
+                        assets = list(
+                            set(get_assets(mosaic_definition, x, y, base_zoom))
+                        )
+                        if assets:
+                            tile, mask = mosaic_tiler(
+                                assets,
+                                x,
+                                y,
+                                base_zoom,
+                                cogeoTiler,
+                                tilesize=tilesize,
+                                pixel_selection=defaults.FirstMethod(),
                             )
-                            assets = list(set(assets))
+                            if tile is None:
+                                raise Exception("Empty")
 
-                            if assets:
-                                tile, mask = mosaic_tiler(
-                                    assets,
-                                    x,
-                                    y,
-                                    base_zoom,
-                                    cogeoTiler,
-                                    tilesize=tilesize,
-                                    pixel_selection=defaults.FirstMethod(),
-                                    resampling_method="bilinear",
-                                )
+                        return window, tile, mask
 
-                                mem.write(tile, window=w)
-                                if add_mask:
-                                    mem.write_mask(mask.astype("uint8"), window=w)
+                    with futures.ThreadPoolExecutor(max_workers=threads) as executor:
+                        future_work = [
+                            executor.submit(_get_tile, item) for item in blocks
+                        ]
+                        with click.progressbar(
+                            futures.as_completed(future_work),
+                            length=len(future_work),
+                            show_percent=True,
+                        ) as future:
+                            for res in future:
+                                pass
 
-                    overview_level = get_maximum_overview_level(mem, tilesize)
+                    for f in _filter_futures(future_work):
+                        window, tile, mask = f
+                        mem.write(tile, window=window)
+                        if info[5]:
+                            mem.write_mask(mask.astype("uint8"), window=window)
 
-                    overviews = [2 ** j for j in range(1, overview_level + 1)]
-                    mem.build_overviews(overviews, ResamplingEnums["nearest"])
-
-                    for i, b in enumerate(mem.indexes):
-                        mem.set_band_description(i + 1, info[2][b - 1])
-
-                    tags = info[3]
-                    tags.update(
-                        dict(OVR_RESAMPLING_ALG=ResamplingEnums["nearest"].name.upper())
+                    cog_translate(
+                        mem,
+                        f"{prefix}_{ix}.tif",
+                        output_profile,
+                        config=config,
+                        in_memory=True,
                     )
-                    mem.update_tags(**tags)
-
-                    copy(mem, dst_path, copy_src_overviews=True, **dst_kwargs)

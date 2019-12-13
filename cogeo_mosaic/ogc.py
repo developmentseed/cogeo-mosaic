@@ -3,6 +3,71 @@
 from typing import Tuple
 
 
+def gdal_wms_template(
+    endpoint: str,
+    query_string: str = "",
+    minzoom: int = 0,
+    maxzoom: int = 25,
+    tile_scale: int = 1,
+    tile_format: str = "jpeg",
+    nbands: int = 3,
+    dtype: str = "Byte",
+) -> str:
+    """
+    Create GDAL WMS XML template.
+
+    Attributes
+    ----------
+    endpoint : str, required
+        Mosaic tiler endpoint.
+    query_string : str, optional
+        Endpoint querystring.
+    minzoom : int, optional (default: 0)
+        Mosaic min zoom.
+    maxzoom : int, optional (default: 25)
+        Mosaic max zoom.
+    tile_scale : int, optional (default: 1 -> 256px)
+        Tile endpoint size scale.
+    tile_format: str, optional (default: png)
+        Tile image type.
+    nbands: int, optional (default: 4)
+    Returns
+    -------
+    xml : str
+        GDAL Web Map Service XML template.
+
+    """
+    tilesize = 256 * tile_scale
+
+    xml = f"""<GDAL_WMS>
+        <Service name="TMS">
+            <ServerUrl>{endpoint}/${{z}}/${{x}}/${{y}}@{tile_scale}x.{tile_format}?{query_string}</ServerUrl>
+        </Service>
+        <ImageFormat>image/{tile_format}</ImageFormat>
+        <DataWindow>
+            <UpperLeftX>-20037508.34</UpperLeftX>
+            <UpperLeftY>20037508.34</UpperLeftY>
+            <LowerRightX>20037508.34</LowerRightX>
+            <LowerRightY>-20037508.34</LowerRightY>
+            <TileLevel>{maxzoom}</TileLevel>
+            <TileCountX>1</TileCountX>
+            <TileCountY>1</TileCountY>
+            <YOrigin>top</YOrigin>
+        </DataWindow>
+        <Projection>EPSG:3857</Projection>
+        <BlockSizeX>{tilesize}</BlockSizeX>
+        <BlockSizeY>{tilesize}</BlockSizeY>
+        <BandsCount>{nbands}</BandsCount>
+        <DataType>{dtype}</DataType>
+        <OverviewCount>{maxzoom - minzoom}</OverviewCount>
+        <MaxConnections>100</MaxConnections>
+        <ZeroBlockHttpCodes>204,404</ZeroBlockHttpCodes>
+        <ZeroBlockOnServerException>true</ZeroBlockOnServerException>
+    </GDAL_WMS>"""
+
+    return xml
+
+
 def wmts_template(
     endpoint: str,
     layer_name: str,
@@ -44,7 +109,8 @@ def wmts_template(
         OGC Web Map Tile Service (WMTS) XML template.
 
     """
-    content_type = f"image/{tile_format}"
+    media_type = "tiff" if tile_format == "tif" else tile_format
+    content_type = f"image/{media_type}"
     tilesize = 256 * tile_scale
 
     tileMatrix = []
@@ -78,7 +144,7 @@ def wmts_template(
             <ows:Operation name="GetCapabilities">
                 <ows:DCP>
                     <ows:HTTP>
-                        <ows:Get xlink:href="{endpoint}/tiles/wmts?{query_string}">
+                        <ows:Get xlink:href="{endpoint}/wmts?{query_string}">
                             <ows:Constraint name="GetEncoding">
                                 <ows:AllowedValues>
                                     <ows:Value>RESTful</ows:Value>
@@ -91,7 +157,7 @@ def wmts_template(
             <ows:Operation name="GetTile">
                 <ows:DCP>
                     <ows:HTTP>
-                        <ows:Get xlink:href="{endpoint}/tiles/wmts?{query_string}">
+                        <ows:Get xlink:href="{endpoint}/wmts?{query_string}">
                             <ows:Constraint name="GetEncoding">
                                 <ows:AllowedValues>
                                     <ows:Value>RESTful</ows:Value>
@@ -121,7 +187,7 @@ def wmts_template(
                 <ResourceURL
                     format="{content_type}"
                     resourceType="tile"
-                    template="{endpoint}/tiles/{{TileMatrix}}/{{TileCol}}/{{TileRow}}@{tile_scale}x.{tile_format}?{query_string}"/>
+                    template="{endpoint}/{{TileMatrix}}/{{TileCol}}/{{TileRow}}@{tile_scale}x.{tile_format}?{query_string}"/>
             </Layer>
             <TileMatrixSet>
                 <ows:Title>GoogleMapsCompatible</ows:Title>
@@ -131,7 +197,7 @@ def wmts_template(
                 {tileMatrix}
             </TileMatrixSet>
         </Contents>
-        <ServiceMetadataURL xlink:href='{endpoint}/tiles/wmts?{query_string}'/>
+        <ServiceMetadataURL xlink:href='{endpoint}/wmts?{query_string}'/>
     </Capabilities>"""
 
     return xml

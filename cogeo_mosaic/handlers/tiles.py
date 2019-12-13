@@ -7,7 +7,11 @@ import json
 import urllib
 
 import numpy
+
+import mercantile
+
 import rasterio
+from rasterio.transform import from_bounds
 
 from rio_color.utils import scale_dtype, to_math_type
 from rio_color.operations import parse_operations
@@ -212,7 +216,7 @@ def _get_mosaic_wmts(
         "OK",
         "application/xml",
         wmts_template(
-            app.host,
+            f"{app.host}/tiles",
             os.path.basename(url),
             query_string,
             minzoom=mosaic_def["minzoom"],
@@ -409,6 +413,16 @@ def mosaic_img(
 
     driver = "jpeg" if ext == "jpg" else ext
     options = img_profiles.get(driver, {})
+
+    if ext == "tif":
+        ext = "tiff"
+        driver = "GTiff"
+        tile_bounds = mercantile.xy_bounds(mercantile.Tile(x=x, y=y, z=z))
+        options = dict(
+            crs={"init": "EPSG:3857"},
+            transform=from_bounds(*tile_bounds, tilesize, tilesize),
+        )
+
     return (
         "OK",
         f"image/{ext}",

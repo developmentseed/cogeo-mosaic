@@ -457,9 +457,6 @@ def fetch_and_find_assets_point(mosaic_path: str, lng: float, lat: float) -> Tup
 def get_assets(mosaic_definition: Dict, x: int, y: int, z: int) -> Tuple[str]:
     """Find assets."""
     min_zoom = mosaic_definition["minzoom"]
-    max_zoom = mosaic_definition["maxzoom"]
-    if z > max_zoom or z < min_zoom:
-        return []  # return empty asset
 
     mercator_tile = mercantile.Tile(x=x, y=y, z=z)
     quadkey_zoom = mosaic_definition.get("quadkey_zoom", min_zoom)  # 0.0.2
@@ -480,7 +477,6 @@ def get_assets(mosaic_definition: Dict, x: int, y: int, z: int) -> Tuple[str]:
 
         mercator_tiles = list(filter(lambda t: t.z == quadkey_zoom, mercator_tiles))
         quadkey = [mercantile.quadkey(*tile) for tile in mercator_tiles]
-
     else:
         quadkey = [mercantile.quadkey(*mercator_tile)]
 
