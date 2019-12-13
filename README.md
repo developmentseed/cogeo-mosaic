@@ -75,9 +75,6 @@ $ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.res
 
 A AWS Lambda function handler is included in this module.
 
-See [/doc/API.md](/doc/API.md) for the documentation. 
-
-
 ### Deployment
 
 #### Package Lambda
@@ -100,10 +97,13 @@ $ npm install serverless -g
 $ sls deploy --region us-east-1 --bucket a-bucket-where-you-store-data
 ```
 
-## DEMO
+#### Docs
 
-To run your own see [/demo](/demo)
+See [/doc/API.md](/doc/API.md) for the documentation. 
 
+#### Live
+
+A version of this stack is deployed on AWS us-east-1 and available on [cogeo.xyz](https://cogeo.xyz)
 
 ### Contribution & Development
 
