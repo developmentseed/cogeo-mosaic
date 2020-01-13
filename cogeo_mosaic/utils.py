@@ -18,9 +18,8 @@ import click
 import requests
 
 import numpy
-
+from pygeos import intersects, intersection, polygons, area
 import mercantile
-from shapely.geometry import shape, box
 from supermercado import burntiles
 
 import rasterio
@@ -203,15 +202,17 @@ def get_point_values(assets: Tuple[str], lng: float, lat: float) -> Tuple:
         return list(_filter_futures(future_work))
 
 
-def _intersect_percent(tile, geom):
+def _intersect_percent(tile, dataset_geoms):
     """Return the overlap percent."""
-    inter = tile.intersection(geom)
-    return inter.area / tile.area if inter else 0.0
+    inter_areas = area(intersection(tile, dataset_geoms))
+    return [inter_area / area(tile) for inter_area in inter_areas]
 
 
 def _filter_and_sort(tile, dataset, minimum_cover=None, sort_cover=False):
     """Filter and/or sort dataset per intersection coverage."""
-    dataset = [(_intersect_percent(tile, x["geometry"]), x) for x in dataset]
+    dataset = list(
+        zip(_intersect_percent(tile, [x["geometry"] for x in dataset]), dataset)
+    )
     if minimum_cover is not None:
         dataset = list(filter(lambda x: x[0] > minimum_cover, dataset))
 
@@ -310,19 +311,23 @@ def create_mosaic(
     else:
         raise Exception(f"Invalid mosaicJSON version: {version}")
 
+    dataset_geoms = polygons([feat["geometry"]["coordinates"][0] for feat in results])
     dataset = [
-        {"path": f["properties"]["path"], "geometry": shape(f["geometry"])}
-        for f in results
+        {"path": f["properties"]["path"], "geometry": geom}
+        for (f, geom) in zip(results, dataset_geoms)
     ]
 
     for parent in tiles:
         z, x, y = list(map(int, parent.split("-")))
         parent = mercantile.Tile(x=x, y=y, z=z)
         quad = mercantile.quadkey(*parent)
-        tile_geometry = box(*mercantile.bounds(parent))
-        fdataset = list(
-            filter(lambda x: tile_geometry.intersects(x["geometry"]), dataset)
+        tile_geometry = polygons(
+            mercantile.feature(parent)["geometry"]["coordinates"][0]
         )
+        fdataset = [
+            dataset[idx]
+            for idx in numpy.nonzero(intersects(tile_geometry, dataset_geoms))[0]
+        ]
         if minimum_tile_cover is not None or tile_cover_sort:
             fdataset = _filter_and_sort(
                 tile_geometry,
@@ -330,7 +335,6 @@ def create_mosaic(
                 minimum_cover=minimum_tile_cover,
                 sort_cover=tile_cover_sort,
             )
-
         if len(fdataset):
             mosaic_definition["tiles"][quad] = [f["path"] for f in fdataset]
 
@@ -368,16 +372,19 @@ def update_mosaic(
     min_zoom = mosaic_def["minzoom"]
     quadkey_zoom = mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
 
-    for r in results:
+    dataset_geoms = polygons([feat["geometry"]["coordinates"][0] for feat in results])
+    for idx, r in enumerate(results):
         tiles = burntiles.burn([r], quadkey_zoom)
         tiles = ["{2}-{0}-{1}".format(*tile.tolist()) for tile in tiles]
 
-        dataset = [{"path": r["properties"]["path"], "geometry": shape(r["geometry"])}]
+        dataset = [{"path": r["properties"]["path"], "geometry": dataset_geoms[idx]}]
         for parent in tiles:
             z, x, y = list(map(int, parent.split("-")))
             parent = mercantile.Tile(x=x, y=y, z=z)
             quad = mercantile.quadkey(*parent)
-            tile_geometry = box(*mercantile.bounds(parent))
+            tile_geometry = polygons(
+                mercantile.feature(parent)["geometry"]["coordinates"][0]
+            )
 
             fdataset = dataset
             if minimum_tile_cover is not None:
