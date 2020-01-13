@@ -6,6 +6,7 @@ from setuptools import setup, find_packages
 # Runtime requirements.
 inst_reqs = [
     "mercantile",
+    "pygeos",
     "supermercado",
     "shapely",
     "requests",
