@@ -8,7 +8,6 @@ inst_reqs = [
     "mercantile",
     "pygeos",
     "supermercado",
-    "shapely",
     "requests",
     "rasterio[s3]",
     "rio-color",
@@ -26,7 +25,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="1.0.0",
+    version="2.0.0",
     description=u"Create and serve COG mosaics.",
     long_description=u"Create and serve COG mosaics.",
     python_requires=">=3",

@@ -38,6 +38,8 @@ Commands:
   run        Local Server
 ```
 
+**Note**: Starting with version 2.0, pygeos has replaced shapely and thus makes `libgeos` a requirement.
+
 ### Usage - Create Mosaic definition
 ```bash
 $ cogeo-mosaic create --help
