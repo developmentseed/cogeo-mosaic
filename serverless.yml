@@ -34,7 +34,7 @@ functions:
     memorySize: 128
     timeout: 3
     layers:
-      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:7
+      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:8
     environment:
       MAPBOX_ACCESS_TOKEN: ${opt:token, ""}
     events:
@@ -52,7 +52,7 @@ functions:
     memorySize: 1536
     timeout: 10
     layers:
-      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:7
+      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:8
     environment:
       CPL_TMPDIR: /tmp
       GDAL_CACHEMAX: 25%
@@ -78,7 +78,7 @@ functions:
     memorySize: 3008
     timeout: 30
     layers:
-      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:7
+      - arn:aws:lambda:${self:provider.region}:524387336408:layer:gdal30-py37-cogeo:8
     environment:
       CPL_TMPDIR: /tmp
       GDAL_CACHEMAX: 25%

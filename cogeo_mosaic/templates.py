@@ -373,6 +373,16 @@ def index(endpoint: str, token: str = "") -> str:
         zoom: 1
     }})
 
+    const parseParams = (w_loc) => {{
+      const param_list = w_loc.replace('?', '').split('&')
+      const out_params = {{}}
+      for (let i = 0; i < param_list.length; i++) {{
+        let tPar = param_list[i].split('=');
+        out_params[tPar[0]] = tPar[1]
+      }}
+      return out_params;
+    }}
+
     map.on('zoom', function (e) {{
         const z = (map.getZoom()).toString().slice(0, 6)
         document.getElementById('zoom').textContent = z
@@ -752,6 +762,18 @@ def index(endpoint: str, token: str = "") -> str:
     }})
 
     map.on('load', () => {{
+
+        const params = parseParams(window.location.search)
+        if (params.url) {{
+            addMosaic(params.url)
+                .then(() => {{
+                    document.getElementById('selector').classList.toggle('none')
+                }})
+                .catch(err => {{
+                    console.warn(err)
+                }})
+        }}
+
         map.on('mousemove', (e) => {{
             if (!map.getLayer('mvt')) return
             const mouseRadius = 1
@@ -813,7 +835,6 @@ def index(endpoint: str, token: str = "") -> str:
                 }})
             }}
         }})
-
     }})
 
     </script>
