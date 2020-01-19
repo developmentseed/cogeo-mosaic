@@ -11,7 +11,7 @@ app = API(name="cogeo-mosaic-web", add_docs=False, debug=True)
 
 @app.route("/", methods=["GET"], cors=True, tag=["landing page"])
 @app.route("/index.html", methods=["GET"], cors=True, tag=["landing page"])
-def _index() -> Tuple[str, str, str]:
+def _index(**kwargs) -> Tuple[str, str, str]:
     """
     Handle / requests.
 

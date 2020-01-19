@@ -269,6 +269,10 @@ def mosaic_mvt(
     if tile_size is not None and isinstance(tile_size, str):
         tile_size = int(tile_size)
 
+    if pixel_selection == "last":
+        pixel_selection = "first"
+        assets = list(reversed(assets))
+
     pixsel_method = PIXSEL_METHODS[pixel_selection]
     tile, mask = mosaic_tiler(
         assets,
@@ -387,6 +391,10 @@ def mosaic_img(
         indexes = list(map(int, indexes.split(",")))
 
     tilesize = 256 * scale
+
+    if pixel_selection == "last":
+        pixel_selection = "first"
+        assets = list(reversed(assets))
 
     pixsel_method = PIXSEL_METHODS[pixel_selection]
     tile, mask = mosaic_tiler(

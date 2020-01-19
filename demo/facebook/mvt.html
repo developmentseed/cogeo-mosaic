@@ -248,7 +248,7 @@ const switchViz = (vizType) => {
       const minV = parseFloat(document.getElementById('minCut').value)
       const maxV = parseFloat(document.getElementById('maxCut').value)
 
-      let url = `${apiEndpoint}/tilejson.json?url=${mosaicDefinition}&tile_format=png&indexes=${indexes}&rescale=${minV},${maxV}`
+      let url = `${apiEndpoint}/tiles/tilejson.json?url=${mosaicDefinition}&tile_format=png&indexes=${indexes}&rescale=${minV},${maxV}`
       if (cmap.value !== 'b&w') url += `&color_map=${cmap.value}`
       map.addSource('raster', {
         type: 'raster',
@@ -260,7 +260,7 @@ const switchViz = (vizType) => {
     case 'point':
       map.addSource('mvt', {
         type: 'vector',
-        url: `${apiEndpoint}/tilejson.json?url=${mosaicDefinition}&tile_format=pbf&feature_type=point`
+        url: `${apiEndpoint}/tiles/tilejson.json?url=${mosaicDefinition}&tile_format=pbf&feature_type=point`
       })
       addLayer(vizType)
       break
@@ -268,7 +268,7 @@ const switchViz = (vizType) => {
     case 'polygon':
       map.addSource('mvt', {
         type: 'vector',
-        url: `${apiEndpoint}/tilejson.json?url=${mosaicDefinition}&tile_format=pbf&feature_type=polygon`
+        url: `${apiEndpoint}/tiles/tilejson.json?url=${mosaicDefinition}&tile_format=pbf&feature_type=polygon`
       })
       addLayer(vizType)
       break
@@ -436,7 +436,7 @@ const addAOI = (bounds) => {
 }
 
 map.on('load', () => {
-  fetch(`${apiEndpoint}/info?url=${mosaicDefinition}`)
+  fetch(`${apiEndpoint}/mosaic/info?url=${mosaicDefinition}`)
     .then(res => {
       if (res.ok) return res.json()
       throw new Error('Network response was not ok.')

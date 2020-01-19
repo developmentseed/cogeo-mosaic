@@ -1,3 +1,15 @@
+2.0.0 (2020-12-18)
+------------------
+- switch to pygeos (#24)
+- bug fixes
+- add `last` pixel_method
+
+1.0.0 (2019-12-13)
+------------------
+- add tif output
+- fix overview creation
+- add other Web templates
+
 0.3.0 (2019-11-07)
 ------------------
 - use aws lambda layer
