@@ -6,12 +6,9 @@ common: &common
     - run: 
         name: install geos
         command: sudo apt-get install libgeos-dev -y
-    - run: 
-        name: Upgrade pip
-        command: sudo pip install pip -U
     - run:
         name: install dependencies
-        command: pip install tox codecov pre-commit --user
+        command: python -m pip install tox codecov pre-commit --user
     - run:
         name: run tox
         command: ~/.local/bin/tox
