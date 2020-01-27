@@ -68,7 +68,7 @@ $ aws s3 cp mosaic.json.gz s3://{my-bucket}/facebook/mosaic.json.gz
 
 ### Deploy
 ```bash
-$ git clone https://github.com/developmentseed/cogeo-mosaic.git
+$ git clone https://github.com/developmentseed/cogeo-mosaic-tiler.git
 
 # Create lambda package
 $ docker-compose build --no-cache

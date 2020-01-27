@@ -1,28 +1,29 @@
 # cogeo-mosaic
 
+Create mosaics of Cloud Optimized GeoTIFF based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec) specification.
+
+
 [![CircleCI](https://circleci.com/gh/developmentseed/cogeo-mosaic.svg?style=svg)](https://circleci.com/gh/developmentseed/cogeo-mosaic)
+
+![cogeo-mosaic](https://user-images.githubusercontent.com/10407788/73185274-c41dc900-40eb-11ea-8b67-f79c0682c3b0.jpg)
 
 **Read the official announcement https://medium.com/devseed/cog-talk-part-2-mosaics-bbbf474e66df**
 
+This python module provide a CLI to help create mosaicJSON.
 
-Create and use mosaics of COGs based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec).
-
-![mosaicJSON](https://user-images.githubusercontent.com/10407788/57888417-1fc75100-7800-11e9-93a3-b54d06fb4cd2.png)
-
-# What is this 
-
-This repo is a combination of a python (>3) module and a serverless stack (AWS).
-
-The python module provide a CLI to help create mosaicJSON localy.
-
-
-## Install the python module + cli
+## Install
 ```bash
 $ pip install pip -U
-$ pip install cython==0.28 # (ref: https://github.com/tilery/python-vtzero/issues/13)
-$ pip install git+http://github.com/developmentseed/cogeo-mosaic
+$ pip install cogeo-mosaic
 
-$ cogeo-mosaic
+# Or from source
+
+$ pip install git+http://github.com/developmentseed/cogeo-mosaic
+```
+
+## Use
+```
+$ cogeo-mosaic --help
 Usage: cogeo-mosaic [OPTIONS] COMMAND [ARGS]...
 
   cogeo_mosaic cli.
@@ -35,12 +36,11 @@ Commands:
   create     Create mosaic definition from list of files
   footprint  Create geojson from list of files
   overview   [EXPERIMENT] Create COG overviews for a mosaic
-  run        Local Server
 ```
 
 **Note**: Starting with version 2.0, pygeos has replaced shapely and thus makes `libgeos` a requirement.
 
-### Usage - Create Mosaic definition
+### Create Mosaic definition
 ```bash
 $ cogeo-mosaic create --help
 Usage: cogeo-mosaic create [OPTIONS] [INPUT_FILES]
@@ -63,49 +63,20 @@ $ cogeo-mosaic create list.txt -o mosaic.json
 $ cat list.txt | cogeo-mosaic create - | gzip > mosaic.json.gz
 ```
 
-#### Create a mosaic from OAM
+#### Example: create a mosaic from OAM
 
 ```bash 
-# Create Footprint
-$ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.results.images[] | .uuid' | cogeo-mosaic footprint | gist -p -f test.geojson
-
 # Create Mosaic
 $ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.results.images[] | .uuid' | cogeo-mosaic create - | gzip >  5d6a0d1a2103c90007707fa0.json.gz
+
+# Create Footprint (optional)
+$ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.results.images[] | .uuid' | cogeo-mosaic footprint | gist -p -f test.geojson
 ```
 
-## Serverless Stack
+## Associated Modules
+- [**cogeo-mosaic-tiler**](http://github.com/developmentseed/cogeo-mosaic-tiler): A serverless stack to serve and vizualized tiles from Cloud Optimized GeoTIFF mosaic.
 
-A AWS Lambda function handler is included in this module.
-
-### Deployment
-
-#### Package Lambda
-
-Create `package.zip`
-
-```bash
-$ docker-compose build --no-cache
-$ docker-compose run --rm package
-```
-
-#### Deploy to AWS
-
-This project uses [Serverless](https://serverless.com) to manage deploy on AWS.
-
-```bash
-# Install and Configure serverless (https://serverless.com/framework/docs/providers/aws/guide/credentials/)
-$ npm install serverless -g 
-
-$ sls deploy --region us-east-1 --bucket a-bucket-where-you-store-data
-```
-
-#### Docs
-
-See [/doc/API.md](/doc/API.md) for the documentation. 
-
-#### Live
-
-A version of this stack is deployed on AWS us-east-1 and available on [cogeo.xyz](https://cogeo.xyz)
+- [**cogeo-mosaic-viewer**](http://github.com/developmentseed/cogeo-mosaic-viewer): A local Cloud Optimized GeoTIFF mosaic viewer based on [rio-viz](http://github.com/developmentseed/rio-viz).
 
 ### Contribution & Development
 
@@ -133,7 +104,6 @@ Flake8...................................................................Passed
 Verifying PEP257 Compliance..............................................Passed
 $ git push origin
 ```
-
 
 ## About
 Created by [Development Seed](<http://developmentseed.org>)

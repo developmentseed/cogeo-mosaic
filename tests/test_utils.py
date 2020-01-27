@@ -3,6 +3,7 @@
 import os
 import json
 from io import BytesIO
+from concurrent import futures
 
 import pytest
 from mock import patch
@@ -42,31 +43,6 @@ def test_decompress():
     assert list(res.keys()) == ["minzoom", "maxzoom", "bounds", "center", "tiles"]
 
 
-def test_compress():
-    """Test valid gz compression."""
-    with open(mosaic_json, "r") as f:
-        mosaic = json.loads(f.read())
-
-    body = utils._compress_gz_json(mosaic)
-    assert type(body) == bytes
-    res = json.loads(utils._decompress_gz(body))
-    assert res == mosaic
-
-
-@patch("cogeo_mosaic.utils.boto3_session")
-def test_aws_put_data_valid(session):
-    """Create a file on S3."""
-    session.return_value.client.return_value.put_object.return_value = True
-
-    body = b"1111111"
-    bucket = "my-bucket"
-    key = "myfile.json.gz"
-
-    res = utils._aws_put_data(key, bucket, body)
-    session.assert_called_once()
-    assert res == key
-
-
 @patch("cogeo_mosaic.utils.boto3_session")
 def test_aws_get_data_valid(session):
     """Create a file on S3."""
@@ -80,6 +56,24 @@ def test_aws_get_data_valid(session):
     res = utils._aws_get_data(key, bucket)
     session.assert_called_once()
     assert res == b"1111111"
+
+
+def test_filtering_futurestask():
+    """Should filter failed task."""
+
+    def _is_odd(val: int) -> int:
+        if not val % 2:
+            raise Exception(f"{val} is Even.")
+        return val
+
+    with futures.ThreadPoolExecutor() as executor:
+        future_work = [executor.submit(_is_odd, item) for item in range(0, 8)]
+    assert list(utils._filter_futures(future_work)) == [1, 3, 5, 7]
+
+    with pytest.raises(Exception):
+        with futures.ThreadPoolExecutor() as executor:
+            future_work = [executor.submit(_is_odd, item) for item in range(0, 8)]
+        list([f.result() for f in future_work])
 
 
 def test_dataset_info():
@@ -103,7 +97,7 @@ def test_footprint():
 def test_mosaic_create():
     """Fetch info from dataset and create the mosaicJSON definition."""
     assets = [asset1, asset2]
-    mosaic = utils.create_mosaic(assets)
+    mosaic = utils.create_mosaic(assets, quiet=False)
     assert [round(b, 3) for b in mosaic["bounds"]] == [
         round(b, 3) for b in mosaic_content["bounds"]
     ]
@@ -128,9 +122,16 @@ def test_mosaic_create():
     assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
     assert not mosaic["tiles"] == mosaic_content["tiles"]
 
+    assets = [asset1, asset2]
+    mosaic = utils.create_mosaic(assets)
+    assert [round(b, 3) for b in mosaic["bounds"]] == [
+        round(b, 3) for b in mosaic_content["bounds"]
+    ]
+    assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
+
     # Wrong MosaicJSON version
     with pytest.raises(Exception):
-        utils.create_mosaic(assets, version="0.0.2")
+        utils.create_mosaic(assets, version="0.0.3")
 
     with pytest.warns(None) as record:
         mosaic = utils.create_mosaic([asset1_small, asset2], minzoom=7, maxzoom=9)
@@ -266,9 +267,11 @@ def test_update_mosaic():
     assert len(mosaic["tiles"]) == 36
 
     mosaic = utils.create_mosaic([asset1], minzoom=9)
+    assert mosaic["version"] == "1.0.0"
     utils.update_mosaic([asset2], mosaic)
     assert len(mosaic["tiles"]) == 48
     assert len(mosaic["tiles"]["030230132"]) == 2
+    assert mosaic["version"] == "1.0.1"
 
     mosaic = utils.create_mosaic([asset1], minzoom=9)
     utils.update_mosaic([asset2], mosaic, minimum_tile_cover=0.1)
