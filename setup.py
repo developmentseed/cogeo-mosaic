@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 # Runtime requirements.
 inst_reqs = [
     "mercantile",
-    "pygeos @ git+https://github.com/pygeos/pygeos.git",
+    "pygeos",
     "supermercado",
     "requests",
     "rasterio[s3]",
@@ -22,7 +22,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="2.0.0",
+    version="2.0.1",
     description=u"Create Cloud Optimized GeoTIFF mosaicsJSON.",
     long_description=u"Create Cloud Optimized GeoTIFF mosaicsJSON.",
     python_requires=">=3",

@@ -1,5 +1,11 @@
-2.0.0 (2020-12-18)
+2.0.1 (2020-01-28)
 ------------------
+- Bug fix, use pygeos from pypi instead of git repo
+
+2.0.0 (2020-01-28)
+------------------
+## Major refactor
+- remove stack related code (lambda handler, serverless)
 - switch to pygeos (#24)
 - bug fixes
 - add `last` pixel_method

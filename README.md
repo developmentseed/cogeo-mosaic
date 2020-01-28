@@ -22,6 +22,10 @@ $ pip install cogeo-mosaic
 $ pip install git+http://github.com/developmentseed/cogeo-mosaic
 ```
 
+**Notes**: 
+- Starting with version 2.0, pygeos has replaced shapely and thus makes `libgeos` a requirement.
+- **pygeos** hosted on pypi migth not compile on certain machine. This has been fixed in the master branch and can be installed with `pip install git+https://github.com/pygeos/pygeos.git`
+
 ## Use
 ```
 $ cogeo-mosaic --help
@@ -38,8 +42,6 @@ Commands:
   footprint  Create geojson from list of files
   overview   [EXPERIMENT] Create COG overviews for a mosaic
 ```
-
-**Note**: Starting with version 2.0, pygeos has replaced shapely and thus makes `libgeos` a requirement.
 
 ### Create Mosaic definition
 ```bash
