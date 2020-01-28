@@ -3,7 +3,9 @@
 import os
 import json
 import multiprocessing
+from pkg_resources import iter_entry_points
 
+from click_plugins import with_plugins
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
@@ -19,6 +21,7 @@ from rasterio.rio import options
 from rio_cogeo.profiles import cog_profiles
 
 
+@with_plugins(iter_entry_points("cogeo_mosaic.plugins"))
 @click.group()
 @click.version_option(version=cogeo_mosaic_version, message="%(version)s")
 def cogeo_cli():
