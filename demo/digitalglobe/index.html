@@ -83,7 +83,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 //                                CHANGE THIS                                 //
-const mosaicDefinition = 'https://s3.amazonaws.com/opendata.remotepixel.ca/dg_post_idai/2019_03_20/mosaic.json.gz'
+const mosaicDefinition = ''
 const apiEndpoint = ''
 mapboxgl.accessToken = ''
 ////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ const addAOI = (bounds) => {
 }
 
 map.on('load', () => {
-  fetch(`${apiEndpoint}/mosaic/info?url=${mosaicDefinition}`)
+  fetch(`${apiEndpoint}/info?url=${mosaicDefinition}`)
     .then(res => {
       if (res.ok) return res.json()
       throw new Error('Network response was not ok.')
@@ -144,7 +144,7 @@ map.on('load', () => {
       addAOI(data.bounds)
       map.fitBounds([[data.bounds[0], data.bounds[1]], [data.bounds[2], data.bounds[3]]])
 
-      let url = `${apiEndpoint}/tiles/tilejson.json?url=${mosaicDefinition}&tile_format=png`
+      let url = `${apiEndpoint}/tilejson.json?url=${mosaicDefinition}&tile_format=png`
       map.addSource('raster', {
         type: 'raster',
         url: url

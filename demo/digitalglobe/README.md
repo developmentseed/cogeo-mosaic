@@ -77,12 +77,11 @@ $ aws s3 cp mosaic.json.gz s3://{my-bucket}/digitalglobe/post_idai/20190320/mosa
 $ git clone https://github.com/developmentseed/cogeo-mosaic-tiler.git
 
 # Create lambda package
-$ docker-compose build --no-cache
-$ docker-compose run --rm package
+$ cd cogeo-mosaic-tiler && make package
 
 # Deploy
 $ npm install serverless -g 
-$ sls deploy
+$ sls deploy --bucket {my-bucket}
 ```
 
 ### Edit [/index.html](index.html)
