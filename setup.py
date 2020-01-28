@@ -6,16 +6,13 @@ from setuptools import setup, find_packages
 # Runtime requirements.
 inst_reqs = [
     "mercantile",
-    "pygeos",
+    "pygeos @ git+https://github.com/pygeos/pygeos.git",
     "supermercado",
     "requests",
     "rasterio[s3]",
-    "rio-color",
     "rio-cogeo>=1.1.0",
     "rio_tiler>=1.2.10",
     "rio_tiler_mosaic>=0.0.1dev3",
-    "rio_tiler_mvt",
-    "lambda-proxy~=5.0",
 ]
 
 extra_reqs = {
@@ -26,8 +23,8 @@ extra_reqs = {
 setup(
     name="cogeo-mosaic",
     version="2.0.0",
-    description=u"Create and serve COG mosaics.",
-    long_description=u"Create and serve COG mosaics.",
+    description=u"Create Cloud Optimized GeoTIFF mosaicsJSON.",
+    long_description=u"Create Cloud Optimized GeoTIFF mosaicsJSON.",
     python_requires=">=3",
     classifiers=[
         "Intended Audience :: Information Technology",

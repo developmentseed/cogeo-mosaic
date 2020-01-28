@@ -55,7 +55,7 @@ $ aws s3 ls s3://{my-bucket}/facebook/ --recursive | awk '{print "s3://{my-bucke
 ## 2. Create Mosaic file
 
 ```bash 
-$ pip install https://github.com/developmentseed/cogeo-mosaic
+$ pip install cogeo-mosaic
 
 # Use `cog-mosaic` CLI
 $ cat list_fb.txt | cogeo-mosaic create | gzip > mosaic.json.gz
@@ -68,15 +68,14 @@ $ aws s3 cp mosaic.json.gz s3://{my-bucket}/facebook/mosaic.json.gz
 
 ### Deploy
 ```bash
-$ git clone https://github.com/developmentseed/cogeo-mosaic.git
+$ git clone https://github.com/developmentseed/cogeo-mosaic-tiler.git
 
 # Create lambda package
-$ docker-compose build --no-cache
-$ docker-compose run --rm package
+$ cd cogeo-mosaic-tiler & make package
 
 # Deploy
 $ npm install serverless -g 
-$ sls deploy
+$ sls deploy --bucket {my-bucket}
 ```
 
 ### Edit [/index.html](index.html)

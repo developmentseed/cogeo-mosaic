@@ -2,19 +2,17 @@
 
 import os
 import json
-import base64
 import multiprocessing
-from socketserver import ThreadingMixIn
-from urllib.parse import urlparse, parse_qsl
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from pkg_resources import iter_entry_points
 
+from click_plugins import with_plugins
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
 from cogeo_mosaic.utils import (
     create_mosaic,
     get_footprints,
-    fetch_mosaic_definition,
+    get_mosaic_content,
     update_mosaic,
 )
 from cogeo_mosaic.overviews import create_low_level_cogs
@@ -22,22 +20,8 @@ from cogeo_mosaic.overviews import create_low_level_cogs
 from rasterio.rio import options
 from rio_cogeo.profiles import cog_profiles
 
-from cogeo_mosaic.handlers.web import app as app_web
-from cogeo_mosaic.handlers.tiles import app as app_tiles
-from cogeo_mosaic.handlers.mosaic import app as app_mosaic
 
-
-app_web.https = False
-app_tiles.https = False
-app_mosaic.https = False
-
-
-class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
-    """MultiThread."""
-
-    pass
-
-
+@with_plugins(iter_entry_points("cogeo_mosaic.plugins"))
 @click.group()
 @click.version_option(version=cogeo_mosaic_version, message="%(version)s")
 def cogeo_cli():
@@ -118,7 +102,7 @@ def create(
 def update(input_files, input_mosaic, output, min_tile_cover, threads):
     """Update mosaic definition file."""
     input_files = input_files.read().splitlines()
-    mosaic_def = fetch_mosaic_definition(input_mosaic)
+    mosaic_def = get_mosaic_content(input_mosaic)
 
     mosaic_spec = update_mosaic(
         input_files, mosaic_def, minimum_tile_cover=min_tile_cover, max_threads=threads
@@ -191,7 +175,7 @@ def overview(
     input_mosaic, cogeo_profile, prefix, threads, overview_level, creation_options
 ):
     """Create COG overviews for a mosaic."""
-    mosaic_def = fetch_mosaic_definition(input_mosaic)
+    mosaic_def = get_mosaic_content(input_mosaic)
 
     output_profile = cog_profiles.get(cogeo_profile)
     output_profile.update(dict(BIGTIFF=os.environ.get("BIGTIFF", "IF_SAFER")))
@@ -214,97 +198,3 @@ def overview(
         config=config,
         threads=threads,
     )
-
-
-@cogeo_cli.command(short_help="Local Server")
-@click.option("--port", type=int, default=8000, help="port")
-def run(port):
-    """Launch server."""
-    server_address = ("", port)
-
-    class Handler(BaseHTTPRequestHandler):
-        """Requests handler."""
-
-        def do_GET(self):
-            """Get requests."""
-            q = urlparse(self.path)
-            pathParameters = {}
-            if q.path.startswith("/tiles/"):
-                application = app_tiles
-                resource = "/tiles/{proxy+}"
-                pathParameters = {"proxy": q.path.replace("/tiles/", "")}
-            elif q.path.startswith("/mosaic/"):
-                application = app_mosaic
-                resource = "/mosaic/{proxy+}"
-                pathParameters = {"proxy": q.path.replace("/mosaic/", "")}
-            else:
-                application = app_web
-                resource = "/{proxy+}"
-                pathParameters = {"proxy": q.path.replace("/", "")}
-
-            request = {
-                "resource": resource,
-                "pathParameters": pathParameters,
-                "headers": dict(self.headers),
-                "path": q.path,
-                "queryStringParameters": dict(parse_qsl(q.query)),
-                "httpMethod": self.command,
-            }
-            response = application(request, None)
-
-            self.send_response(int(response["statusCode"]))
-            for r in response["headers"]:
-                self.send_header(r, response["headers"][r])
-            self.end_headers()
-
-            if response.get("isBase64Encoded"):
-                response["body"] = base64.b64decode(response["body"])
-
-            if isinstance(response["body"], str):
-                self.wfile.write(bytes(response["body"], "utf-8"))
-            else:
-                self.wfile.write(response["body"])
-
-        def do_POST(self):
-            """POST requests."""
-            q = urlparse(self.path)
-            pathParameters = {}
-            if q.path.startswith("/tiles/"):
-                application = app_tiles
-                resource = "/tiles/{proxy+}"
-                pathParameters = {"proxy": q.path.replace("/tiles/", "")}
-            elif q.path.startswith("/mosaic/"):
-                application = app_mosaic
-                resource = "/mosaic/{proxy+}"
-                pathParameters = {"proxy": q.path.replace("/mosaic/", "")}
-            else:
-                application = app_web
-                resource = "/{proxy+}"
-                pathParameters = {"proxy": q.path.replace("/", "")}
-
-            body = self.rfile.read(int(dict(self.headers).get("Content-Length")))
-            body = base64.b64encode(body).decode()
-            request = {
-                "resource": resource,
-                "pathParameters": pathParameters,
-                "headers": dict(self.headers),
-                "path": q.path,
-                "queryStringParameters": dict(parse_qsl(q.query)),
-                "body": body,
-                "httpMethod": self.command,
-                "isBase64Encoded": True,
-            }
-            response = application(request, None)
-
-            self.send_response(int(response["statusCode"]))
-            for r in response["headers"]:
-                self.send_header(r, response["headers"][r])
-            self.end_headers()
-            if isinstance(response["body"], str):
-                self.wfile.write(bytes(response["body"], "utf-8"))
-            else:
-                self.wfile.write(response["body"])
-
-    httpd = ThreadingSimpleServer(server_address, Handler)
-    click.echo(f"Starting local server at http://127.0.0.1:{port}", err=True)
-    httpd.serve_forever()

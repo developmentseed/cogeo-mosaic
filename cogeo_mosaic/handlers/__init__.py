@@ -1,1 +1,0 @@
-"""cogeo_mosaic: handlers."""

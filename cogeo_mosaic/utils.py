@@ -7,7 +7,6 @@ import sys
 import zlib
 import json
 import logging
-import hashlib
 import warnings
 import functools
 import itertools
@@ -37,41 +36,12 @@ def _decompress_gz(gzip_buffer):
     return zlib.decompress(gzip_buffer, zlib.MAX_WBITS | 16).decode()
 
 
-def _compress_gz_json(data):
-    gzip_compress = zlib.compressobj(9, zlib.DEFLATED, zlib.MAX_WBITS | 16)
-
-    return (
-        gzip_compress.compress(json.dumps(data).encode("utf-8")) + gzip_compress.flush()
-    )
-
-
-def _aws_put_data(key: str, bucket: str, body: BinaryIO, options: Dict = {}) -> str:
-    session = boto3_session()
-    s3 = session.client("s3")
-    s3.put_object(Bucket=bucket, Key=key, Body=body, **options)
-    return key
-
-
-def _aws_get_data(key, bucket):
-    session = boto3_session()
-    s3 = session.client("s3")
-
-    response = s3.get_object(Bucket=bucket, Key=key)
+def _aws_get_data(key, bucket, client: boto3_session.client = None) -> BinaryIO:
+    if not client:
+        session = boto3_session()
+        client = session.client("s3")
+    response = client.get_object(Bucket=bucket, Key=key)
     return response["Body"].read()
-
-
-def get_hash(**kwargs: Dict) -> str:
-    """Create hash from a dict."""
-    return hashlib.sha224(
-        json.dumps(kwargs, sort_keys=True, default=str).encode()
-    ).hexdigest()
-
-
-def _create_path(mosaicid: str) -> str:
-    """Get Mosaic definition info."""
-    key = f"mosaics/{mosaicid}.json.gz"
-    bucket = os.environ["MOSAIC_DEF_BUCKET"]
-    return f"s3://{bucket}/{key}"
 
 
 def _filter_futures(tasks):
@@ -229,7 +199,7 @@ def create_mosaic(
     max_threads: int = 20,
     minimum_tile_cover: float = None,
     tile_cover_sort: bool = False,
-    version: str = "0.0.1",
+    version: str = "0.0.2",
     quiet: bool = True,
 ) -> Dict:
     """
@@ -237,29 +207,32 @@ def create_mosaic(
 
     Attributes
     ----------
-    dataset_list : tuple or list, required
-        Dataset urls.
-    minzoom: int, optional
-        Force mosaic min-zoom.
-    maxzoom: int, optional
-        Force mosaic max-zoom.
-    minimum_tile_cover: float, optional (default: 0)
-        Filter files with low tile intersection coverage.
-    tile_cover_sort: bool, optional (default: None)
-        Sort intersecting files by coverage.
-    max_threads : int
-        Max threads to use (default: 20).
-    version: str, optional
-        mosaicJSON definition version
-    quiet: bool, optional (default: True)
-        Mask processing steps.
+        dataset_list : tuple or list, required
+            Dataset urls.
+        minzoom: int, optional
+            Force mosaic min-zoom.
+        maxzoom: int, optional
+            Force mosaic max-zoom.
+        minimum_tile_cover: float, optional (default: 0)
+            Filter files with low tile intersection coverage.
+        tile_cover_sort: bool, optional (default: None)
+            Sort intersecting files by coverage.
+        max_threads : int
+            Max threads to use (default: 20).
+        version: str, optional
+            mosaicJSON definition version
+        quiet: bool, optional (default: True)
+            Mask processing steps.
 
     Returns
     -------
-    mosaic_definition : dict
-        Mosaic definition.
+        mosaic_definition : dict
+            Mosaic definition.
 
     """
+    if version not in ["0.0.1", "0.0.2"]:
+        raise Exception(f"Invalid mosaicJSON's version: {version}")
+
     if not quiet:
         click.echo("Get files footprint", err=True)
 
@@ -283,7 +256,7 @@ def create_mosaic(
 
         maxzoom = max(maxzoom)
 
-    quadkey_zoom = minzoom  # mosaic spec 0.0.2 WIP
+    quadkey_zoom = minzoom
 
     datatype = list(set([feat["properties"]["datatype"] for feat in results]))
     if len(datatype) > 1:
@@ -296,20 +269,21 @@ def create_mosaic(
     tiles = ["{2}-{0}-{1}".format(*tile.tolist()) for tile in tiles]
 
     bounds = burntiles.find_extrema(results)
+    mosaic_definition = dict(
+        mosaicjson=version,
+        minzoom=minzoom,
+        maxzoom=maxzoom,
+        bounds=bounds,
+        center=[(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom],
+        tiles={},
+        version="1.0.0",
+    )
+
+    if version == "0.0.2":
+        mosaic_definition.update(dict(quadkey_zoom=quadkey_zoom))
 
     if not quiet:
         click.echo(f"Feed Quadkey index", err=True)
-
-    if version == "0.0.1":
-        mosaic_definition = dict(
-            minzoom=minzoom,
-            maxzoom=maxzoom,
-            bounds=bounds,
-            center=[(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom],
-            tiles={},
-        )
-    else:
-        raise Exception(f"Invalid mosaicJSON version: {version}")
 
     dataset_geoms = polygons([feat["geometry"]["coordinates"][0] for feat in results])
     dataset = [
@@ -346,31 +320,39 @@ def update_mosaic(
     mosaic_def: dict,
     max_threads: int = 20,
     minimum_tile_cover: float = None,
-    version: str = "0.0.1",
 ) -> Dict:
     """
     Create mosaic definition content.
 
     Attributes
     ----------
-    dataset_list : tuple or list, required
-        Dataset urls.
-    minimum_tile_cover: float, optional (default: 0)
-        Filter files with low tile intersection coverage.
-    max_threads : int
-        Max threads to use (default: 20).
-    version: str, optional
-        mosaicJSON definition version
+        dataset_list : tuple or list, required
+            Dataset urls.
+        mosaic_def : dict
+            Mosaic definition to update.
+        max_threads : int
+            Max threads to use (default: 20).
+        minimum_tile_cover: float, optional (default: 0)
+            Filter files with low tile intersection coverage.
 
     Returns
     -------
-    mosaic_definition : dict
-        Mosaic definition.
+        mosaic_definition : dict
+            Updated mosaic definition.
 
     """
+    version = mosaic_def.get("version")
+    if version:
+        version = list(map(int, version.split(".")))
+        version[-1] += 1
+        version = ".".join(map(str, version))
+    else:
+        version = "1.0.0"
+    mosaic_def["version"] = version
+
     results = get_footprints(dataset_list, max_threads=max_threads)
     min_zoom = mosaic_def["minzoom"]
-    quadkey_zoom = mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
+    quadkey_zoom = mosaic_def.get("quadkey_zoom", min_zoom)
 
     dataset_geoms = polygons([feat["geometry"]["coordinates"][0] for feat in results])
     for idx, r in enumerate(results):
