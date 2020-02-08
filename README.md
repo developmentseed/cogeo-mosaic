@@ -2,6 +2,7 @@
 
 Create mosaics of Cloud Optimized GeoTIFF based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec) specification.
 
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/cogeo-mosaic.svg)](https://pypi.python.org/pypi/ansicolortags/)
 [![Packaging status](https://badge.fury.io/py/cogeo-mosaic.svg)](https://badge.fury.io/py/cogeo-mosaic)
 [![CircleCI](https://circleci.com/gh/developmentseed/cogeo-mosaic.svg?style=svg)](https://circleci.com/gh/developmentseed/cogeo-mosaic)
 [![codecov](https://codecov.io/gh/developmentseed/cogeo-mosaic/branch/master/graph/badge.svg)](https://codecov.io/gh/developmentseed/cogeo-mosaic)
@@ -12,7 +13,7 @@ Create mosaics of Cloud Optimized GeoTIFF based on [mosaicJSON](https://github.c
 
 This python module provide a CLI to help create mosaicJSON.
 
-## Install
+## Install (python >=3)
 ```bash
 $ pip install pip -U
 $ pip install cogeo-mosaic
