@@ -34,14 +34,24 @@ class DynamoDBBackend(BaseBackend):
     @functools.lru_cache(maxsize=512)
     def fetch_mosaic_definition(self) -> Dict:
         """Get Mosaic definition info."""
-        # NOTE(kylebarron): may also want to convert Decimal to int/float here
-        return fetch_dynamodb("-1")
+        mosaic_def = fetch_dynamodb("-1")
+
+        # Numeric values are loaded from DynamoDB as Decimal types
+        # Convert maxzoom, minzoom, quadkey_zoom to float/int
+        for key in ["minzoom", "maxzoom", "quadkey_zoom"]:
+            if mosaic_def.get(key):
+                mosaic_def[key] = int(mosaic_def[key])
+
+        # Convert bounds, center to float/int
+        for key in ["bounds", "center"]:
+            if mosaic_def.get(key):
+                mosaic_def[key] = list(map(float, mosaic_def[key]))
+
+        return
 
     def get_assets(x: int, y: int, z: int) -> Tuple[str]:
         min_zoom = self.mosaic_def["minzoom"]
         quadkey_zoom = self.mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
-        # quadkey_zoom is type Decimal when loaded from DynamoDB
-        quadkey_zoom = int(quadkey_zoom)
 
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
 
