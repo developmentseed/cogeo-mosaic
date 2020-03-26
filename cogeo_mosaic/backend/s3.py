@@ -13,9 +13,16 @@ class S3Backend(BaseBackend):
     """S3 Backend Adapter"""
 
     def __init__(
-        self, bucket: str, key: str, region: str = os.getenv("AWS_REGION", "us-east-1")
+        self,
+        bucket: str,
+        key: str,
+        client: boto3_session.client = None,
+        region: str = os.getenv("AWS_REGION", "us-east-1"),
     ):
-        self.client = boto3_session().client("s3", region_name=region)
+        if client is None:
+            self.client = boto3_session().client("s3", region_name=region)
+        else:
+            self.client = client
         self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
 
     def metadata(self) -> Dict:
