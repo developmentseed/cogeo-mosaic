@@ -6,7 +6,7 @@ from typing import Dict, Tuple
 import mercantile
 
 
-def get_assets_from_def(mosaic_definition: Dict, x: int, y: int, z: int) -> Tuple[str]:
+def get_assets_from_json(mosaic_definition: Dict, x: int, y: int, z: int) -> Tuple[str]:
     """Find assets."""
     min_zoom = mosaic_definition["minzoom"]
 

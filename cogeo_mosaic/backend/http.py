@@ -9,8 +9,8 @@ from cogeo_mosaic.backend.utils import get_assets_from_json
 from cogeo_mosaic.utils import _decompress_gz
 
 
-class S3Backend(BaseBackend):
-    """S3 Backend Adapter"""
+class HttpBackend(BaseBackend):
+    """Http/Https Backend Adapter"""
 
     def __init__(self, arg):
         super(BaseBackend, self).__init__()
@@ -32,23 +32,16 @@ class S3Backend(BaseBackend):
         return get_assets_from_json(mosaic_def, tile.x, tile.y, tile.z)
 
     @functools.lru_cache(maxsize=512)
-    def fetch_mosaic_definition(self, bucket: str, key: str) -> Dict:
+    def fetch_mosaic_definition(self, url: str) -> Dict:
         """Get Mosaic definition info."""
+        # use requests
+        body = requests.get(url)
+        body = body.content
 
-        body = _aws_get_data(key, bucket)
-
-        if key.endswith(".gz"):
+        if url.endswith(".gz"):
             body = _decompress_gz(body)
 
         if isinstance(body, dict):
             return body
         else:
             return json.loads(body)
-
-
-def _aws_get_data(key, bucket, client: boto3_session.client = None) -> BinaryIO:
-    if not client:
-        session = boto3_session()
-        client = session.client("s3")
-    response = client.get_object(Bucket=bucket, Key=key)
-    return response["Body"].read()
