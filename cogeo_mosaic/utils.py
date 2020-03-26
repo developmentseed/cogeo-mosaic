@@ -36,14 +36,6 @@ def _decompress_gz(gzip_buffer):
     return zlib.decompress(gzip_buffer, zlib.MAX_WBITS | 16).decode()
 
 
-def _aws_get_data(key, bucket, client: boto3_session.client = None) -> BinaryIO:
-    if not client:
-        session = boto3_session()
-        client = session.client("s3")
-    response = client.get_object(Bucket=bucket, Key=key)
-    return response["Body"].read()
-
-
 def _filter_futures(tasks):
     """
     Filter future task to remove Exceptions.

@@ -9,11 +9,11 @@ class BaseBackend(metaclass=abc.ABCMeta):
         """Retrieve MosaicJSON metadata."""
 
     @abc.abstractmethod
-    def tile(self, *args, **kwargs):
+    def tile(self, x: int, y: int, z: int, *args, **kwargs):
         """Retrieve assets for tile."""
 
     @abc.abstractmethod
-    def point(self, *args, **kwargs):
+    def point(self, lng: float, lat: float, *args, **kwargs):
         """Retrieve assets for point."""
 
     @abc.abstractmethod
