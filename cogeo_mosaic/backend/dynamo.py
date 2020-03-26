@@ -47,7 +47,7 @@ class DynamoDBBackend(BaseBackend):
             if mosaic_def.get(key):
                 mosaic_def[key] = list(map(float, mosaic_def[key]))
 
-        return
+        return mosaic_def
 
     def get_assets(x: int, y: int, z: int) -> Tuple[str]:
         min_zoom = self.mosaic_def["minzoom"]
