@@ -12,7 +12,7 @@ from cogeo_mosaic.utils import _decompress_gz
 class S3Backend(BaseBackend):
     """S3 Backend Adapter"""
 
-    def __enter__(self, bucket: str, key: str):
+    def __init__(self, bucket: str, key: str):
         self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str):

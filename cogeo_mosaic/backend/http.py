@@ -12,7 +12,7 @@ from cogeo_mosaic.utils import _decompress_gz
 class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
-    def __enter__(self, url: str):
+    def __init__(self, url: str):
         self.mosaic_def = self.fetch_mosaic_definition(url)
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str):
