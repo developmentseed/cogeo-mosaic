@@ -3,7 +3,7 @@
 import abc
 
 
-class BackendBase(metaclass=abc.ABCMeta):
+class BaseBackend(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def metadata(self, *args, **kwargs):
         """Retrieve MosaicJSON metadata."""
