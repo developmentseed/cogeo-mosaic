@@ -1,7 +1,7 @@
 import functools
 import itertools
 import os
-from typing import Dict
+from typing import Dict, Tuple
 
 import mercantile
 
@@ -21,12 +21,12 @@ class DynamoDBBackend(BaseBackend):
     def metadata(self) -> Dict:
         return self.mosaic_def
 
-    def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> List[str]:
+    def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
 
         return self.get_assets(x, y, z)
 
-    def point(self, lng: float, lat: float) -> List[str]:
+    def point(self, lng: float, lat: float) -> Tuple[str]:
         """Retrieve assets for point."""
 
         min_zoom = self.mosaic_def["minzoom"]
@@ -40,7 +40,7 @@ class DynamoDBBackend(BaseBackend):
         # NOTE(kylebarron): may also want to convert Decimal to int/float here
         return fetch_dynamodb("-1")
 
-    def get_assets(x: int, y: int, z: int) -> List[str]:
+    def get_assets(x: int, y: int, z: int) -> Tuple[str]:
         min_zoom = self.mosaic_def["minzoom"]
         quadkey_zoom = self.mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
         # quadkey_zoom is type Decimal when loaded from DynamoDB

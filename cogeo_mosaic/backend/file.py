@@ -1,19 +1,19 @@
 import functools
-from typing import Dict, Tuple
+from typing import BinaryIO, Dict, Tuple
 
 import mercantile
-import requests
+from boto3.session import Session as boto3_session
 
 from cogeo_mosaic.backend.base import BaseBackend
 from cogeo_mosaic.backend.utils import get_assets_from_json
 from cogeo_mosaic.utils import _decompress_gz
 
 
-class HttpBackend(BaseBackend):
-    """Http/Https Backend Adapter"""
+class FileBackend(BaseBackend):
+    """Local File Backend Adapter"""
 
-    def __init__(self, url: str):
-        self.mosaic_def = self.fetch_mosaic_definition(url)
+    def __init__(self, path: str):
+        self.mosaic_def = self.fetch_mosaic_definition(path)
 
     def metadata(self) -> Dict:
         return self.mosaic_def
@@ -32,13 +32,12 @@ class HttpBackend(BaseBackend):
         return get_assets_from_json(self.mosaic_def, tile.x, tile.y, tile.z)
 
     @functools.lru_cache(maxsize=512)
-    def fetch_mosaic_definition(self, url: str) -> Dict:
+    def fetch_mosaic_definition(self, path: str) -> Dict:
         """Get Mosaic definition info."""
-        # use requests
-        body = requests.get(url)
-        body = body.content
+        with open(path, "rb") as f:
+            body = f.read()
 
-        if url.endswith(".gz"):
+        if path.endswith(".gz"):
             body = _decompress_gz(body)
 
         if isinstance(body, dict):

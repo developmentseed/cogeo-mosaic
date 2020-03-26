@@ -1,5 +1,5 @@
 import functools
-from typing import BinaryIO, Dict
+from typing import BinaryIO, Dict, Tuple
 
 import mercantile
 from boto3.session import Session as boto3_session
@@ -18,12 +18,15 @@ class S3Backend(BaseBackend):
         self.client = boto3_session().client("s3", region_name=region)
         self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
 
-    def tile(self, x: int, y: int, z: int, bucket: str, key: str):
+    def metadata(self) -> Dict:
+        return self.mosaic_def
+
+    def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
 
         return get_assets_from_json(self.mosaic_def, x, y, z)
 
-    def point(self, lng: float, lat: float):
+    def point(self, lng: float, lat: float) -> Tuple[str]:
         """Retrieve assets for point."""
 
         min_zoom = self.mosaic_def["minzoom"]
