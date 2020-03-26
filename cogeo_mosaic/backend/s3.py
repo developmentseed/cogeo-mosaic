@@ -25,9 +25,6 @@ class S3Backend(BaseBackend):
             self.client = client
         self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
 
-    def metadata(self) -> Dict:
-        return self.mosaic_def
-
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
 

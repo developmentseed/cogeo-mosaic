@@ -10,9 +10,9 @@ class BaseBackend(metaclass=contextlib.AbstractContextManager):
     def __init__(self, *args, **kwargs):
         """Load resource"""
 
-    @abc.abstractmethod
-    def metadata(self):
+    def metadata(self) -> Dict:
         """Retrieve MosaicJSON metadata."""
+        return self.mosaic_def
 
     @abc.abstractmethod
     def tile(self, x: int, y: int, z: int):

@@ -15,9 +15,6 @@ class HttpBackend(BaseBackend):
     def __init__(self, url: str):
         self.mosaic_def = self.fetch_mosaic_definition(url)
 
-    def metadata(self) -> Dict:
-        return self.mosaic_def
-
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
 
