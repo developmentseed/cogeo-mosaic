@@ -1,9 +1,14 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
 import abc
+import contextlib
 
 
-class BaseBackend(metaclass=abc.ABCMeta):
+class BaseBackend(metaclass=contextlib.AbstractContextManager):
+    @abc.abstractmethod
+    def __enter__(self, *args, **kwargs):
+        """Load resource"""
+
     @abc.abstractmethod
     def metadata(self, *args, **kwargs):
         """Retrieve MosaicJSON metadata."""
