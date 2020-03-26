@@ -12,7 +12,10 @@ from cogeo_mosaic.utils import _decompress_gz
 class S3Backend(BaseBackend):
     """S3 Backend Adapter"""
 
-    def __init__(self, bucket: str, key: str):
+    def __init__(
+        self, bucket: str, key: str, region: str = os.getenv("AWS_REGION", "us-east-1")
+    ):
+        self.client = boto3_session().client("s3", region_name=region)
         self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str):
@@ -32,7 +35,7 @@ class S3Backend(BaseBackend):
     def fetch_mosaic_definition(self, bucket: str, key: str) -> Dict:
         """Get Mosaic definition info."""
 
-        body = _aws_get_data(key, bucket)
+        body = _aws_get_data(key, bucket, client=self.client)
 
         if key.endswith(".gz"):
             body = _decompress_gz(body)
