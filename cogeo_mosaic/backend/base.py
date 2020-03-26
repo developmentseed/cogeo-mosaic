@@ -2,29 +2,30 @@
 
 import abc
 import contextlib
+from typing import Dict
 
 
 class BaseBackend(metaclass=contextlib.AbstractContextManager):
     @abc.abstractmethod
-    def __enter__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Load resource"""
 
     @abc.abstractmethod
-    def metadata(self, *args, **kwargs):
+    def metadata(self):
         """Retrieve MosaicJSON metadata."""
 
     @abc.abstractmethod
-    def tile(self, x: int, y: int, z: int, *args, **kwargs):
+    def tile(self, x: int, y: int, z: int):
         """Retrieve assets for tile."""
 
     @abc.abstractmethod
-    def point(self, lng: float, lat: float, *args, **kwargs):
+    def point(self, lng: float, lat: float):
         """Retrieve assets for point."""
 
     @abc.abstractmethod
-    def create(self, *args, **kwargs):
+    def create(self, mosaic: Dict):
         """Upload new MosaicJSON to backend."""
 
     @abc.abstractmethod
-    def update(self, *args, **kwargs):
+    def update(self, mosaic: Dict):
         """Update existing MosaicJSON on backend."""
