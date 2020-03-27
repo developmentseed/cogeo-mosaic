@@ -1,12 +1,15 @@
 import functools
 import itertools
+import json
 import os
+from decimal import Decimal
 from typing import Dict, Tuple
 
+import boto3
 import mercantile
 
 from cogeo_mosaic.backend.base import BaseBackend
-from cogeo_mosaic.backend.utils import find_quadkeys
+from cogeo_mosaic.backend.utils import find_quadkeys, get_hash
 
 
 class DynamoDBBackend(BaseBackend):
@@ -30,6 +33,66 @@ class DynamoDBBackend(BaseBackend):
         """Retrieve assets for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
+
+    def upload(self, mosaic: Dict):
+        mosaicid = get_hash(Body=mosaic)
+        self._create_table(mosaicid)
+        items = self._create_items(mosaic)
+        upload_items(client, items, mosaicid)
+
+        key = f"mosaics/{self.mosaicid}.json.gz"
+        _aws_put_data(key, self.bucket, _compress_gz_json(mosaic), client=self.client)
+
+    def _create_table(self, mosaicid: str, billing_mode: str = "PAY_PER_REQUEST"):
+        attr_defs = [{"AttributeName": "quadkey", "AttributeType": "S"}]
+        key_schema = [{"AttributeName": "quadkey", "KeyType": "HASH"}]
+
+        # Note: errors if table already exists
+        try:
+            response = self.client.create_table(
+                AttributeDefinitions=attr_defs,
+                TableName=mosaicid,
+                KeySchema=key_schema,
+                BillingMode=billing_mode,
+            )
+            print("creating table")
+
+            # If I put this outside the try/except block, could wait forever if
+            # unable to create table
+            self.client.Table(mosaicid).wait_until_exists()
+        except boto3.client("dynamodb").exceptions.ResourceInUseException:
+            print("unable to create table, may already exist")
+
+    def _create_items(self, mosaic: Dict) -> List[Dict]:
+        items = []
+        # Create one metadata item with quadkey=-1
+        meta = {k: v for k, v in mosaic.items() if k != "tiles"}
+
+        # Convert float to decimal
+        # https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/
+        meta = json.loads(json.dumps(meta), parse_float=Decimal)
+
+        # NOTE: quadkey is a string type
+        meta["quadkey"] = "-1"
+        items.append(meta)
+
+        for quadkey, assets in mosaic["tiles"].items():
+            item = {"quadkey": quadkey, "assets": assets}
+            items.append(item)
+
+        return items
+
+    def _upload_items(self, items: List[Dict], mosaicid: str):
+        table = client.Table(mosaicid)
+        with table.batch_writer() as batch:
+            print(f"Uploading items to table {mosaicid}")
+            counter = 0
+            for item in items:
+                if counter % 1000 == 0:
+                    print(f"Uploading #{counter}")
+
+                batch.put_item(item)
+                counter += 1
 
     @functools.lru_cache(maxsize=512)
     def fetch_mosaic_definition(self) -> Dict:

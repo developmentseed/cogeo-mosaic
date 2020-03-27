@@ -1,5 +1,7 @@
 import functools
+import hashlib
 import itertools
+import json
 import os
 from typing import Dict, List, Tuple
 
@@ -68,3 +70,10 @@ def _compress_gz_json(data):
     return (
         gzip_compress.compress(json.dumps(data).encode("utf-8")) + gzip_compress.flush()
     )
+
+
+def get_hash(**kwargs: Any) -> str:
+    """Create hash from a dict."""
+    return hashlib.sha224(
+        json.dumps(kwargs, sort_keys=True, default=str).encode()
+    ).hexdigest()
