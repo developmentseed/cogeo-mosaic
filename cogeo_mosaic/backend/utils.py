@@ -40,26 +40,20 @@ def find_quadkeys(mercator_tile: mercantile.Tile, quadkey_zoom: int) -> List[str
         return [mercantile.quadkey(*mercator_tile)]
 
 
-def get_assets_from_json(mosaic_definition: Dict, x: int, y: int, z: int) -> Tuple[str]:
+def get_assets_from_json(
+    tiles: Dict, quadkey_zoom: int, x: int, y: int, z: int
+) -> Tuple[str]:
     """Find assets."""
-    min_zoom = mosaic_definition["minzoom"]
-
     mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-    quadkey_zoom = mosaic_definition.get("quadkey_zoom", min_zoom)  # 0.0.2
-
     quadkeys = find_quadkeys(mercator_tile, quadkey_zoom)
 
-    assets = list(
-        itertools.chain.from_iterable(
-            [mosaic_definition["tiles"].get(qk, []) for qk in quadkeys]
-        )
-    )
+    assets = list(itertools.chain.from_iterable([tiles.get(qk, []) for qk in quadkeys]))
 
     # check if we have a mosaic in the url (.json/.gz)
     return list(
         itertools.chain.from_iterable(
             [
-                get_assets_from_json(asset, x, y, z)
+                get_assets_from_json(tiles, quadkey_zoom, x, y, z)
                 if os.path.splitext(asset)[1] in [".json", ".gz"]
                 else [asset]
                 for asset in assets

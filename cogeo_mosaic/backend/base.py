@@ -9,6 +9,8 @@ class BaseBackend(AbstractContextManager):
     @abc.abstractmethod
     def __init__(self, *args, **kwargs):
         """Load resource"""
+        self.quadkey_zoom: Optional[int]
+        self.mosaic_def: Dict
 
     def metadata(self) -> Dict:
         """Retrieve Mosaic metadata

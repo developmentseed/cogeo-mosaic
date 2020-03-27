@@ -24,19 +24,24 @@ class S3Backend(BaseBackend):
         else:
             self.client = client
         self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
+        self.quadkey_zoom = self.mosaic_def.get(
+            "quadkey_zoom", self.mosaic_def["minzoom"]
+        )
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
 
-        return get_assets_from_json(self.mosaic_def, x, y, z)
+        return get_assets_from_json(
+            self.mosaic_def["tiles"], self.quadkey_zoom, x, y, z
+        )
 
     def point(self, lng: float, lat: float) -> Tuple[str]:
         """Retrieve assets for point."""
 
-        min_zoom = self.mosaic_def["minzoom"]
-        quadkey_zoom = self.mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
-        tile = mercantile.tile(lng, lat, quadkey_zoom)
-        return get_assets_from_json(self.mosaic_def, tile.x, tile.y, tile.z)
+        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
+        return get_assets_from_json(
+            self.mosaic_def["tiles"], self.quadkey_zoom, tile.x, tile.y, tile.z
+        )
 
     @functools.lru_cache(maxsize=512)
     def fetch_mosaic_definition(self, bucket: str, key: str) -> Dict:

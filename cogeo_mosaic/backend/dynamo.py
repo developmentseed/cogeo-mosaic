@@ -18,18 +18,17 @@ class DynamoDBBackend(BaseBackend):
         self.client = boto3.resource("dynamodb", region_name=region)
         self.table = self.client.Table(mosaicid)
         self.mosaic_def = self.fetch_mosaic_definition()
+        self.quadkey_zoom = self.mosaic_def.get(
+            "quadkey_zoom", self.mosaic_def["minzoom"]
+        )
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
-
         return self.get_assets(x, y, z)
 
     def point(self, lng: float, lat: float) -> Tuple[str]:
         """Retrieve assets for point."""
-
-        min_zoom = self.mosaic_def["minzoom"]
-        quadkey_zoom = self.mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
-        tile = mercantile.tile(lng, lat, quadkey_zoom)
+        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
     @functools.lru_cache(maxsize=512)
@@ -51,12 +50,8 @@ class DynamoDBBackend(BaseBackend):
         return mosaic_def
 
     def get_assets(x: int, y: int, z: int) -> Tuple[str]:
-        min_zoom = self.mosaic_def["minzoom"]
-        quadkey_zoom = self.mosaic_def.get("quadkey_zoom", min_zoom)  # 0.0.2
-
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-
-        quadkeys = find_quadkeys(mercator_tile, quadkey_zoom)
+        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
 
         assets = list(
             itertools.chain.from_iterable(
