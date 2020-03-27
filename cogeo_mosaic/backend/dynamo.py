@@ -6,6 +6,7 @@ from typing import Dict, Tuple
 import mercantile
 
 from cogeo_mosaic.backend.base import BaseBackend
+from cogeo_mosaic.backend.utils import find_quadkeys
 
 
 class DynamoDBBackend(BaseBackend):
@@ -55,33 +56,15 @@ class DynamoDBBackend(BaseBackend):
 
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
 
-        # get parent
-        if mercator_tile.z > quadkey_zoom:
-            depth = mercator_tile.z - quadkey_zoom
-            for i in range(depth):
-                mercator_tile = mercantile.parent(mercator_tile)
-            quadkey = [mercantile.quadkey(*mercator_tile)]
-
-        # get child
-        elif mercator_tile.z < quadkey_zoom:
-            depth = quadkey_zoom - mercator_tile.z
-            mercator_tiles = [mercator_tile]
-            for i in range(depth):
-                mercator_tiles = sum(
-                    [mercantile.children(t) for t in mercator_tiles], []
-                )
-
-            mercator_tiles = list(filter(lambda t: t.z == quadkey_zoom, mercator_tiles))
-            quadkey = [mercantile.quadkey(*tile) for tile in mercator_tiles]
-        else:
-            quadkey = [mercantile.quadkey(*mercator_tile)]
+        quadkeys = find_quadkeys(mercator_tile, quadkey_zoom)
 
         assets = list(
             itertools.chain.from_iterable(
-                [fetch_dynamodb(table, qk).get("assets", []) for qk in quadkey]
+                [fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
             )
         )
 
+        # Find mosaics recursively?
         return assets
 
     def fetch_dynamodb(quadkey: str) -> Dict:
