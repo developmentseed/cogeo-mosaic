@@ -3,12 +3,13 @@
 import abc
 from contextlib import AbstractContextManager
 from typing import Dict
+from cogeo_mosaic.utils import create_mosaic
 
 
 class BaseBackend(AbstractContextManager):
     @abc.abstractmethod
     def __init__(self, *args, **kwargs):
-        """Load resource"""
+        """Connect to backend"""
         self.quadkey_zoom: Optional[int]
         self.mosaic_def: Dict
 
@@ -29,8 +30,18 @@ class BaseBackend(AbstractContextManager):
     def point(self, lng: float, lat: float):
         """Retrieve assets for point."""
 
+    def create(self, *args, **kwargs):
+        """Create new MosaicJSON and upload to backend."""
+
+        self.mosaic_def = create_mosaic(*args, **kwargs)
+        self.upload(self.mosaic_def)
+
+    @property
+    def mosaicid(self) -> str:
+        return get_hash(body=self.mosaic_def, version=mosaic_version)
+
     @abc.abstractmethod
-    def create(self, mosaic: Dict):
+    def upload(self, mosaic: Dict):
         """Upload new MosaicJSON to backend."""
 
     @abc.abstractmethod

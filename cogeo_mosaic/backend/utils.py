@@ -60,3 +60,11 @@ def get_assets_from_json(
             ]
         )
     )
+
+
+def _compress_gz_json(data):
+    gzip_compress = zlib.compressobj(9, zlib.DEFLATED, zlib.MAX_WBITS | 16)
+
+    return (
+        gzip_compress.compress(json.dumps(data).encode("utf-8")) + gzip_compress.flush()
+    )

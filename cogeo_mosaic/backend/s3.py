@@ -6,7 +6,7 @@ from boto3.session import Session as boto3_session
 
 from cogeo_mosaic.backend.base import BaseBackend
 from cogeo_mosaic.backend.utils import get_assets_from_json
-from cogeo_mosaic.utils import _decompress_gz
+from cogeo_mosaic.utils import _compress_gz_json, _decompress_gz
 
 
 class S3Backend(BaseBackend):
@@ -15,7 +15,7 @@ class S3Backend(BaseBackend):
     def __init__(
         self,
         bucket: str,
-        key: str,
+        key: Optional[str] = None,
         client: boto3_session.client = None,
         region: str = os.getenv("AWS_REGION", "us-east-1"),
     ):
@@ -23,6 +23,10 @@ class S3Backend(BaseBackend):
             self.client = boto3_session().client("s3", region_name=region)
         else:
             self.client = client
+
+        self.key = key
+        self.bucket = bucket
+
         self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
         self.quadkey_zoom = self.mosaic_def.get(
             "quadkey_zoom", self.mosaic_def["minzoom"]
@@ -42,6 +46,10 @@ class S3Backend(BaseBackend):
         return get_assets_from_json(
             self.mosaic_def["tiles"], self.quadkey_zoom, tile.x, tile.y, tile.z
         )
+
+    def upload(self, mosaic: Dict):
+        key = f"mosaics/{self.mosaicid}.json.gz"
+        _aws_put_data(key, self.bucket, _compress_gz_json(mosaic), client=self.client)
 
     @functools.lru_cache(maxsize=512)
     def fetch_mosaic_definition(self, bucket: str, key: str) -> Dict:
@@ -64,3 +72,17 @@ def _aws_get_data(key, bucket, client: boto3_session.client = None) -> BinaryIO:
         client = session.client("s3")
     response = client.get_object(Bucket=bucket, Key=key)
     return response["Body"].read()
+
+
+def _aws_put_data(
+    key: str,
+    bucket: str,
+    body: BinaryIO,
+    options: Dict = {},
+    client: boto3_session.client = None,
+) -> str:
+    if not client:
+        session = boto3_session()
+        client = session.client("s3")
+    client.put_object(Bucket=bucket, Key=key, Body=body, **options)
+    return key
