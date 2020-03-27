@@ -10,9 +10,26 @@ class BaseBackend(metaclass=contextlib.AbstractContextManager):
     def __init__(self, *args, **kwargs):
         """Load resource"""
 
-    def metadata(self) -> Dict:
-        """Retrieve MosaicJSON metadata."""
-        return self.mosaic_def
+    def metadata(self, tiles: bool = False) -> Dict:
+        """Retrieve Mosaic metadata
+
+        Attributes
+        ----------
+        tiles: bool, optional
+            Include `tiles` key in response. Note, for some backends this may
+            not exist.
+
+        Returns
+        -------
+        MosaicJSON as dict. If `tiles` is `True`, includes the `tiles` key in
+        the MosaicJSON; otherwise it excludes it.
+        """
+        if tiles:
+            if "tiles" not in self.mosaic_def.keys():
+                raise ValueError("Requested tiles for unsupported backend")
+            return self.mosaic_def
+
+        return {k: v for k, v in self.mosaic_def.items() if k != "tiles"}
 
     @abc.abstractmethod
     def tile(self, x: int, y: int, z: int):
