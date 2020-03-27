@@ -1,11 +1,11 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
 import abc
-import contextlib
+from contextlib import AbstractContextManager
 from typing import Dict
 
 
-class BaseBackend(metaclass=contextlib.AbstractContextManager):
+class BaseBackend(AbstractContextManager):
     @abc.abstractmethod
     def __init__(self, *args, **kwargs):
         """Load resource"""
