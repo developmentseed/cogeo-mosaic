@@ -62,7 +62,7 @@ def _filter_futures(tasks):
         try:
             yield future.result()
         except Exception as err:
-            logger.info(str(err))
+            logger.warning(str(err))
             pass
 
 
