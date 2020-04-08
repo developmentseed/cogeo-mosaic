@@ -3,6 +3,7 @@
 import abc
 from contextlib import AbstractContextManager
 from typing import Dict
+
 from cogeo_mosaic.utils import create_mosaic
 
 
