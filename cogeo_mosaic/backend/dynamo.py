@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from decimal import Decimal
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import boto3
 import mercantile
@@ -20,17 +20,19 @@ class DynamoDBBackend(BaseBackend):
 
     def __init__(
         self,
-        mosaicid: str,
+        table_name: Optional[str] = None,
         region: str = os.getenv("AWS_REGION", "us-east-1"),
         load_mosaic: bool = True,
     ):
         self.client = boto3.resource("dynamodb", region_name=region)
-        self.table = self.client.Table(mosaicid)
+        self.table_name = table_name
+        self.mosaic_def = None
 
-        if load_mosaic:
-            self.mosaic_def = self.fetch_mosaic_definition()
-        else:
-            self.mosaic_def = None
+        if table_name:
+            self.table = self.client.Table(table_name)
+
+            if load_mosaic:
+                self.mosaic_def = self.fetch_mosaic_definition()
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -42,12 +44,12 @@ class DynamoDBBackend(BaseBackend):
         return self.get_assets(tile.x, tile.y, tile.z)
 
     def upload(self, mosaic: Dict):
-        mosaicid = get_hash(Body=mosaic)
-        self._create_table(mosaicid)
+        table_name = self.table_name or get_hash(Body=mosaic)
+        self._create_table(table_name)
         items = self._create_items(mosaic)
-        self._upload_items(items, mosaicid)
+        self._upload_items(items, table_name)
 
-    def _create_table(self, mosaicid: str, billing_mode: str = "PAY_PER_REQUEST"):
+    def _create_table(self, table_name: str, billing_mode: str = "PAY_PER_REQUEST"):
         attr_defs = [{"AttributeName": "quadkey", "AttributeType": "S"}]
         key_schema = [{"AttributeName": "quadkey", "KeyType": "HASH"}]
 
@@ -55,7 +57,7 @@ class DynamoDBBackend(BaseBackend):
         try:
             self.client.create_table(
                 AttributeDefinitions=attr_defs,
-                TableName=mosaicid,
+                TableName=table_name,
                 KeySchema=key_schema,
                 BillingMode=billing_mode,
             )
@@ -63,7 +65,7 @@ class DynamoDBBackend(BaseBackend):
 
             # If outside try/except block, could wait forever if unable to
             # create table
-            self.client.Table(mosaicid).wait_until_exists()
+            self.client.Table(table_name).wait_until_exists()
         except boto3.client("dynamodb").exceptions.ResourceInUseException:
             logger.warn("unable to create table, may already exist")
 
@@ -86,10 +88,10 @@ class DynamoDBBackend(BaseBackend):
 
         return items
 
-    def _upload_items(self, items: List[Dict], mosaicid: str):
-        table = self.client.Table(mosaicid)
+    def _upload_items(self, items: List[Dict], table_name: str):
+        table = self.client.Table(table_name)
         with table.batch_writer() as batch:
-            logger.info(f"Uploading items to table {mosaicid}")
+            logger.info(f"Uploading items to table {table_name}")
             counter = 0
             for item in items:
                 if counter % 1000 == 0:
