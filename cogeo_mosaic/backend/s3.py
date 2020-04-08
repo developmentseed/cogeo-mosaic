@@ -1,9 +1,10 @@
 import functools
-from typing import BinaryIO, Dict, Tuple
+import json
+import os
+from typing import BinaryIO, Dict, Optional, Tuple
 
 import mercantile
 from boto3.session import Session as boto3_session
-
 from cogeo_mosaic.backend.base import BaseBackend
 from cogeo_mosaic.backend.utils import get_assets_from_json
 from cogeo_mosaic.utils import _compress_gz_json, _decompress_gz

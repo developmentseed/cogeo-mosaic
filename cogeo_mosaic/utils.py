@@ -1,20 +1,16 @@
 """cogeo_mosaic.utils: utility functions."""
 
-from typing import Dict, Tuple, BinaryIO
+from typing import Dict, Tuple
 
 import os
 import sys
 import zlib
-import json
 import logging
 import warnings
 import functools
-import itertools
 from concurrent import futures
-from urllib.parse import urlparse
 
 import click
-import requests
 
 import numpy
 from pygeos import intersects, intersection, polygons, area
@@ -24,8 +20,6 @@ from supermercado import burntiles
 import rasterio
 from rio_tiler.mercator import get_zooms
 from rasterio.warp import transform_bounds
-
-from boto3.session import Session as boto3_session
 
 
 logger = logging.getLogger()

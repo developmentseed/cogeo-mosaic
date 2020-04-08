@@ -1,9 +1,9 @@
 import functools
+import json
 from typing import Dict, Tuple
 
 import mercantile
 import requests
-
 from cogeo_mosaic.backend.base import BaseBackend
 from cogeo_mosaic.backend.utils import get_assets_from_json
 from cogeo_mosaic.utils import _decompress_gz

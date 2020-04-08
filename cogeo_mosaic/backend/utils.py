@@ -1,9 +1,9 @@
-import functools
 import hashlib
 import itertools
 import json
 import os
-from typing import Dict, List, Tuple
+import zlib
+from typing import Any, Dict, List, Tuple
 
 import mercantile
 

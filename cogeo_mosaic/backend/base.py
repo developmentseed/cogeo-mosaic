@@ -2,9 +2,9 @@
 
 import abc
 from contextlib import AbstractContextManager
-from typing import Dict
+from typing import Optional, Dict
 
-from cogeo_mosaic.utils import create_mosaic
+from cogeo_mosaic.utils import create_mosaic, get_hash
 
 
 class BaseBackend(AbstractContextManager):
