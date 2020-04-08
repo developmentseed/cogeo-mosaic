@@ -16,6 +16,13 @@ class BaseBackend(AbstractContextManager):
         self.quadkey_zoom: Optional[int]
         self.mosaic_def: Dict
 
+    def __enter__(self):
+        """Support using with Context Managers"""
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Support using with Context Managers"""
+
     def metadata(self) -> Dict:
         """Retrieve Mosaic metadata
 
@@ -47,6 +54,7 @@ class BaseBackend(AbstractContextManager):
     def upload(self, mosaic: Dict):
         """Upload new MosaicJSON to backend."""
 
-    @abc.abstractmethod
+    # Commented to allow child classes to not implement this
+    # @abc.abstractmethod
     def update(self, mosaic: Dict):
         """Update existing MosaicJSON on backend."""
