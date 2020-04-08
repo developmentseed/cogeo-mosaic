@@ -1,6 +1,7 @@
 import functools
 import itertools
 import json
+import logging
 import os
 from decimal import Decimal
 from typing import Dict, List, Tuple
@@ -9,6 +10,9 @@ import boto3
 import mercantile
 from cogeo_mosaic.backend.base import BaseBackend
 from cogeo_mosaic.backend.utils import find_quadkeys, get_hash
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 class DynamoDBBackend(BaseBackend):
@@ -51,13 +55,13 @@ class DynamoDBBackend(BaseBackend):
                 KeySchema=key_schema,
                 BillingMode=billing_mode,
             )
-            print("creating table")
+            logger.info("creating table")
 
             # If outside try/except block, could wait forever if unable to
             # create table
             self.client.Table(mosaicid).wait_until_exists()
         except boto3.client("dynamodb").exceptions.ResourceInUseException:
-            print("unable to create table, may already exist")
+            logger.warn("unable to create table, may already exist")
 
     def _create_items(self, mosaic: Dict) -> List[Dict]:
         items = []
@@ -81,11 +85,11 @@ class DynamoDBBackend(BaseBackend):
     def _upload_items(self, items: List[Dict], mosaicid: str):
         table = self.client.Table(mosaicid)
         with table.batch_writer() as batch:
-            print(f"Uploading items to table {mosaicid}")
+            logger.info(f"Uploading items to table {mosaicid}")
             counter = 0
             for item in items:
                 if counter % 1000 == 0:
-                    print(f"Uploading #{counter}")
+                    logger.info(f"Uploading #{counter}")
 
                 batch.put_item(item)
                 counter += 1
