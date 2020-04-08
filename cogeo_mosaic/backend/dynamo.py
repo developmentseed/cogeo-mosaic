@@ -3,11 +3,10 @@ import itertools
 import json
 import os
 from decimal import Decimal
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import boto3
 import mercantile
-
 from cogeo_mosaic.backend.base import BaseBackend
 from cogeo_mosaic.backend.utils import find_quadkeys, get_hash
 
@@ -38,10 +37,7 @@ class DynamoDBBackend(BaseBackend):
         mosaicid = get_hash(Body=mosaic)
         self._create_table(mosaicid)
         items = self._create_items(mosaic)
-        upload_items(client, items, mosaicid)
-
-        key = f"mosaics/{self.mosaicid}.json.gz"
-        _aws_put_data(key, self.bucket, _compress_gz_json(mosaic), client=self.client)
+        self._upload_items(items, mosaicid)
 
     def _create_table(self, mosaicid: str, billing_mode: str = "PAY_PER_REQUEST"):
         attr_defs = [{"AttributeName": "quadkey", "AttributeType": "S"}]
@@ -49,7 +45,7 @@ class DynamoDBBackend(BaseBackend):
 
         # Note: errors if table already exists
         try:
-            response = self.client.create_table(
+            self.client.create_table(
                 AttributeDefinitions=attr_defs,
                 TableName=mosaicid,
                 KeySchema=key_schema,
@@ -57,8 +53,8 @@ class DynamoDBBackend(BaseBackend):
             )
             print("creating table")
 
-            # If I put this outside the try/except block, could wait forever if
-            # unable to create table
+            # If outside try/except block, could wait forever if unable to
+            # create table
             self.client.Table(mosaicid).wait_until_exists()
         except boto3.client("dynamodb").exceptions.ResourceInUseException:
             print("unable to create table, may already exist")
@@ -83,7 +79,7 @@ class DynamoDBBackend(BaseBackend):
         return items
 
     def _upload_items(self, items: List[Dict], mosaicid: str):
-        table = client.Table(mosaicid)
+        table = self.client.Table(mosaicid)
         with table.batch_writer() as batch:
             print(f"Uploading items to table {mosaicid}")
             counter = 0
@@ -97,7 +93,7 @@ class DynamoDBBackend(BaseBackend):
     @functools.lru_cache(maxsize=512)
     def fetch_mosaic_definition(self) -> Dict:
         """Get Mosaic definition info."""
-        mosaic_def = fetch_dynamodb("-1")
+        mosaic_def = self.fetch_dynamodb("-1")
 
         # Numeric values are loaded from DynamoDB as Decimal types
         # Convert maxzoom, minzoom, quadkey_zoom to float/int
@@ -112,18 +108,18 @@ class DynamoDBBackend(BaseBackend):
 
         return mosaic_def
 
-    def get_assets(x: int, y: int, z: int) -> Tuple[str]:
+    def get_assets(self, x: int, y: int, z: int) -> Tuple[str]:
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
 
         assets = list(
             itertools.chain.from_iterable(
-                [fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
+                [self.fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
             )
         )
 
         # Find mosaics recursively?
         return assets
 
-    def fetch_dynamodb(quadkey: str) -> Dict:
+    def fetch_dynamodb(self, quadkey: str) -> Dict:
         return self.table.get_item(Key={"quadkey": quadkey}).get("Item", {})
