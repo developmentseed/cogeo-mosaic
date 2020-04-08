@@ -35,10 +35,6 @@ class S3Backend(BaseBackend):
         else:
             self.mosaic_def = None
 
-        self.quadkey_zoom = self.mosaic_def and self.mosaic_def.get(
-            "quadkey_zoom", self.mosaic_def["minzoom"]
-        )
-
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
 
@@ -67,10 +63,7 @@ class S3Backend(BaseBackend):
         if key.endswith(".gz"):
             body = _decompress_gz(body)
 
-        if isinstance(body, dict):
-            return body
-        else:
-            return json.loads(body)
+        return json.loads(body)
 
 
 def _aws_get_data(key, bucket, client: boto3_session.client = None) -> BinaryIO:

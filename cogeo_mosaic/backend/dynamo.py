@@ -19,14 +19,18 @@ class DynamoDBBackend(BaseBackend):
     """DynamoDB Backend Adapter"""
 
     def __init__(
-        self, mosaicid: str, region: str = os.getenv("AWS_REGION", "us-east-1")
+        self,
+        mosaicid: str,
+        region: str = os.getenv("AWS_REGION", "us-east-1"),
+        load_mosaic: bool = True,
     ):
         self.client = boto3.resource("dynamodb", region_name=region)
         self.table = self.client.Table(mosaicid)
-        self.mosaic_def = self.fetch_mosaic_definition()
-        self.quadkey_zoom = self.mosaic_def.get(
-            "quadkey_zoom", self.mosaic_def["minzoom"]
-        )
+
+        if load_mosaic:
+            self.mosaic_def = self.fetch_mosaic_definition()
+        else:
+            self.mosaic_def = None
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""

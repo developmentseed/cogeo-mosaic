@@ -1,6 +1,6 @@
 import functools
 import json
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import mercantile
 from cogeo_mosaic.backend.base import BaseBackend
@@ -11,11 +11,9 @@ from cogeo_mosaic.utils import _compress_gz_json, _decompress_gz
 class FileBackend(BaseBackend):
     """Local File Backend Adapter"""
 
-    def __init__(self, path: str):
+    def __init__(self, path: Optional[str] = None):
+        self.path = path
         self.mosaic_def = self.fetch_mosaic_definition(path)
-        self.quadkey_zoom = self.mosaic_def.get(
-            "quadkey_zoom", self.mosaic_def["minzoom"]
-        )
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -32,7 +30,7 @@ class FileBackend(BaseBackend):
         )
 
     def upload(self, mosaic: Dict):
-        path = f"mosaics/{self.mosaicid}.json.gz"
+        path = self.path or f"mosaics/{self.mosaicid}.json.gz"
         with open(path, "wb") as f:
             f.write(_compress_gz_json(mosaic))
 
@@ -45,7 +43,4 @@ class FileBackend(BaseBackend):
         if path.endswith(".gz"):
             body = _decompress_gz(body)
 
-        if isinstance(body, dict):
-            return body
-        else:
-            return json.loads(body)
+        return json.loads(body)

@@ -14,9 +14,6 @@ class HttpBackend(BaseBackend):
 
     def __init__(self, url: str):
         self.mosaic_def = self.fetch_mosaic_definition(url)
-        self.quadkey_zoom = self.mosaic_def.get(
-            "quadkey_zoom", self.mosaic_def["minzoom"]
-        )
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -35,14 +32,9 @@ class HttpBackend(BaseBackend):
     @functools.lru_cache(maxsize=512)
     def fetch_mosaic_definition(self, url: str) -> Dict:
         """Get Mosaic definition info."""
-        # use requests
-        body = requests.get(url)
-        body = body.content
+        body = requests.get(url).content
 
         if url.endswith(".gz"):
             body = _decompress_gz(body)
 
-        if isinstance(body, dict):
-            return body
-        else:
-            return json.loads(body)
+        return json.loads(body)

@@ -10,7 +10,6 @@ from cogeo_mosaic.utils import create_mosaic
 
 
 class BaseBackend(AbstractContextManager):
-    quadkey_zoom: Optional[int]
     mosaic_def: Optional[Dict]
 
     @abc.abstractmethod
@@ -31,6 +30,9 @@ class BaseBackend(AbstractContextManager):
         -------
         MosaicJSON as dict without `tiles` key.
         """
+        if self.mosaic_def is None:
+            return {}
+
         return {k: v for k, v in self.mosaic_def.items() if k != "tiles"}
 
     @abc.abstractmethod
@@ -50,6 +52,13 @@ class BaseBackend(AbstractContextManager):
     @property
     def mosaicid(self) -> str:
         return get_hash(body=self.mosaic_def, version=mosaic_version)
+
+    @property
+    def quadkey_zoom(self) -> Optional[int]:
+        if self.mosaic_def:
+            return self.mosaic_def.get("quadkey_zoom", self.mosaic_def["minzoom"])
+
+        return None
 
     @abc.abstractmethod
     def upload(self, mosaic: Dict):
