@@ -1,6 +1,5 @@
 import functools
 import json
-import os
 from typing import BinaryIO, Dict, Optional, Tuple
 
 import mercantile
@@ -21,10 +20,9 @@ class S3Backend(BaseBackend):
         bucket: str,
         key: Optional[str] = None,
         client: boto3_session.client = None,
-        region: str = os.getenv("AWS_REGION", "us-east-1"),
     ):
         if client is None:
-            self.client = boto3_session().client("s3", region_name=region)
+            self.client = boto3_session().client("s3")
         else:
             self.client = client
 
