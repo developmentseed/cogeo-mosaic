@@ -4,7 +4,6 @@ from typing import Dict, Tuple
 
 import os
 import sys
-import zlib
 import logging
 import warnings
 import functools
@@ -24,10 +23,6 @@ from rasterio.warp import transform_bounds
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-
-def _decompress_gz(gzip_buffer):
-    return zlib.decompress(gzip_buffer, zlib.MAX_WBITS | 16).decode()
 
 
 def _filter_futures(tasks):

@@ -72,6 +72,10 @@ def _compress_gz_json(data):
     )
 
 
+def _decompress_gz(gzip_buffer):
+    return zlib.decompress(gzip_buffer, zlib.MAX_WBITS | 16).decode()
+
+
 def get_hash(**kwargs: Any) -> str:
     """Create hash from a dict."""
     return hashlib.sha224(
