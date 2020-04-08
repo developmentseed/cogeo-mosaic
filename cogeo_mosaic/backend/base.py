@@ -2,8 +2,9 @@
 
 import abc
 from contextlib import AbstractContextManager
-from typing import Optional, Dict
+from typing import Dict, Optional
 
+from cogeo_mosaic import version as mosaic_version
 from cogeo_mosaic.utils import create_mosaic, get_hash
 
 
