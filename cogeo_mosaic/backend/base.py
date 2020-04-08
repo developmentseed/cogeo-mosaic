@@ -10,11 +10,12 @@ from cogeo_mosaic.utils import create_mosaic
 
 
 class BaseBackend(AbstractContextManager):
+    quadkey_zoom: Optional[int]
+    mosaic_def: Optional[Dict]
+
     @abc.abstractmethod
     def __init__(self, *args, **kwargs):
         """Connect to backend"""
-        self.quadkey_zoom: Optional[int]
-        self.mosaic_def: Dict
 
     def __enter__(self):
         """Support using with Context Managers"""

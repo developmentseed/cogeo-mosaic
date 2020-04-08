@@ -20,17 +20,22 @@ class S3Backend(BaseBackend):
         bucket: str,
         key: Optional[str] = None,
         client: boto3_session.client = None,
+        load_mosaic: bool = True,
     ):
-        if client is None:
-            self.client = boto3_session().client("s3")
-        else:
+        if client:
             self.client = client
+        else:
+            self.client = boto3_session().client("s3")
 
         self.key = key
         self.bucket = bucket
 
-        self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
-        self.quadkey_zoom = self.mosaic_def.get(
+        if load_mosaic:
+            self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
+        else:
+            self.mosaic_def = None
+
+        self.quadkey_zoom = self.mosaic_def and self.mosaic_def.get(
             "quadkey_zoom", self.mosaic_def["minzoom"]
         )
 
