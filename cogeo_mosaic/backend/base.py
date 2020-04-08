@@ -5,7 +5,8 @@ from contextlib import AbstractContextManager
 from typing import Dict, Optional
 
 from cogeo_mosaic import version as mosaic_version
-from cogeo_mosaic.utils import create_mosaic, get_hash
+from cogeo_mosaic.backend.utils import get_hash
+from cogeo_mosaic.utils import create_mosaic
 
 
 class BaseBackend(AbstractContextManager):
