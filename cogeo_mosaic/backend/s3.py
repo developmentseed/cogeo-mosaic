@@ -10,6 +10,7 @@ from cogeo_mosaic.backend.utils import (
     _decompress_gz,
     get_assets_from_json,
 )
+from cogeo_mosaic.model import MosaicJSON
 
 
 class S3Backend(BaseBackend):
