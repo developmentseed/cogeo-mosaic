@@ -2,7 +2,7 @@
 
 import abc
 from contextlib import AbstractContextManager
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from cogeo_mosaic import version as mosaic_version
 from cogeo_mosaic.backend.utils import get_hash
@@ -30,30 +30,27 @@ class BaseBackend(AbstractContextManager):
         -------
         MosaicJSON as dict without `tiles` key.
         """
-        return {k: v for k, v in self.mosaic_def.items() if k != "tiles"}
+        return {k: v for k, v in dict(self.mosaic_def).items() if k != "tiles"}
 
     @abc.abstractmethod
-    def tile(self, x: int, y: int, z: int):
+    def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
 
     @abc.abstractmethod
-    def point(self, lng: float, lat: float):
+    def point(self, lng: float, lat: float) -> Tuple[str]:
         """Retrieve assets for point."""
 
     @abc.abstractmethod
-    def read_mosaic(self, *args, **kwargs):
+    def read_mosaic(self, *args, **kwargs) -> MosaicJSON:
         """Fetch mosaic definition"""
 
     @property
     def mosaicid(self) -> str:
-        return get_hash(body=self.mosaic_def, version=mosaic_version)
+        return get_hash(body=dict(self.mosaic_def), version=mosaic_version)
 
     @property
     def quadkey_zoom(self) -> Optional[int]:
-        if self.mosaic_def:
-            return self.mosaic_def.get("quadkey_zoom", self.mosaic_def["minzoom"])
-
-        return None
+        return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
 
     @abc.abstractmethod
     def upload(self):

@@ -14,20 +14,18 @@ class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
     def __init__(self, url: str, mosaic_def: Optional[MosaicJSON] = None):
-        self.mosaic_def = mosaic_def or self.read_mosaic(url)
+        self.mosaic_def: MosaicJSON = mosaic_def or self.read_mosaic(url)
 
     def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
 
-        return get_assets_from_json(
-            self.mosaic_def["tiles"], self.quadkey_zoom, x, y, z
-        )
+        return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
 
     def point(self, lng: float, lat: float) -> Tuple[str]:
         """Retrieve assets for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return get_assets_from_json(
-            self.mosaic_def["tiles"], self.quadkey_zoom, tile.x, tile.y, tile.z
+            self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
     def upload(self):
@@ -37,11 +35,11 @@ class HttpBackend(BaseBackend):
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
-    def read_mosaic(self, url: str) -> Dict:
+    def read_mosaic(self, url: str) -> MosaicJSON:
         """Get Mosaic definition info."""
         body = requests.get(url).content
 
         if url.endswith(".gz"):
             body = _decompress_gz(body)
 
-        return json.loads(body)
+        return MosaicJSON(**json.loads(body))

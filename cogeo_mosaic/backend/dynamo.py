@@ -29,7 +29,7 @@ class DynamoDBBackend(BaseBackend):
     ):
         self.client = client or boto3.resource("dynamodb", region_name=region)
         self.table = self.client.Table(table_name)
-        self.mosaic_def = mosaic_def or self.read_mosaic()
+        self.mosaic_def: MosaicJSON = mosaic_def or self.read_mosaic()
 
     def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -78,11 +78,7 @@ class DynamoDBBackend(BaseBackend):
         meta["quadkey"] = "-1"
         items.append(meta)
 
-        if self.mosaic_def.get("tiles") is None:
-            logger.warn("tiles key does not exist in mosaic definition")
-            return items
-
-        for quadkey, assets in self.mosaic_def["tiles"].items():
+        for quadkey, assets in self.mosaic_def.tiles.items():
             item = {"quadkey": quadkey, "assets": assets}
             items.append(item)
 
@@ -100,22 +96,25 @@ class DynamoDBBackend(BaseBackend):
                 counter += 1
 
     @functools.lru_cache(maxsize=512)
-    def read_mosaic(self) -> Dict:
+    def read_mosaic(self) -> MosaicJSON:
         """Get Mosaic definition info."""
-        mosaic_def = self.fetch_dynamodb("-1")
+        meta = self.fetch_dynamodb("-1")
 
         # Numeric values are loaded from DynamoDB as Decimal types
         # Convert maxzoom, minzoom, quadkey_zoom to float/int
         for key in ["minzoom", "maxzoom", "quadkey_zoom"]:
-            if mosaic_def.get(key):
-                mosaic_def[key] = int(mosaic_def[key])
+            if meta.get(key):
+                meta[key] = int(meta[key])
 
         # Convert bounds, center to float/int
         for key in ["bounds", "center"]:
-            if mosaic_def.get(key):
-                mosaic_def[key] = list(map(float, mosaic_def[key]))
+            if meta.get(key):
+                meta[key] = list(map(float, meta[key]))
 
-        return mosaic_def
+        # Create pydantic class
+        # For now, a tiles key must exist
+        meta["tiles"] = {}
+        return MosaicJSON(**meta)
 
     def get_assets(self, x: int, y: int, z: int) -> Tuple[str]:
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
