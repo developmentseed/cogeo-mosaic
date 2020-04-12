@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import boto3
 import mercantile
@@ -23,13 +23,17 @@ class DynamoDBBackend(BaseBackend):
     def __init__(
         self,
         table_name: str,
-        mosaic_def: Optional[MosaicJSON] = None,
+        mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
         region: str = os.getenv("AWS_REGION", "us-east-1"),
         client: Optional[Any] = None,
     ):
         self.client = client or boto3.resource("dynamodb", region_name=region)
         self.table = self.client.Table(table_name)
-        self.mosaic_def: MosaicJSON = mosaic_def or self.read_mosaic()
+
+        if mosaic_def is not None:
+            self.mosaic_def = MosaicJSON(**dict(mosaic_def))
+        else:
+            self.mosaic_def = self.read_mosaic()
 
     def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""

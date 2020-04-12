@@ -1,6 +1,6 @@
 import functools
 import json
-from typing import BinaryIO, Dict, Optional, Tuple
+from typing import BinaryIO, Dict, Optional, Tuple, Union
 
 import mercantile
 from boto3.session import Session as boto3_session
@@ -21,13 +21,17 @@ class S3Backend(BaseBackend):
         self,
         bucket: str,
         key: str,
-        mosaic_def: Optional[MosaicJSON] = None,
+        mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
         client: Optional[boto3_session.client] = None,
     ):
         self.client = client or boto3_session().client("s3")
         self.key = key
         self.bucket = bucket
-        self.mosaic_def: MosaicJSON = mosaic_def or self.read_mosaic(bucket, key)
+
+        if mosaic_def is not None:
+            self.mosaic_def = MosaicJSON(**dict(mosaic_def))
+        else:
+            self.mosaic_def = self.read_mosaic(bucket, key)
 
     def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""

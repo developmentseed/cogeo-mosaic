@@ -1,6 +1,6 @@
 import functools
 import json
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import mercantile
 import requests
@@ -13,8 +13,11 @@ from cogeo_mosaic.model import MosaicJSON
 class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
-    def __init__(self, url: str, mosaic_def: Optional[MosaicJSON] = None):
-        self.mosaic_def: MosaicJSON = mosaic_def or self.read_mosaic(url)
+    def __init__(self, url: str, mosaic_def: Optional[Union[MosaicJSON, Dict]] = None):
+        if mosaic_def is not None:
+            self.mosaic_def = MosaicJSON(**dict(mosaic_def))
+        else:
+            self.mosaic_def = self.read_mosaic(url)
 
     def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
