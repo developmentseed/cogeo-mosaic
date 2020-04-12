@@ -13,7 +13,7 @@ class FileBackend(BaseBackend):
 
     def __init__(self, path: Optional[str] = None):
         self.path = path
-        self.mosaic_def = self.fetch_mosaic_definition(path)
+        self.mosaic_def = self.read_mosaic(path)
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -35,7 +35,7 @@ class FileBackend(BaseBackend):
             f.write(_compress_gz_json(mosaic))
 
     @functools.lru_cache(maxsize=512)
-    def fetch_mosaic_definition(self, path: str) -> Dict:
+    def read_mosaic(self, path: str) -> Dict:
         """Get Mosaic definition info."""
         with open(path, "rb") as f:
             body = f.read()

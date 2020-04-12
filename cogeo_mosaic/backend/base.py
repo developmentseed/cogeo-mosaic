@@ -49,6 +49,10 @@ class BaseBackend(AbstractContextManager):
         self.mosaic_def = create_mosaic(*args, **kwargs)
         self.upload(self.mosaic_def)
 
+    @abc.abstractmethod
+    def read_mosaic(self, *args, **kwargs):
+        """Fetch mosaic definition"""
+
     @property
     def mosaicid(self) -> str:
         return get_hash(body=self.mosaic_def, version=mosaic_version)

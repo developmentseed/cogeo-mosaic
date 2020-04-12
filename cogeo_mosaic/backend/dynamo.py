@@ -21,8 +21,8 @@ class DynamoDBBackend(BaseBackend):
     def __init__(
         self,
         table_name: Optional[str] = None,
+        mode: str = 'r',
         region: str = os.getenv("AWS_REGION", "us-east-1"),
-        load_mosaic: bool = True,
     ):
         self.client = boto3.resource("dynamodb", region_name=region)
         self.table_name = table_name
@@ -31,8 +31,8 @@ class DynamoDBBackend(BaseBackend):
         if table_name:
             self.table = self.client.Table(table_name)
 
-            if load_mosaic:
-                self.mosaic_def = self.fetch_mosaic_definition()
+        if 'r' in mode:
+            self.mosaic_def = self.read_mosaic()
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -101,7 +101,7 @@ class DynamoDBBackend(BaseBackend):
                 counter += 1
 
     @functools.lru_cache(maxsize=512)
-    def fetch_mosaic_definition(self) -> Dict:
+    def read_mosaic(self) -> Dict:
         """Get Mosaic definition info."""
         mosaic_def = self.fetch_dynamodb("-1")
 

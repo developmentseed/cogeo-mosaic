@@ -13,7 +13,7 @@ class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
     def __init__(self, url: str):
-        self.mosaic_def = self.fetch_mosaic_definition(url)
+        self.mosaic_def = self.read_mosaic(url)
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -30,7 +30,7 @@ class HttpBackend(BaseBackend):
         )
 
     @functools.lru_cache(maxsize=512)
-    def fetch_mosaic_definition(self, url: str) -> Dict:
+    def read_mosaic(self, url: str) -> Dict:
         """Get Mosaic definition info."""
         body = requests.get(url).content
 

@@ -19,8 +19,8 @@ class S3Backend(BaseBackend):
         self,
         bucket: str,
         key: Optional[str] = None,
+        mode: str = 'r',
         client: boto3_session.client = None,
-        load_mosaic: bool = True,
     ):
         if client:
             self.client = client
@@ -29,11 +29,9 @@ class S3Backend(BaseBackend):
 
         self.key = key
         self.bucket = bucket
-
-        if load_mosaic:
-            self.mosaic_def = self.fetch_mosaic_definition(bucket, key)
-        else:
-            self.mosaic_def = None
+        self.mosaic_def = None
+        if 'r' in mode:
+            self.mosaic_def = self.read_mosaic(bucket, key)
 
     def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -55,7 +53,7 @@ class S3Backend(BaseBackend):
         _aws_put_data(key, self.bucket, _compress_gz_json(mosaic), client=self.client)
 
     @functools.lru_cache(maxsize=512)
-    def fetch_mosaic_definition(self, bucket: str, key: str) -> Dict:
+    def read_mosaic(self, bucket: str, key: str) -> Dict:
         """Get Mosaic definition info."""
 
         body = _aws_get_data(key, bucket, client=self.client)
