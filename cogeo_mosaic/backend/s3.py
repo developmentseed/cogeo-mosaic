@@ -18,22 +18,16 @@ class S3Backend(BaseBackend):
     def __init__(
         self,
         bucket: str,
-        key: Optional[str] = None,
-        mode: str = 'r',
-        client: boto3_session.client = None,
+        key: str,
+        mosaic_def: Optional[MosaicJSON] = None,
+        client: Optional[boto3_session.client] = None,
     ):
-        if client:
-            self.client = client
-        else:
-            self.client = boto3_session().client("s3")
-
+        self.client = client or boto3_session().client("s3")
         self.key = key
         self.bucket = bucket
-        self.mosaic_def = None
-        if 'r' in mode:
-            self.mosaic_def = self.read_mosaic(bucket, key)
+        self.mosaic_def = mosaic_def or self.read_mosaic(bucket, key)
 
-    def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
+    def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
 
         return get_assets_from_json(
@@ -48,9 +42,13 @@ class S3Backend(BaseBackend):
             self.mosaic_def["tiles"], self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def upload(self, mosaic: Dict):
-        key = f"mosaics/{self.mosaicid}.json.gz"
-        _aws_put_data(key, self.bucket, _compress_gz_json(mosaic), client=self.client)
+    def upload(self):
+        _aws_put_data(
+            self.key,
+            self.bucket,
+            _compress_gz_json(self.mosaic_def),
+            client=self.client,
+        )
 
     @functools.lru_cache(maxsize=512)
     def read_mosaic(self, bucket: str, key: str) -> Dict:

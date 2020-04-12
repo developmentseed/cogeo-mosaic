@@ -4,12 +4,14 @@ import json
 import logging
 import os
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
 import mercantile
+
 from cogeo_mosaic.backend.base import BaseBackend
-from cogeo_mosaic.backend.utils import find_quadkeys, get_hash
+from cogeo_mosaic.backend.utils import find_quadkeys
+from cogeo_mosaic.model import MosaicJSON
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -20,21 +22,16 @@ class DynamoDBBackend(BaseBackend):
 
     def __init__(
         self,
-        table_name: Optional[str] = None,
-        mode: str = 'r',
+        table_name: str,
+        mosaic_def: Optional[MosaicJSON] = None,
         region: str = os.getenv("AWS_REGION", "us-east-1"),
+        client: Optional[Any] = None,
     ):
-        self.client = boto3.resource("dynamodb", region_name=region)
-        self.table_name = table_name
-        self.mosaic_def = None
+        self.client = client or boto3.resource("dynamodb", region_name=region)
+        self.table = self.client.Table(table_name)
+        self.mosaic_def = mosaic_def or self.read_mosaic()
 
-        if table_name:
-            self.table = self.client.Table(table_name)
-
-        if 'r' in mode:
-            self.mosaic_def = self.read_mosaic()
-
-    def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
+    def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
         return self.get_assets(x, y, z)
 
@@ -43,13 +40,14 @@ class DynamoDBBackend(BaseBackend):
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
-    def upload(self, mosaic: Dict):
-        table_name = self.table_name or get_hash(Body=mosaic)
-        self._create_table(table_name)
-        items = self._create_items(mosaic)
-        self._upload_items(items, table_name)
+    def upload(self):
+        self._create_table()
+        items = self._create_items()
+        self._upload_items(items)
 
-    def _create_table(self, table_name: str, billing_mode: str = "PAY_PER_REQUEST"):
+    def _create_table(self, billing_mode: str = "PAY_PER_REQUEST"):
+        # Define schema for primary key
+        # Non-keys don't need a schema
         attr_defs = [{"AttributeName": "quadkey", "AttributeType": "S"}]
         key_schema = [{"AttributeName": "quadkey", "KeyType": "HASH"}]
 
@@ -57,7 +55,7 @@ class DynamoDBBackend(BaseBackend):
         try:
             self.client.create_table(
                 AttributeDefinitions=attr_defs,
-                TableName=table_name,
+                TableName=self.table.table_name,
                 KeySchema=key_schema,
                 BillingMode=billing_mode,
             )
@@ -65,33 +63,34 @@ class DynamoDBBackend(BaseBackend):
 
             # If outside try/except block, could wait forever if unable to
             # create table
-            self.client.Table(table_name).wait_until_exists()
+            self.table.wait_until_exists()
         except boto3.client("dynamodb").exceptions.ResourceInUseException:
             logger.warn("unable to create table, may already exist")
 
-    def _create_items(self, mosaic: Dict) -> List[Dict]:
+    def _create_items(self) -> List[Dict]:
         items = []
         # Create one metadata item with quadkey=-1
-        meta = {k: v for k, v in mosaic.items() if k != "tiles"}
-
         # Convert float to decimal
         # https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/
-        meta = json.loads(json.dumps(meta), parse_float=Decimal)
+        meta = json.loads(json.dumps(self.metadata()), parse_float=Decimal)
 
         # NOTE: quadkey is a string type
         meta["quadkey"] = "-1"
         items.append(meta)
 
-        for quadkey, assets in mosaic["tiles"].items():
+        if self.mosaic_def.get("tiles") is None:
+            logger.warn("tiles key does not exist in mosaic definition")
+            return items
+
+        for quadkey, assets in self.mosaic_def["tiles"].items():
             item = {"quadkey": quadkey, "assets": assets}
             items.append(item)
 
         return items
 
-    def _upload_items(self, items: List[Dict], table_name: str):
-        table = self.client.Table(table_name)
-        with table.batch_writer() as batch:
-            logger.info(f"Uploading items to table {table_name}")
+    def _upload_items(self, items: List[Dict]):
+        with self.table.batch_writer() as batch:
+            logger.info(f"Uploading items to table {self.table.table_name}")
             counter = 0
             for item in items:
                 if counter % 1000 == 0:

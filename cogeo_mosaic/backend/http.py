@@ -1,21 +1,22 @@
 import functools
 import json
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import mercantile
 import requests
+
 from cogeo_mosaic.backend.base import BaseBackend
-from cogeo_mosaic.backend.utils import get_assets_from_json
-from cogeo_mosaic.utils import _decompress_gz
+from cogeo_mosaic.backend.utils import _decompress_gz, get_assets_from_json
+from cogeo_mosaic.model import MosaicJSON
 
 
 class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
-    def __init__(self, url: str):
-        self.mosaic_def = self.read_mosaic(url)
+    def __init__(self, url: str, mosaic_def: Optional[MosaicJSON] = None):
+        self.mosaic_def = mosaic_def or self.read_mosaic(url)
 
-    def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
+    def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
 
         return get_assets_from_json(
@@ -28,6 +29,12 @@ class HttpBackend(BaseBackend):
         return get_assets_from_json(
             self.mosaic_def["tiles"], self.quadkey_zoom, tile.x, tile.y, tile.z
         )
+
+    def upload(self):
+        raise NotImplementedError
+
+    def update(self):
+        raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
     def read_mosaic(self, url: str) -> Dict:

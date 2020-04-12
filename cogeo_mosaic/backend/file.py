@@ -3,19 +3,23 @@ import json
 from typing import Dict, Optional, Tuple
 
 import mercantile
+
 from cogeo_mosaic.backend.base import BaseBackend
-from cogeo_mosaic.backend.utils import get_assets_from_json
-from cogeo_mosaic.utils import _compress_gz_json, _decompress_gz
+from cogeo_mosaic.backend.utils import (_compress_gz_json, _decompress_gz,
+                                        get_assets_from_json)
+from cogeo_mosaic.model import MosaicJSON
 
 
 class FileBackend(BaseBackend):
     """Local File Backend Adapter"""
 
-    def __init__(self, path: Optional[str] = None):
+    def __init__(
+        self, path: str, mosaic_def: Optional[MosaicJSON] = None,
+    ):
         self.path = path
-        self.mosaic_def = self.read_mosaic(path)
+        self.mosaic_def = mosaic_def or self.read_mosaic(path)
 
-    def tile(self, x: int, y: int, z: int, bucket: str, key: str) -> Tuple[str]:
+    def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
 
         return get_assets_from_json(
@@ -29,10 +33,12 @@ class FileBackend(BaseBackend):
             self.mosaic_def["tiles"], self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def upload(self, mosaic: Dict):
-        path = self.path or f"mosaics/{self.mosaicid}.json.gz"
-        with open(path, "wb") as f:
-            f.write(_compress_gz_json(mosaic))
+    def upload(self):
+        with open(self.path, "wb") as f:
+            f.write(_compress_gz_json(self.mosaic_def))
+
+    def update(self):
+        raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
     def read_mosaic(self, path: str) -> Dict:

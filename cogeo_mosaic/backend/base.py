@@ -6,11 +6,11 @@ from typing import Dict, Optional
 
 from cogeo_mosaic import version as mosaic_version
 from cogeo_mosaic.backend.utils import get_hash
-from cogeo_mosaic.utils import create_mosaic
+from cogeo_mosaic.model import MosaicJSON
 
 
 class BaseBackend(AbstractContextManager):
-    mosaic_def: Optional[Dict]
+    mosaic_def: MosaicJSON
 
     @abc.abstractmethod
     def __init__(self, *args, **kwargs):
@@ -30,9 +30,6 @@ class BaseBackend(AbstractContextManager):
         -------
         MosaicJSON as dict without `tiles` key.
         """
-        if self.mosaic_def is None:
-            return {}
-
         return {k: v for k, v in self.mosaic_def.items() if k != "tiles"}
 
     @abc.abstractmethod
@@ -42,12 +39,6 @@ class BaseBackend(AbstractContextManager):
     @abc.abstractmethod
     def point(self, lng: float, lat: float):
         """Retrieve assets for point."""
-
-    def create(self, *args, **kwargs):
-        """Create new MosaicJSON and upload to backend."""
-
-        self.mosaic_def = create_mosaic(*args, **kwargs)
-        self.upload(self.mosaic_def)
 
     @abc.abstractmethod
     def read_mosaic(self, *args, **kwargs):
@@ -65,10 +56,9 @@ class BaseBackend(AbstractContextManager):
         return None
 
     @abc.abstractmethod
-    def upload(self, mosaic: Dict):
+    def upload(self):
         """Upload new MosaicJSON to backend."""
 
-    # Commented to allow child classes to not implement this
-    # @abc.abstractmethod
-    def update(self, mosaic: Dict):
+    @abc.abstractmethod
+    def update(self):
         """Update existing MosaicJSON on backend."""
