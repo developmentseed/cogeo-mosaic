@@ -1,3 +1,9 @@
+"""
+cogeo_mosaic.backend.auto: Automatically select backend from url
+
+This is in a separate module to prevent circular imports
+"""
+
 from urllib.parse import urlparse
 
 from cogeo_mosaic.backend.dynamo import DynamoDBBackend
