@@ -54,6 +54,9 @@ class S3Backend(BaseBackend):
             client=self.client,
         )
 
+    def update(self):
+        raise NotImplementedError
+
     @functools.lru_cache(maxsize=512)
     def read_mosaic(self, bucket: str, key: str) -> MosaicJSON:
         """Get Mosaic definition info."""

@@ -49,6 +49,9 @@ class DynamoDBBackend(BaseBackend):
         items = self._create_items()
         self._upload_items(items)
 
+    def update(self):
+        raise NotImplementedError
+
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST"):
         # Define schema for primary key
         # Non-keys don't need a schema
