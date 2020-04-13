@@ -4,8 +4,8 @@ from typing import Dict, Optional, Tuple, Union
 
 import mercantile
 
-from cogeo_mosaic.backend.base import BaseBackend
-from cogeo_mosaic.backend.utils import (
+from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.utils import (
     _compress_gz_json,
     _decompress_gz,
     get_assets_from_json,

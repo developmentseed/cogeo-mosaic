@@ -6,10 +6,10 @@ This is in a separate module to prevent circular imports
 
 from urllib.parse import urlparse
 
-from cogeo_mosaic.backend.dynamo import DynamoDBBackend
-from cogeo_mosaic.backend.file import FileBackend
-from cogeo_mosaic.backend.http import HttpBackend
-from cogeo_mosaic.backend.s3 import S3Backend
+from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
+from cogeo_mosaic.backends.file import FileBackend
+from cogeo_mosaic.backends.http import HttpBackend
+from cogeo_mosaic.backends.s3 import S3Backend
 
 
 def auto_backend(url: str, **kwargs):

@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import boto3
 import mercantile
 
-from cogeo_mosaic.backend.base import BaseBackend
-from cogeo_mosaic.backend.utils import find_quadkeys
+from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.model import MosaicJSON
 
 logger = logging.getLogger()
