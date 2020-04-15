@@ -37,9 +37,13 @@ class FileBackend(BaseBackend):
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def write(self):
+    def write(self, gzip=None):
+        body = dict(self.mosaic_def)
+        if gzip or (gzip is None and self.path.endswith(".gz")):
+            body = _compress_gz_json(body)
+
         with open(self.path, "wb") as f:
-            f.write(_compress_gz_json(dict(self.mosaic_def)))
+            f.write(body)
 
     def update(self):
         raise NotImplementedError

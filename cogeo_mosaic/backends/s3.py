@@ -46,12 +46,13 @@ class S3Backend(BaseBackend):
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def write(self):
+    def write(self, gzip=None):
+        body = dict(self.mosaic_def)
+        if gzip or (gzip is None and self.key.endswith(".gz")):
+            body = _compress_gz_json(body)
+
         _aws_put_data(
-            self.key,
-            self.bucket,
-            _compress_gz_json(dict(self.mosaic_def)),
-            client=self.client,
+            self.key, self.bucket, body, client=self.client,
         )
 
     def update(self):
