@@ -46,7 +46,7 @@ class BaseBackend(AbstractContextManager):
 
     @property
     def mosaicid(self) -> str:
-        return get_hash(body=dict(self.mosaic_def), version=mosaic_version)
+        return get_hash(**dict(self.mosaic_def))
 
     @property
     def quadkey_zoom(self) -> Optional[int]:
