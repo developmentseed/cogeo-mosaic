@@ -1,4 +1,4 @@
-from .auto import auto_backend
+from .auto import MosaicBackend
 from .dynamodb import DynamoDBBackend
 from .file import FileBackend
 from .http import HttpBackend

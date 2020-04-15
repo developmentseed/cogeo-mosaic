@@ -12,7 +12,7 @@ from cogeo_mosaic.backends.http import HttpBackend
 from cogeo_mosaic.backends.s3 import S3Backend
 
 
-def auto_backend(url: str, **kwargs):
+def MosaicBackend(url: str, **kwargs):
     parsed = urlparse(url)
 
     if parsed.scheme == "s3":
