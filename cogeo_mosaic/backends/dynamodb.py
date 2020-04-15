@@ -123,6 +123,7 @@ class DynamoDBBackend(BaseBackend):
         meta["tiles"] = {}
         return MosaicJSON(**meta)
 
+    @functools.lru_cache(maxsize=512)
     def get_assets(self, x: int, y: int, z: int) -> Tuple[str]:
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
