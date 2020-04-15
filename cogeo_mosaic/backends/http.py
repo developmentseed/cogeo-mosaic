@@ -31,7 +31,7 @@ class HttpBackend(BaseBackend):
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def upload(self):
+    def write(self):
         raise NotImplementedError
 
     def update(self):

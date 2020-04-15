@@ -46,7 +46,7 @@ class S3Backend(BaseBackend):
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def upload(self):
+    def write(self):
         _aws_put_data(
             self.key,
             self.bucket,

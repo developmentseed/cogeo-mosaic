@@ -53,7 +53,7 @@ class BaseBackend(AbstractContextManager):
         return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
 
     @abc.abstractmethod
-    def upload(self):
+    def write(self):
         """Upload new MosaicJSON to backend."""
 
     @abc.abstractmethod

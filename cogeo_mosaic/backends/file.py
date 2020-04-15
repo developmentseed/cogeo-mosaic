@@ -37,7 +37,7 @@ class FileBackend(BaseBackend):
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def upload(self):
+    def write(self):
         with open(self.path, "wb") as f:
             f.write(_compress_gz_json(dict(self.mosaic_def)))
 

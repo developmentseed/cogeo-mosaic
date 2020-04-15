@@ -44,10 +44,10 @@ class DynamoDBBackend(BaseBackend):
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
-    def upload(self):
+    def write(self):
         self._create_table()
         items = self._create_items()
-        self._upload_items(items)
+        self._write_items(items)
 
     def update(self):
         raise NotImplementedError
@@ -91,7 +91,7 @@ class DynamoDBBackend(BaseBackend):
 
         return items
 
-    def _upload_items(self, items: List[Dict]):
+    def _write_items(self, items: List[Dict]):
         with self.table.batch_writer() as batch:
             logger.info(f"Uploading items to table {self.table.table_name}")
             counter = 0
