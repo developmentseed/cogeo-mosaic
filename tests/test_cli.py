@@ -6,7 +6,7 @@ import json
 from click.testing import CliRunner
 
 from cogeo_mosaic.scripts.cli import cogeo_cli
-from cogeo_mosaic.utils import create_mosaic
+from cogeo_mosaic.create import create_mosaic
 
 import rasterio
 

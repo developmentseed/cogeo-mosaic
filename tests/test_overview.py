@@ -7,7 +7,7 @@ from click.testing import CliRunner
 import rasterio
 
 from rio_cogeo.profiles import cog_profiles
-from cogeo_mosaic.utils import create_mosaic
+from cogeo_mosaic.create import create_mosaic
 from cogeo_mosaic.overviews import create_low_level_cogs
 
 
