@@ -42,6 +42,11 @@ def cogeo_cli():
     type=int,
     help="An integer to overwrite the maximum zoom level derived from the COGs.",
 )
+@click.option(
+    "--quadkey-zoom",
+    type=int,
+    help="An integer to overwrite the quadkey zoom level used for keys in the MosaicJSON.",
+)
 @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
 @click.option(
     "--tile-cover-sort", help="Sort files by covering %", is_flag=True, default=False
@@ -64,6 +69,7 @@ def create(
     output,
     minzoom,
     maxzoom,
+    quadkey_zoom,
     min_tile_cover,
     tile_cover_sort,
     threads,
@@ -75,6 +81,7 @@ def create(
         input_files,
         minzoom=minzoom,
         maxzoom=maxzoom,
+        quadkey_zoom=quadkey_zoom,
         minimum_tile_cover=min_tile_cover,
         tile_cover_sort=tile_cover_sort,
         max_threads=threads,
