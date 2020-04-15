@@ -1,10 +1,9 @@
-import os
 import json
+import os
 
 import pytest
 
 from cogeo_mosaic.create import create_mosaic
-
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
 mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
