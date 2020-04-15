@@ -1,15 +1,14 @@
 """tests cogeo_mosaic.overview."""
 
 import os
+
 import pytest
-from click.testing import CliRunner
-
 import rasterio
-
+from click.testing import CliRunner
 from rio_cogeo.profiles import cog_profiles
+
 from cogeo_mosaic.create import create_mosaic
 from cogeo_mosaic.overviews import create_low_level_cogs
-
 
 asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
 asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")

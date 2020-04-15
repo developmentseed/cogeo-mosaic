@@ -1,16 +1,16 @@
 """tests cogeo_mosaic.utils."""
 
-import os
 import json
-from io import BytesIO
+import os
 from concurrent import futures
+from io import BytesIO
 
+import mercantile
 import pytest
 from mock import patch
 
-import mercantile
 from cogeo_mosaic import utils
-
+from cogeo_mosaic.create import create_mosaic
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
 mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
@@ -208,17 +208,17 @@ def test_tiles_to_bounds():
 
 def test_update_mosaic():
     """Create mosaic and update it."""
-    mosaic = utils.create_mosaic([asset1], minzoom=9)
+    mosaic = create_mosaic([asset1], minzoom=9)
     assert len(mosaic["tiles"]) == 36
 
-    mosaic = utils.create_mosaic([asset1], minzoom=9)
+    mosaic = create_mosaic([asset1], minzoom=9)
     assert mosaic["version"] == "1.0.0"
     utils.update_mosaic([asset2], mosaic)
     assert len(mosaic["tiles"]) == 48
     assert len(mosaic["tiles"]["030230132"]) == 2
     assert mosaic["version"] == "1.0.1"
 
-    mosaic = utils.create_mosaic([asset1], minzoom=9)
+    mosaic = create_mosaic([asset1], minzoom=9)
     utils.update_mosaic([asset2], mosaic, minimum_tile_cover=0.1)
     assert len(mosaic["tiles"]) == 47
     assert len(mosaic["tiles"]["030230132"]) == 1
