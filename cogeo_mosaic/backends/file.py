@@ -23,7 +23,7 @@ class FileBackend(BaseBackend):
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
-            self.mosaic_def = self.read_mosaic(path)
+            self.mosaic_def = self.read(path)
 
     def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -45,7 +45,7 @@ class FileBackend(BaseBackend):
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
-    def read_mosaic(self, path: str) -> MosaicJSON:
+    def read(self, path: str) -> MosaicJSON:
         """Get Mosaic definition info."""
         with open(path, "rb") as f:
             body = f.read()

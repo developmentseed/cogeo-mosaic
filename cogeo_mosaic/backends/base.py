@@ -41,7 +41,7 @@ class BaseBackend(AbstractContextManager):
         """Retrieve assets for point."""
 
     @abc.abstractmethod
-    def read_mosaic(self, *args, **kwargs) -> MosaicJSON:
+    def read(self, *args, **kwargs) -> MosaicJSON:
         """Fetch mosaic definition"""
 
     @property

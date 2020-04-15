@@ -31,7 +31,7 @@ class S3Backend(BaseBackend):
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
-            self.mosaic_def = self.read_mosaic(bucket, key)
+            self.mosaic_def = self.read(bucket, key)
 
     def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -58,7 +58,7 @@ class S3Backend(BaseBackend):
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
-    def read_mosaic(self, bucket: str, key: str) -> MosaicJSON:
+    def read(self, bucket: str, key: str) -> MosaicJSON:
         """Get Mosaic definition info."""
 
         body = _aws_get_data(key, bucket, client=self.client)

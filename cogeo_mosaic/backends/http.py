@@ -17,7 +17,7 @@ class HttpBackend(BaseBackend):
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
-            self.mosaic_def = self.read_mosaic(url)
+            self.mosaic_def = self.read(url)
 
     def tile(self, x: int, y: int, z: int) -> Tuple[str]:
         """Retrieve assets for tile."""
@@ -38,7 +38,7 @@ class HttpBackend(BaseBackend):
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
-    def read_mosaic(self, url: str) -> MosaicJSON:
+    def read(self, url: str) -> MosaicJSON:
         """Get Mosaic definition info."""
         body = requests.get(url).content
 
