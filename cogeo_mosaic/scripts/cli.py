@@ -9,8 +9,8 @@ from click_plugins import with_plugins
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
+from cogeo_mosaic.create import create_mosaic
 from cogeo_mosaic.utils import (
-    create_mosaic,
     get_footprints,
     get_mosaic_content,
     update_mosaic,
