@@ -5,8 +5,7 @@ from typing import Dict, Tuple
 
 import click
 import mercantile
-import numpy
-from pygeos import STRtree, intersects, polygons, total_bounds
+from pygeos import STRtree, polygons, total_bounds
 from supermercado import burntiles
 
 from cogeo_mosaic.utils import _filter_and_sort, get_footprints
@@ -115,23 +114,13 @@ def create_mosaic(
         quadkey = mercantile.quadkey(tile)
         tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
 
-        # Find candidates from rtree
-        candidates_idx = tree.query(tile_geom)
-        if len(candidates_idx) == 0:
-            continue
-
-        candidates_geoms = polygons(
-            [results[idx]["geometry"]["coordinates"][0] for idx in candidates_idx]
-        )
-
-        # Find true intersections
-        # NOTE: intersections_idx is the index within the candidates_idx array
-        intersections_idx = numpy.nonzero(intersects(tile_geom, candidates_geoms))[0]
+        # Find intersections from rtree
+        intersections_idx = tree.query(tile_geom, predicate='intersects')
         if len(intersections_idx) == 0:
             continue
 
-        intersections_geoms = [candidates_geoms[idx] for idx in intersections_idx]
-        intersections = [results[candidates_idx[idx]] for idx in intersections_idx]
+        intersections_geoms = [dataset_geoms[idx] for idx in intersections_idx]
+        intersections = [results[idx] for idx in intersections_idx]
 
         dataset = [
             {"path": f["properties"]["path"], "geometry": geom}
