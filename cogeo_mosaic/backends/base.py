@@ -4,7 +4,6 @@ import abc
 from contextlib import AbstractContextManager
 from typing import Dict, Optional, Tuple
 
-from cogeo_mosaic import version as mosaic_version
 from cogeo_mosaic.backends.utils import get_hash
 from cogeo_mosaic.model import MosaicJSON
 

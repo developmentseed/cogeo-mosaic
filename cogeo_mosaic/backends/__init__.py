@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from .auto import MosaicBackend
 from .dynamodb import DynamoDBBackend
 from .file import FileBackend
