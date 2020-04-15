@@ -7,7 +7,6 @@ import sys
 import zlib
 import json
 import logging
-import warnings
 import functools
 import itertools
 from concurrent import futures
@@ -17,7 +16,7 @@ import click
 import requests
 
 import numpy
-from pygeos import intersects, intersection, polygons, area
+from pygeos import intersection, polygons, area
 import mercantile
 from supermercado import burntiles
 
