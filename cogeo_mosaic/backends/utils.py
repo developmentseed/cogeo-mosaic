@@ -1,26 +1,31 @@
+"""cogeo-mosaic.backends utility functions."""
+
+from typing import Any, Dict, List, Tuple
+
 import hashlib
 import itertools
 import json
 import os
 import zlib
-from typing import Any, Dict, List, Tuple
 
 import mercantile
 
 
 def find_quadkeys(mercator_tile: mercantile.Tile, quadkey_zoom: int) -> List[str]:
-    """Find quadkeys at desired zoom for tile
+    """
+    Find quadkeys at desired zoom for tile
 
     Attributes
     ----------
-    mercator_tile: mercantile.Tile
-        Input tile to use when searching for quadkeys
-    quadkey_zoom: int
-        Zoom level
+        mercator_tile: mercantile.Tile
+            Input tile to use when searching for quadkeys
+        quadkey_zoom: int
+            Zoom level
 
     Returns
     -------
-    List[str] of quadkeys
+        List[str] of quadkeys
+
     """
     # get parent
     if mercator_tile.z > quadkey_zoom:
@@ -64,7 +69,7 @@ def get_assets_from_json(
     )
 
 
-def _compress_gz_json(data):
+def _compress_gz_json(data) -> bytes:
     gzip_compress = zlib.compressobj(9, zlib.DEFLATED, zlib.MAX_WBITS | 16)
 
     return (
@@ -72,7 +77,7 @@ def _compress_gz_json(data):
     )
 
 
-def _decompress_gz(gzip_buffer):
+def _decompress_gz(gzip_buffer: bytes):
     return zlib.decompress(gzip_buffer, zlib.MAX_WBITS | 16).decode()
 
 
