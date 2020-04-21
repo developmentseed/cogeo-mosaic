@@ -72,6 +72,10 @@ def create_mosaic(
 
         maxzoom = max(maxzoom)
 
+    datatype = list(set([feat["properties"]["datatype"] for feat in features]))
+    if len(datatype) > 1:
+        raise Exception("Dataset should have the same data type")
+
     return create_mosaic_from_features(features, version=version, quiet=quiet, **kwargs)
 
 
@@ -116,10 +120,6 @@ def create_mosaic_from_features(
     """
 
     quadkey_zoom = quadkey_zoom or minzoom
-
-    datatype = list(set([feat["properties"]["datatype"] for feat in features]))
-    if len(datatype) > 1:
-        raise Exception("Dataset should have the same data type")
 
     if not quiet:
         click.echo(f"Get quadkey list for zoom: {quadkey_zoom}", err=True)
