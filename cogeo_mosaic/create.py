@@ -87,6 +87,7 @@ def create_mosaic_from_features(
     accessor: Callable[Dict, str] = lambda feature: feature["path"],
     minimum_tile_cover: float = None,
     tile_cover_sort: bool = False,
+    maximum_items_per_tile: int = 20,
     version: str = "0.0.2",
     quiet: bool = True,
 ):
@@ -108,6 +109,8 @@ def create_mosaic_from_features(
         Filter files with low tile intersection coverage.
     tile_cover_sort: bool, optional (default: None)
         Sort intersecting files by coverage.
+    maximum_items_per_tile : int, optional (default: 20)
+        Limit number of scene per quadkey. Use 0 or None to use all items.
     version: str, optional
         mosaicJSON definition version
     quiet: bool, optional (default: True)
@@ -174,6 +177,9 @@ def create_mosaic_from_features(
                 minimum_cover=minimum_tile_cover,
                 sort_cover=tile_cover_sort,
             )
+
+        if dataset and maximum_items_per_tile:
+            dataset = dataset[0:maximum_items_per_tile]
 
         if dataset:
             mosaic_definition["tiles"][quadkey] = [accessor(f) for f in dataset]
