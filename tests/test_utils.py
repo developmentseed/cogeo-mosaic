@@ -35,14 +35,6 @@ def testing_env_var(monkeypatch):
     monkeypatch.setenv("GDAL_DISABLE_READDIR_ON_OPEN", "TRUE")
 
 
-def test_decompress():
-    """Test valid gz decompression."""
-    with open(mosaic_gz, "rb") as f:
-        body = f.read()
-    res = json.loads(utils._decompress_gz(body))
-    assert list(res.keys()) == ["minzoom", "maxzoom", "bounds", "center", "tiles"]
-
-
 @patch("cogeo_mosaic.utils.boto3_session")
 def test_aws_get_data_valid(session):
     """Create a file on S3."""
@@ -228,23 +220,6 @@ def test_get_mosaic_ContentGz(requests, s3get):
     assert mosaic == mosaic_content
     requests.get.assert_not_called()
     s3get.assert_not_called()
-
-
-@patch("cogeo_mosaic.utils.fetch_mosaic_definition")
-def test_get_assets(getMosaic):
-    """Fetch mosaic and get assets list."""
-    getMosaic.return_value = mosaic_content
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 150, 182, 9)) == 2
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 147, 182, 9)) == 1
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 147, 182, 12)) == 0
-
-
-@patch("cogeo_mosaic.utils.fetch_mosaic_definition")
-def test_get_assets_for_points(getMosaic):
-    """Fetch mosaic and get assets list."""
-    getMosaic.return_value = mosaic_content
-    assert len(utils.fetch_and_find_assets_point("mymosaic.json", -73, 47)) == 2
-    assert len(utils.fetch_and_find_assets_point("mymosaic.json", -60, 47)) == 0
 
 
 def test_get_points():
