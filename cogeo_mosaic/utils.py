@@ -136,7 +136,7 @@ def get_point_values(assets: Tuple[str], lng: float, lat: float) -> Tuple:
 
             if not (
                 (src_dst.bounds[0] < lng_srs[0] < src_dst.bounds[2])
-                and (src_dst.bounds[1] < lat_srs[0] < src_dst.bounds[3])  # noqa
+                and (src_dst.bounds[1] < lat_srs[0] < src_dst.bounds[3])
             ):
                 raise Exception("Outside bounds")
 

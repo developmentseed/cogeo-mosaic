@@ -17,13 +17,14 @@ def find_quadkeys(mercator_tile: mercantile.Tile, quadkey_zoom: int) -> List[str
 
     Attributes
     ----------
-        mercator_tile: mercantile.Tile
-            Input tile to use when searching for quadkeys
-        quadkey_zoom: int
-            Zoom level
+    mercator_tile: mercantile.Tile
+        Input tile to use when searching for quadkeys
+    quadkey_zoom: int
+        Zoom level
 
     Returns
     -------
+    list
         List[str] of quadkeys
 
     """
