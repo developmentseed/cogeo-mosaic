@@ -1,7 +1,7 @@
 """cogeo_mosaic.create: Create MosaicJSON from features."""
 
 import warnings
-from typing import Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import click
 import mercantile
@@ -54,20 +54,6 @@ def create_mosaic(
 
     features = get_footprints(dataset_list, max_threads=max_threads, quiet=quiet)
 
-    return create_mosaic_from_features(features, version=version, quiet=quiet, **kwargs)
-
-
-def create_mosaic_from_features(
-    features: List[Dict],
-    minzoom: int = None,
-    maxzoom: int = None,
-    tile_cover_sort: bool = False,
-    version: str = "0.0.2",
-    quiet: bool = True,
-    minimum_tile_cover: float = None,
-):
-    """Create mosaic definition from footprints
-    """
     if minzoom is None:
         minzoom = list(set([feat["properties"]["minzoom"] for feat in features]))
         if len(minzoom) > 1:
@@ -86,7 +72,50 @@ def create_mosaic_from_features(
 
         maxzoom = max(maxzoom)
 
-    quadkey_zoom = minzoom
+    return create_mosaic_from_features(features, version=version, quiet=quiet, **kwargs)
+
+
+def create_mosaic_from_features(
+    features: List[Dict],
+    minzoom: int,
+    maxzoom: int,
+    quadkey_zoom: Optional[int] = None,
+    accessor: Callable[Dict, str] = lambda feature: feature["path"],
+    minimum_tile_cover: float = None,
+    tile_cover_sort: bool = False,
+    version: str = "0.0.2",
+    quiet: bool = True,
+):
+    """Create mosaic definition from footprints
+
+    Attributes
+    ----------
+    features: list[Dict], required
+        List of GeoJSON Features representing polygons of asset boundaries.
+    minzoom: int
+        Mosaic min-zoom.
+    maxzoom: int
+        Mosaic max-zoom.
+    quadkey_zoom: int, optional
+        Force quadkey zoom.
+    accessor: callable, optional
+        Function called on each feature to get its identifier
+    minimum_tile_cover: float, optional (default: 0)
+        Filter files with low tile intersection coverage.
+    tile_cover_sort: bool, optional (default: None)
+        Sort intersecting files by coverage.
+    version: str, optional
+        mosaicJSON definition version
+    quiet: bool, optional (default: True)
+        Mask processing steps.
+
+    Returns
+    -------
+    mosaic_definition : dict
+        Mosaic definition.
+    """
+
+    quadkey_zoom = quadkey_zoom or minzoom
 
     datatype = list(set([feat["properties"]["datatype"] for feat in features]))
     if len(datatype) > 1:
@@ -147,6 +176,6 @@ def create_mosaic_from_features(
             )
 
         if dataset:
-            mosaic_definition["tiles"][quadkey] = [f["path"] for f in dataset]
+            mosaic_definition["tiles"][quadkey] = [accessor(f) for f in dataset]
 
     return mosaic_definition
