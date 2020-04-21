@@ -13,7 +13,7 @@ from cogeo_mosaic.utils import (
     create_mosaic,
     get_footprints,
     get_mosaic_content,
-    update_mosaic,
+    # update_mosaic,
 )
 from cogeo_mosaic.overviews import create_low_level_cogs
 
@@ -88,31 +88,31 @@ def create(
         click.echo(json.dumps(mosaic_spec))
 
 
-@cogeo_cli.command(short_help="Create mosaic definition from list of files")
-@click.argument("input_files", type=click.File(mode="r"), default="-")
-@click.argument("input_mosaic", type=click.Path())
-@click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
-@click.option("--min-tile-cover", type=float, help="Minimum % overlap")
-@click.option(
-    "--threads",
-    type=int,
-    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
-    help="threads",
-)
-def update(input_files, input_mosaic, output, min_tile_cover, threads):
-    """Update mosaic definition file."""
-    input_files = input_files.read().splitlines()
-    mosaic_def = get_mosaic_content(input_mosaic)
+# @cogeo_cli.command(short_help="Create mosaic definition from list of files")
+# @click.argument("input_files", type=click.File(mode="r"), default="-")
+# @click.argument("input_mosaic", type=click.Path())
+# @click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
+# @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
+# @click.option(
+#     "--threads",
+#     type=int,
+#     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
+#     help="threads",
+# )
+# def update(input_files, input_mosaic, output, min_tile_cover, threads):
+#     """Update mosaic definition file."""
+#     input_files = input_files.read().splitlines()
+#     mosaic_def = get_mosaic_content(input_mosaic)
 
-    mosaic_spec = update_mosaic(
-        input_files, mosaic_def, minimum_tile_cover=min_tile_cover, max_threads=threads
-    )
+#     mosaic_spec = update_mosaic(
+#         input_files, mosaic_def, minimum_tile_cover=min_tile_cover, max_threads=threads
+#     )
 
-    if output:
-        with open(output, mode="w") as f:
-            f.write(json.dumps(mosaic_spec))
-    else:
-        click.echo(json.dumps(mosaic_spec))
+#     if output:
+#         with open(output, mode="w") as f:
+#             f.write(json.dumps(mosaic_spec))
+#     else:
+#         click.echo(json.dumps(mosaic_spec))
 
 
 @cogeo_cli.command(short_help="Create geojson from list of files")
