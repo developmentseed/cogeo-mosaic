@@ -1,6 +1,6 @@
 """cogeo-mosaic AWS S3 backend."""
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import json
 import functools
@@ -38,11 +38,11 @@ class S3Backend(BaseBackend):
         else:
             self.mosaic_def = self.read()
 
-    def tile(self, x: int, y: int, z: int) -> Tuple[str]:
+    def tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
         return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
 
-    def point(self, lng: float, lat: float) -> Tuple[str]:
+    def point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return get_assets_from_json(

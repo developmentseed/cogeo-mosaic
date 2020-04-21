@@ -1,6 +1,6 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
-from typing import Dict, Tuple
+from typing import Dict, List
 
 import abc
 from contextlib import AbstractContextManager
@@ -36,11 +36,11 @@ class BaseBackend(AbstractContextManager):
         return {k: v for k, v in dict(self.mosaic_def).items() if k != "tiles"}
 
     @abc.abstractmethod
-    def tile(self, x: int, y: int, z: int) -> Tuple[str]:
+    def tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
 
     @abc.abstractmethod
-    def point(self, lng: float, lat: float) -> Tuple[str]:
+    def point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
 
     @abc.abstractmethod

@@ -1,6 +1,6 @@
 """cogeo-mosaic AWS DynamoDB backend."""
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import functools
 import itertools
@@ -37,11 +37,11 @@ class DynamoDBBackend(BaseBackend):
         else:
             self.mosaic_def = self.read()
 
-    def tile(self, x: int, y: int, z: int) -> Tuple[str]:
+    def tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
         return self.get_assets(x, y, z)
 
-    def point(self, lng: float, lat: float) -> Tuple[str]:
+    def point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
@@ -99,8 +99,8 @@ class DynamoDBBackend(BaseBackend):
         with self.table.batch_writer() as batch:
             with click.progressbar(
                 items, length=len(items), show_percent=True
-            ) as items:
-                for item in items:
+            ) as progitems:
+                for item in progitems:
                     batch.put_item(item)
 
     @functools.lru_cache(maxsize=512)
@@ -125,7 +125,7 @@ class DynamoDBBackend(BaseBackend):
         return MosaicJSON(**meta)
 
     @functools.lru_cache(maxsize=512)
-    def get_assets(self, x: int, y: int, z: int) -> Sequence[str]:
+    def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
