@@ -1,6 +1,6 @@
 """cogeo-mosaic.backends utility functions."""
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import hashlib
 import itertools
@@ -50,7 +50,7 @@ def find_quadkeys(mercator_tile: mercantile.Tile, quadkey_zoom: int) -> List[str
 
 def get_assets_from_json(
     tiles: Dict, quadkey_zoom: int, x: int, y: int, z: int
-) -> Tuple[str]:
+) -> List[str]:
     """Find assets."""
     mercator_tile = mercantile.Tile(x=x, y=y, z=z)
     quadkeys = find_quadkeys(mercator_tile, quadkey_zoom)

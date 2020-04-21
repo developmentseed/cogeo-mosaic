@@ -1,6 +1,6 @@
 """cogeo_mosaic.utils: utility functions."""
 
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import os
 import sys
@@ -80,7 +80,7 @@ def get_dataset_info(src_path: str) -> Dict:
 
 def get_footprints(
     dataset_list: Tuple, max_threads: int = 20, quiet: bool = True
-) -> Tuple:
+) -> List:
     """
     Create footprint GeoJSON.
 
@@ -125,7 +125,7 @@ def tiles_to_bounds(tiles):
     return [ulx, lry, lrx, uly]
 
 
-def get_point_values(assets: Tuple[str], lng: float, lat: float) -> Tuple:
+def get_point_values(assets: Tuple[str], lng: float, lat: float) -> List:
     """Read assets and return point values."""
 
     def _get_point(asset: str, coordinates: Tuple[float, float]) -> dict:
