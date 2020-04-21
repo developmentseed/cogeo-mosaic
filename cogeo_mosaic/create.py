@@ -1,7 +1,7 @@
 """cogeo_mosaic.create: Create MosaicJSON from features."""
 
 import warnings
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import click
 import mercantile
@@ -13,13 +13,10 @@ from cogeo_mosaic.utils import _filter_and_sort, get_footprints
 
 def create_mosaic(
     dataset_list: Tuple,
-    minzoom: int = None,
-    maxzoom: int = None,
     max_threads: int = 20,
-    minimum_tile_cover: float = None,
-    tile_cover_sort: bool = False,
     version: str = "0.0.2",
     quiet: bool = True,
+    **kwargs,
 ) -> Dict:
     """
     Create mosaic definition content.
@@ -55,10 +52,24 @@ def create_mosaic(
     if not quiet:
         click.echo("Get files footprint", err=True)
 
-    results = get_footprints(dataset_list, max_threads=max_threads, quiet=quiet)
+    features = get_footprints(dataset_list, max_threads=max_threads, quiet=quiet)
 
+    return create_mosaic_from_features(features, version=version, quiet=quiet, **kwargs)
+
+
+def create_mosaic_from_features(
+    features: List[Dict],
+    minzoom: int = None,
+    maxzoom: int = None,
+    tile_cover_sort: bool = False,
+    version: str = "0.0.2",
+    quiet: bool = True,
+    minimum_tile_cover: float = None,
+):
+    """Create mosaic definition from footprints
+    """
     if minzoom is None:
-        minzoom = list(set([feat["properties"]["minzoom"] for feat in results]))
+        minzoom = list(set([feat["properties"]["minzoom"] for feat in features]))
         if len(minzoom) > 1:
             warnings.warn(
                 "Multiple MinZoom, Assets different minzoom values", UserWarning
@@ -67,7 +78,7 @@ def create_mosaic(
         minzoom = max(minzoom)
 
     if maxzoom is None:
-        maxzoom = list(set([feat["properties"]["maxzoom"] for feat in results]))
+        maxzoom = list(set([feat["properties"]["maxzoom"] for feat in features]))
         if len(maxzoom) > 1:
             warnings.warn(
                 "Multiple MaxZoom, Assets have multiple resolution values", UserWarning
@@ -77,7 +88,7 @@ def create_mosaic(
 
     quadkey_zoom = minzoom
 
-    datatype = list(set([feat["properties"]["datatype"] for feat in results]))
+    datatype = list(set([feat["properties"]["datatype"] for feat in features]))
     if len(datatype) > 1:
         raise Exception("Dataset should have the same data type")
 
@@ -85,10 +96,10 @@ def create_mosaic(
         click.echo(f"Get quadkey list for zoom: {quadkey_zoom}", err=True)
 
     # Find dataset geometries
-    dataset_geoms = polygons([feat["geometry"]["coordinates"][0] for feat in results])
+    dataset_geoms = polygons([feat["geometry"]["coordinates"][0] for feat in features])
     bounds = total_bounds(dataset_geoms)
 
-    tiles = burntiles.burn(results, quadkey_zoom)
+    tiles = burntiles.burn(features, quadkey_zoom)
     tiles = [mercantile.Tile(*tile) for tile in tiles]
 
     mosaic_definition = dict(
@@ -120,7 +131,7 @@ def create_mosaic(
             continue
 
         intersections_geoms = [dataset_geoms[idx] for idx in intersections_idx]
-        intersections = [results[idx] for idx in intersections_idx]
+        intersections = [features[idx] for idx in intersections_idx]
 
         dataset = [
             {"path": f["properties"]["path"], "geometry": geom}
