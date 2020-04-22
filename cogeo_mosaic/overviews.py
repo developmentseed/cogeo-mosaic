@@ -15,7 +15,7 @@ import rasterio
 from rasterio.io import MemoryFile
 from rasterio.windows import Window
 
-from rio_tiler.main import tile as cogeoTiler
+from rio_tiler.io import cogeo
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 from rio_tiler_mosaic.methods import defaults
 
@@ -158,7 +158,7 @@ def create_low_level_cogs(
                                     x,
                                     y,
                                     base_zoom,
-                                    cogeoTiler,
+                                    cogeo.tile,
                                     tilesize=tilesize,
                                     pixel_selection=defaults.FirstMethod(),
                                 )
