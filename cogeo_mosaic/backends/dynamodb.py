@@ -35,7 +35,7 @@ class DynamoDBBackend(BaseBackend):
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
-            self.mosaic_def = self.read()
+            self.mosaic_def = self._read()
 
     def tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
@@ -104,7 +104,7 @@ class DynamoDBBackend(BaseBackend):
                     batch.put_item(item)
 
     @functools.lru_cache(maxsize=512)
-    def read(self) -> MosaicJSON:
+    def _read(self) -> MosaicJSON:
         """Get Mosaic definition info."""
         meta = self._fetch_dynamodb("-1")
 
