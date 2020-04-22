@@ -1,6 +1,6 @@
 """cogeo-mosaic File backend."""
 
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import json
 import functools
@@ -19,14 +19,19 @@ from cogeo_mosaic.backends.utils import (
 class FileBackend(BaseBackend):
     """Local File Backend Adapter"""
 
-    def __init__(self, path: str, mosaic_def: Optional[Union[MosaicJSON, Dict]] = None):
+    def __init__(
+        self,
+        path: str,
+        mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
+        **kwargs: Any
+    ):
         """Initialize FileBackend."""
         self.path = path
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
-            self.mosaic_def = self.read()
+            self.mosaic_def = self.read(**kwargs)
 
     def tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
