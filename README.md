@@ -93,7 +93,6 @@ More info on Backend can be found in [/docs/backends.md](/docs/backends.md)
 - **metadata**: mosaic metadata (all set values except `tiles`)
 - **tile(x, y, z)**: find assets for a specific tile
 - **point(lng, lat)**: find assets for a specific point
-- **read**: Fetch mosaicJSON doc
 - **write**: Write mosaicJSON doc to the backend
 - **update**: Update mosaicJSON data
 
