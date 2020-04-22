@@ -79,7 +79,7 @@ def get_dataset_info(src_path: str) -> Dict:
 
 
 def get_footprints(
-    dataset_list: Tuple, max_threads: int = 20, quiet: bool = True
+    dataset_list: Sequence[str], max_threads: int = 20, quiet: bool = True
 ) -> List:
     """
     Create footprint GeoJSON.
