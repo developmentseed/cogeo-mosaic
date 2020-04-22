@@ -1,6 +1,6 @@
 """cogeo_mosaic.utils: utility functions."""
 
-from typing import Dict
+from typing import Dict, Tuple
 
 import os
 import random
@@ -26,7 +26,7 @@ from rio_cogeo.utils import _meters_per_pixel, has_mask_band
 from cogeo_mosaic.utils import get_mosaic_content, get_assets, _filter_futures
 
 
-def _get_info(asset: str) -> Dict:
+def _get_info(asset: str) -> Tuple:
     with rasterio.open(asset) as src_dst:
         description = [
             src_dst.descriptions[b - 1] for i, b in enumerate(src_dst.indexes)
@@ -42,6 +42,7 @@ def _get_info(asset: str) -> Dict:
         )
 
 
+# TODO: Won't work with DynamoDB
 def _get_asset_example(mosaic_def: Dict) -> str:
     t = list(mosaic_def["tiles"].keys())[0]
     asset = mosaic_def["tiles"][t][0]
