@@ -2,11 +2,9 @@
 
 import os
 import json
-from io import BytesIO
 from concurrent import futures
 
 import pytest
-from mock import patch
 
 import mercantile
 from cogeo_mosaic import utils
@@ -33,29 +31,6 @@ def testing_env_var(monkeypatch):
     monkeypatch.setenv("AWS_CONFIG_FILE", "/tmp/noconfigheere")
     monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "/tmp/noconfighereeither")
     monkeypatch.setenv("GDAL_DISABLE_READDIR_ON_OPEN", "TRUE")
-
-
-def test_decompress():
-    """Test valid gz decompression."""
-    with open(mosaic_gz, "rb") as f:
-        body = f.read()
-    res = json.loads(utils._decompress_gz(body))
-    assert list(res.keys()) == ["minzoom", "maxzoom", "bounds", "center", "tiles"]
-
-
-@patch("cogeo_mosaic.utils.boto3_session")
-def test_aws_get_data_valid(session):
-    """Create a file on S3."""
-    session.return_value.client.return_value.get_object.return_value = {
-        "Body": BytesIO(b"1111111")
-    }
-
-    bucket = "my-bucket"
-    key = "myfile.json.gz"
-
-    res = utils._aws_get_data(key, bucket)
-    session.assert_called_once()
-    assert res == b"1111111"
 
 
 def test_filtering_futurestask():
@@ -147,104 +122,6 @@ def test_mosaic_create():
         asset1_uint32
         assets = [asset1_uint32, asset2]
         utils.create_mosaic(assets)
-
-
-class MockResponse:
-    def __init__(self, data):
-        self.data = data
-
-    @property
-    def content(self):
-        return self.data
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_HttpContent(requests, s3get):
-    """Download mosaic file from http."""
-    with open(mosaic_json, "r") as f:
-        requests.get.return_value = MockResponse(f.read())
-
-    mosaic = utils.get_mosaic_content("https://mymosaic.json")
-    assert mosaic == mosaic_content
-    s3get.assert_not_called()
-    requests.get.assert_called_once()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_HttpContentGz(requests, s3get):
-    """Download Gzip mosaic file from http."""
-    with open(mosaic_gz, "rb") as f:
-        requests.get.return_value = MockResponse(f.read())
-
-    mosaic = utils.get_mosaic_content("https://mymosaic.json.gz")
-    assert mosaic == mosaic_content
-    s3get.assert_not_called()
-    requests.get.assert_called_once()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_S3Content(requests, s3get):
-    """Download mosaic file from S3."""
-    with open(mosaic_json, "r") as f:
-        s3get.return_value = f.read()
-
-    mosaic = utils.get_mosaic_content("s3://mybucket/mymosaic.json")
-    assert mosaic == mosaic_content
-    requests.get.assert_not_called()
-    s3get.assert_called_once()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_S3ContentGz(requests, s3get):
-    """Download Gzip mosaic file from S3."""
-    with open(mosaic_gz, "rb") as f:
-        s3get.return_value = f.read()
-
-    mosaic = utils.get_mosaic_content("s3://mybucket/mymosaic.json.gz")
-    assert mosaic == mosaic_content
-    requests.get.assert_not_called()
-    s3get.assert_called_once()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_Content(requests, s3get):
-    """Download mosaic file."""
-    mosaic = utils.get_mosaic_content(mosaic_json)
-    assert mosaic == mosaic_content
-    requests.get.assert_not_called()
-    s3get.assert_not_called()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_ContentGz(requests, s3get):
-    """Download Gzip mosaic."""
-    mosaic = utils.get_mosaic_content(mosaic_gz)
-    assert mosaic == mosaic_content
-    requests.get.assert_not_called()
-    s3get.assert_not_called()
-
-
-@patch("cogeo_mosaic.utils.fetch_mosaic_definition")
-def test_get_assets(getMosaic):
-    """Fetch mosaic and get assets list."""
-    getMosaic.return_value = mosaic_content
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 150, 182, 9)) == 2
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 147, 182, 9)) == 1
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 147, 182, 12)) == 0
-
-
-@patch("cogeo_mosaic.utils.fetch_mosaic_definition")
-def test_get_assets_for_points(getMosaic):
-    """Fetch mosaic and get assets list."""
-    getMosaic.return_value = mosaic_content
-    assert len(utils.fetch_and_find_assets_point("mymosaic.json", -73, 47)) == 2
-    assert len(utils.fetch_and_find_assets_point("mymosaic.json", -60, 47)) == 0
 
 
 def test_get_points():

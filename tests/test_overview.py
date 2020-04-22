@@ -1,6 +1,7 @@
 """tests cogeo_mosaic.overview."""
 
 import os
+import json
 import pytest
 from click.testing import CliRunner
 
@@ -32,7 +33,9 @@ def test_overview_valid():
     """Should work as expected (create cogeo file)."""
     runner = CliRunner()
     with runner.isolated_filesystem():
-        create_low_level_cogs(mosaic_content, deflate_profile)
+        with open("mosaic.json", "w") as f:
+            f.write(json.dumps(mosaic_content))
+        create_low_level_cogs("mosaic.json", deflate_profile)
         with rasterio.open("mosaic_ovr_0.tif") as src:
             assert src.height == 512
             assert src.width == 512
