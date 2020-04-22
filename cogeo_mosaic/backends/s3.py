@@ -27,6 +27,7 @@ class S3Backend(BaseBackend):
         key: str,
         mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
         client: Optional[boto3_session.client] = None,
+        **kwargs: Any
     ):
         """Initialize S3Backend."""
         self.client = client or boto3_session().client("s3")
@@ -36,7 +37,7 @@ class S3Backend(BaseBackend):
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
-            self.mosaic_def = self.read()
+            self.mosaic_def = self.read(**kwargs)
 
     def tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""

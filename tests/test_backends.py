@@ -23,6 +23,7 @@ from cogeo_mosaic.backends.utils import _decompress_gz
 
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
+mosaic_bin = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.bin")
 mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
 mosaic_jsonV1 = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic_0.0.1.json")
 
@@ -50,6 +51,14 @@ def test_file_backend():
         ]
         assert mosaic.tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.point(-73, 45) == ["cog1.tif", "cog2.tif"]
+
+    with MosaicBackend(mosaic_bin, gzip=True) as mosaic:
+        assert isinstance(mosaic, FileBackend)
+        assert (
+            mosaic.mosaicid
+            == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
+        )
+        assert mosaic.quadkey_zoom == 7
 
     with MosaicBackend(mosaic_json) as mosaic:
         assert isinstance(mosaic, FileBackend)

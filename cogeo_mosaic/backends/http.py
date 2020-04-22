@@ -1,6 +1,6 @@
 """cogeo-mosaic HTTP backend."""
 
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import json
 import functools
@@ -16,14 +16,19 @@ from cogeo_mosaic.backends.utils import _decompress_gz, get_assets_from_json
 class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
-    def __init__(self, url: str, mosaic_def: Optional[Union[MosaicJSON, Dict]] = None):
+    def __init__(
+        self,
+        url: str,
+        mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
+        **kwargs: Any
+    ):
         """Initialize HttpBackend."""
         self.url = url
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
-            self.mosaic_def = self.read()
+            self.mosaic_def = self.read(**kwargs)
 
     def tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
@@ -45,11 +50,11 @@ class HttpBackend(BaseBackend):
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
-    def read(self) -> MosaicJSON:
+    def read(self, gzip: bool = None) -> MosaicJSON:
         """Get mosaicjson document."""
         body = requests.get(self.url).content
 
-        if self.url.endswith(".gz"):
+        if gzip or (gzip is None and self.url.endswith(".gz")):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))
