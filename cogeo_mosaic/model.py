@@ -13,7 +13,7 @@ class MosaicJSON(BaseModel):
 
     """
 
-    mosaicjson: str = "0.0.2"
+    mosaicjson: str
     name: Optional[str]
     description: Optional[str]
     version: str = "1.0.0"
@@ -21,6 +21,6 @@ class MosaicJSON(BaseModel):
     minzoom: int = Field(0, ge=0, le=30)
     maxzoom: int = Field(30, ge=0, le=30)
     quadkey_zoom: Optional[int]
-    bounds: List[float] = [-180, -90, 180, 90]
+    bounds: List[float] = Field([-180, -90, 180, 90])
     center: Optional[Tuple[float, float, int]]
     tiles: Dict[str, List[str]]

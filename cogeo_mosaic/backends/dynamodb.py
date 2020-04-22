@@ -83,7 +83,7 @@ class DynamoDBBackend(BaseBackend):
         # Create one metadata item with quadkey=-1
         # Convert float to decimal
         # https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/
-        meta = json.loads(json.dumps(self.metadata, parse_float=Decimal))
+        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
 
         # NOTE: quadkey is a string type
         meta["quadkey"] = "-1"

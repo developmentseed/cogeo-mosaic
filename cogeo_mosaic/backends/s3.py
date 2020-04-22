@@ -1,6 +1,6 @@
 """cogeo-mosaic AWS S3 backend."""
 
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import json
 import functools
@@ -49,26 +49,26 @@ class S3Backend(BaseBackend):
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def write(self, gzip=None):
+    def write(self, gzip: bool = None, **kwargs: Any):
         """Write mosaicjson document to AWS S3."""
-        body = dict(self.mosaic_def)
+        body = self.mosaic_def.dict(exclude_none=True)
         if gzip or (gzip is None and self.key.endswith(".gz")):
             body = _compress_gz_json(body)
         else:
             body = json.dumps(body).encode("utf-8")
 
-        _aws_put_data(self.key, self.bucket, body, client=self.client)
+        _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
 
     def update(self):
         """Update the mosaicjson document."""
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
-    def read(self) -> MosaicJSON:
+    def read(self, gzip: bool = None) -> MosaicJSON:
         """Get mosaicjson document."""
         body = _aws_get_data(self.key, self.bucket, client=self.client)
 
-        if self.key.endswith(".gz"):
+        if gzip or (gzip is None and self.key.endswith(".gz")):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))

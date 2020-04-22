@@ -1,6 +1,6 @@
 """cogeo_mosaic.utils: utility functions."""
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Sequence
 
 import os
 import sys
@@ -174,7 +174,7 @@ def _filter_and_sort(tile, dataset, minimum_cover=None, sort_cover=False):
 
 
 def create_mosaic(
-    dataset_list: Tuple,
+    dataset_list: Sequence[str],
     minzoom: int = None,
     maxzoom: int = None,
     max_threads: int = 20,

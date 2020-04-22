@@ -39,28 +39,26 @@ class FileBackend(BaseBackend):
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def write(self, gzip=None):
+    def write(self, gzip: bool = None):
         """Write mosaicjson document to a file."""
-        body = dict(self.mosaic_def)
-        if gzip or (gzip is None and self.path.endswith(".gz")):
-            body = _compress_gz_json(body)
-        else:
-            body = json.dumps(body).encode("utf-8")
-
+        body = self.mosaic_def.dict(exclude_none=True)
         with open(self.path, "wb") as f:
-            f.write(body)
+            if gzip or (gzip is None and self.path.endswith(".gz")):
+                f.write(_compress_gz_json(body))
+            else:
+                f.write(json.dumps(body).encode("utf-8"))
 
     def update(self):
         """Update the mosaicjson document."""
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
-    def read(self) -> MosaicJSON:
+    def read(self, gzip: bool = None) -> MosaicJSON:
         """Get mosaicjson document."""
         with open(self.path, "rb") as f:
             body = f.read()
 
-        if self.path.endswith(".gz"):
+        if gzip or (gzip is None and self.path.endswith(".gz")):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))

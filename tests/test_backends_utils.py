@@ -20,7 +20,15 @@ def test_decompress():
     with open(mosaic_gz, "rb") as f:
         body = f.read()
     res = json.loads(utils._decompress_gz(body))
-    assert list(res.keys()) == ["minzoom", "maxzoom", "bounds", "center", "tiles"]
+    assert list(res.keys()) == [
+        "mosaicjson",
+        "quadkey_zoom",
+        "minzoom",
+        "maxzoom",
+        "bounds",
+        "center",
+        "tiles",
+    ]
 
 
 def test_compress():

@@ -33,7 +33,7 @@ class BaseBackend(AbstractContextManager):
         -------
         MosaicJSON as dict without `tiles` key.
         """
-        return {k: v for k, v in dict(self.mosaic_def).items() if k != "tiles"}
+        return self.mosaic_def.dict(exclude={"tiles"}, exclude_none=True)
 
     @abc.abstractmethod
     def tile(self, x: int, y: int, z: int) -> List[str]:
@@ -50,7 +50,7 @@ class BaseBackend(AbstractContextManager):
     @property
     def mosaicid(self) -> str:
         """Return sha224 id of the mosaicjson document."""
-        return get_hash(**dict(self.mosaic_def))
+        return get_hash(**self.mosaic_def.dict(exclude_none=True))
 
     @property
     def quadkey_zoom(self) -> int:
