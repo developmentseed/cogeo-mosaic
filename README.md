@@ -52,9 +52,15 @@ Usage: cogeo-mosaic create [OPTIONS] [INPUT_FILES]
   Create mosaic definition file.
 
 Options:
-  -o, --output PATH  Output file name
-  --threads INTEGER  threads
-  --help             Show this message and exit.
+  -o, --output PATH       Output file name
+  --minzoom INTEGER       An integer to overwrite the minimum zoom level derived from the COGs.
+  --maxzoom INTEGER       An integer to overwrite the maximum zoom level derived from the COGs.
+  --quadkey-zoom INTEGER  An integer to overwrite the quadkey zoom level used for keys in the MosaicJSON.
+  --min-tile-cover FLOAT  Minimum % overlap
+  --tile-cover-sort       Sort files by covering %
+  --threads INTEGER       threads
+  -q, --quiet             Remove progressbar and other non-error output.
+  --help                  Show this message and exit.
  ```
 
 `[INPUT_FILES]` must be a list of valid Cloud Optimized GeoTIFF.

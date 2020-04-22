@@ -240,8 +240,7 @@ def create_mosaic(
 
         maxzoom = max(maxzoom)
 
-    if quadkey_zoom is None:
-        quadkey_zoom = minzoom
+    quadkey_zoom = quadkey_zoom or minzoom
 
     datatype = list(set([feat["properties"]["datatype"] for feat in results]))
     if len(datatype) > 1:

@@ -12,7 +12,7 @@ inst_reqs = [
     "requests",
     "rio-cogeo>=1.1.0",
     "rio-tiler>=2.0a4",
-    "rio-tiler-mosaic>=0.0.1dev3",
+    "rio-tiler-mosaic>=0.0.1dev4",
     "supermercado",
 ]
 
