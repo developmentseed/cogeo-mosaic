@@ -79,6 +79,7 @@ def test_mosaic_create():
     assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
     assert mosaic["minzoom"] == mosaic_content["minzoom"]
     assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
+    assert mosaic["quadkey_zoom"] == 7
 
     mosaic = utils.create_mosaic(assets, minzoom=7, maxzoom=9)
     assert [round(b, 3) for b in mosaic["bounds"]] == [
@@ -97,12 +98,14 @@ def test_mosaic_create():
     assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
     assert not mosaic["tiles"] == mosaic_content["tiles"]
 
-    assets = [asset1, asset2]
-    mosaic = utils.create_mosaic(assets)
-    assert [round(b, 3) for b in mosaic["bounds"]] == [
-        round(b, 3) for b in mosaic_content["bounds"]
-    ]
-    assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
+    mosaic = utils.create_mosaic(assets, quiet=False, quadkey_zoom=6)
+    assert mosaic["quadkey_zoom"] == 6
+    qk, _ = list(mosaic["tiles"].items())[0]
+    tile = mercantile.quadkey_to_tile(qk)
+    assert tile.z == 6
+
+    mosaic = utils.create_mosaic(assets, quiet=False, version="0.0.1")
+    assert not mosaic.get("quadkey_zoom")
 
     # Wrong MosaicJSON version
     with pytest.raises(Exception):

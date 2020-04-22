@@ -177,6 +177,7 @@ def create_mosaic(
     dataset_list: Sequence[str],
     minzoom: int = None,
     maxzoom: int = None,
+    quadkey_zoom: int = None,
     max_threads: int = 20,
     minimum_tile_cover: float = None,
     tile_cover_sort: bool = False,
@@ -194,6 +195,8 @@ def create_mosaic(
             Force mosaic min-zoom.
         maxzoom: int, optional
             Force mosaic max-zoom.
+        maxzoom: int, optional
+            Force mosaic quadkey zoom.
         minimum_tile_cover: float, optional (default: 0)
             Filter files with low tile intersection coverage.
         tile_cover_sort: bool, optional (default: None)
@@ -237,7 +240,7 @@ def create_mosaic(
 
         maxzoom = max(maxzoom)
 
-    quadkey_zoom = minzoom
+    quadkey_zoom = quadkey_zoom or minzoom
 
     datatype = list(set([feat["properties"]["datatype"] for feat in results]))
     if len(datatype) > 1:
