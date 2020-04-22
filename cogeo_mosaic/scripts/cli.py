@@ -101,7 +101,7 @@ def update(input_files, input_mosaic, output, min_tile_cover, threads):
 
     # TODO: Won't work for DynamoDB
     with MosaicBackend(input_mosaic) as mosaic:
-        mosaic_def = mosaic.mosaic_def
+        mosaic_def = mosaic.mosaic_def.dict()
 
     mosaicjson = update_mosaic(
         input_files, mosaic_def, minimum_tile_cover=min_tile_cover, max_threads=threads
@@ -174,10 +174,6 @@ def overview(
     input_mosaic, cogeo_profile, prefix, threads, overview_level, creation_options
 ):
     """Create COG overviews for a mosaic."""
-    # TODO: Won't work for DynamoDB
-    with MosaicBackend(input_mosaic) as mosaic:
-        mosaic_def = mosaic.mosaic_def
-
     output_profile = cog_profiles.get(cogeo_profile)
     output_profile.update(dict(BIGTIFF=os.environ.get("BIGTIFF", "IF_SAFER")))
     if creation_options:
@@ -192,7 +188,7 @@ def overview(
         prefix = os.path.basename(input_mosaic).split(".")[0]
 
     create_low_level_cogs(
-        mosaic_def,
+        input_mosaic,
         output_profile,
         prefix,
         max_overview_level=overview_level,
