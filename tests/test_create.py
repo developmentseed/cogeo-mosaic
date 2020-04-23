@@ -16,6 +16,8 @@ asset1_small = os.path.join(basepath, "cog1_small.tif")
 
 with open(mosaic_json, "r") as f:
     mosaic_content = json.loads(f.read())
+    for qk, asset in mosaic_content["tiles"].items():
+        mosaic_content["tiles"][qk] = [os.path.join(basepath, item) for item in asset]
 
 
 def test_mosaic_create():
@@ -28,7 +30,7 @@ def test_mosaic_create():
     assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
     assert mosaic["minzoom"] == mosaic_content["minzoom"]
     assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
-    # assert mosaic["tiles"] == mosaic_content["tiles"]
+    assert mosaic["tiles"] == mosaic_content["tiles"]
 
     mosaic = create_mosaic(assets, minzoom=7, maxzoom=9)
     assert [round(b, 3) for b in mosaic["bounds"]] == [

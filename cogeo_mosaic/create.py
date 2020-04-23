@@ -118,7 +118,7 @@ def create_mosaic(
         tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
 
         # Find intersections from rtree
-        intersections_idx = tree.query(tile_geom, predicate="intersects")
+        intersections_idx = sorted(tree.query(tile_geom, predicate="intersects"))
         if len(intersections_idx) == 0:
             continue
 
