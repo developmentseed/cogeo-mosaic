@@ -54,7 +54,7 @@ def create_mosaic(
     features = get_footprints(dataset_list, max_threads=max_threads, quiet=quiet)
 
     if minzoom is None:
-        minzoom = list(set([feat["properties"]["minzoom"] for feat in features]))
+        minzoom = {feat["properties"]["minzoom"] for feat in features}
         if len(minzoom) > 1:
             warnings.warn(
                 "Multiple MinZoom, Assets different minzoom values", UserWarning
@@ -63,7 +63,7 @@ def create_mosaic(
         minzoom = max(minzoom)
 
     if maxzoom is None:
-        maxzoom = list(set([feat["properties"]["maxzoom"] for feat in features]))
+        maxzoom = {feat["properties"]["maxzoom"] for feat in features}
         if len(maxzoom) > 1:
             warnings.warn(
                 "Multiple MaxZoom, Assets have multiple resolution values", UserWarning
@@ -71,7 +71,7 @@ def create_mosaic(
 
         maxzoom = max(maxzoom)
 
-    datatype = list(set([feat["properties"]["datatype"] for feat in features]))
+    datatype = {feat["properties"]["datatype"] for feat in features}
     if len(datatype) > 1:
         raise Exception("Dataset should have the same data type")
 
