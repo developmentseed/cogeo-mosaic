@@ -7,6 +7,7 @@ from setuptools import setup, find_packages
 inst_reqs = [
     "mercantile",
     "pygeos>=0.7",
+    "pydantic",
     "requests",
     "rasterio[s3]",
     "requests",
