@@ -2,7 +2,6 @@
 
 import os
 import json
-
 from click.testing import CliRunner
 
 import rasterio
