@@ -27,7 +27,7 @@ $ pip install git+http://github.com/developmentseed/cogeo-mosaic
 - Starting with version 2.0, pygeos has replaced shapely and thus makes `libgeos` a requirement.
 - **pygeos** hosted on pypi migth not compile on certain machine. This has been fixed in the master branch and can be installed with `pip install git+https://github.com/pygeos/pygeos.git`
 
-## Use
+# CLI
 ```
 $ cogeo-mosaic --help
 Usage: cogeo-mosaic [OPTIONS] COMMAND [ARGS]...
@@ -52,9 +52,15 @@ Usage: cogeo-mosaic create [OPTIONS] [INPUT_FILES]
   Create mosaic definition file.
 
 Options:
-  -o, --output PATH  Output file name
-  --threads INTEGER  threads
-  --help             Show this message and exit.
+  -o, --output PATH       Output file name
+  --minzoom INTEGER       An integer to overwrite the minimum zoom level derived from the COGs.
+  --maxzoom INTEGER       An integer to overwrite the maximum zoom level derived from the COGs.
+  --quadkey-zoom INTEGER  An integer to overwrite the quadkey zoom level used for keys in the MosaicJSON.
+  --min-tile-cover FLOAT  Minimum % overlap
+  --tile-cover-sort       Sort files by covering %
+  --threads INTEGER       threads
+  -q, --quiet             Remove progressbar and other non-error output.
+  --help                  Show this message and exit.
  ```
 
 `[INPUT_FILES]` must be a list of valid Cloud Optimized GeoTIFF.
@@ -77,12 +83,63 @@ $ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.res
 $ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.results.images[] | .uuid' | cogeo-mosaic footprint | gist -p -f test.geojson
 ```
 
-## Associated Modules
+# API 
+## Mosaic Storage Backend
+
+Starting in version `3.0.0`, we introduced specific backend storage for:
+- **File** (default, `file:///`)
+- **HTTP/HTTPS/FTP** (`https://`, `https://`, `ftp://`)
+- **AWS S3** (`s3://`)
+- **AWS DynamoDB*** (`dynamodb://{region}/{table_name}`)
+
+More info on Backend can be found in [/docs/backends.md](/docs/backends.md)
+
+##### Methods & properties
+- **mosaic_def**: MosaicJSON data (pydantic model)
+- **metadata**: mosaic metadata (all set values except `tiles`)
+- **tile(x, y, z)**: find assets for a specific tile
+- **point(lng, lat)**: find assets for a specific point
+- **write**: Write mosaicJSON doc to the backend
+- **update**: Update mosaicJSON data
+
+##### Read
+```python
+# MosaicBackend is the top level backend and will distribute to the
+# correct backend by checking the path/url schema.
+from cogeo_mosaic.backends import MosaicBackend
+
+with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
+    assets: List = mosaic.tile(1, 2, 3) # get assets for mercantile.Tile(1, 2, 3)
+```
+
+##### Write
+```python
+from cogeo_mosaic.utils import create_mosaic
+from cogeo_mosaic.backends import MosaicBackend
+
+mosaicdata = create_mosaic(["1.tif", "2.tif"])
+
+with MosaicBackend("s3://mybucket/amosaic.json", mosaic_def=mosaicdata) as mosaic:
+    mosaic.write() # trigger upload to S3
+```
+
+#### In Memory
+```python
+from cogeo_mosaic.utils import create_mosaic
+from cogeo_mosaic.backends import MosaicBackend
+
+mosaicdata = create_mosaic(["1.tif", "2.tif"])
+
+with MosaicBackend(None, mosaic_def=mosaicdata) as mosaic:
+    assets: List = mosaic.tile(1, 2, 3) # get assets for mercantile.Tile(1, 2, 3)
+```
+
+# Associated Modules
 - [**cogeo-mosaic-tiler**](http://github.com/developmentseed/cogeo-mosaic-tiler): A serverless stack to serve and vizualized tiles from Cloud Optimized GeoTIFF mosaic.
 
 - [**cogeo-mosaic-viewer**](http://github.com/developmentseed/cogeo-mosaic-viewer): A local Cloud Optimized GeoTIFF mosaic viewer based on [rio-viz](http://github.com/developmentseed/rio-viz).
 
-### Contribution & Development
+# Contribution & Development
 
 Issues and pull requests are more than welcome.
 

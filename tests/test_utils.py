@@ -1,61 +1,16 @@
 """tests cogeo_mosaic.utils."""
 
-import json
 import os
 from concurrent import futures
-from io import BytesIO
 
 import mercantile
 import pytest
-from mock import patch
 
 from cogeo_mosaic import utils
 from cogeo_mosaic.create import create_mosaic
 
-mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
-mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
 asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
 asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
-
-asset1_uint32 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1_uint32.tif")
-asset1_small = os.path.join(os.path.dirname(__file__), "fixtures", "cog1_small.tif")
-
-with open(mosaic_json, "r") as f:
-    mosaic_content = json.loads(f.read())
-
-
-@pytest.fixture(autouse=True)
-def testing_env_var(monkeypatch):
-    """Set fake env to make sure we don't hit AWS services."""
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "jqt")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "rde")
-    monkeypatch.delenv("AWS_PROFILE", raising=False)
-    monkeypatch.setenv("AWS_CONFIG_FILE", "/tmp/noconfigheere")
-    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "/tmp/noconfighereeither")
-    monkeypatch.setenv("GDAL_DISABLE_READDIR_ON_OPEN", "TRUE")
-
-
-def test_decompress():
-    """Test valid gz decompression."""
-    with open(mosaic_gz, "rb") as f:
-        body = f.read()
-    res = json.loads(utils._decompress_gz(body))
-    assert list(res.keys()) == ["minzoom", "maxzoom", "bounds", "center", "tiles"]
-
-
-@patch("cogeo_mosaic.utils.boto3_session")
-def test_aws_get_data_valid(session):
-    """Create a file on S3."""
-    session.return_value.client.return_value.get_object.return_value = {
-        "Body": BytesIO(b"1111111")
-    }
-
-    bucket = "my-bucket"
-    key = "myfile.json.gz"
-
-    res = utils._aws_get_data(key, bucket)
-    session.assert_called_once()
-    assert res == b"1111111"
 
 
 def test_filtering_futurestask():
@@ -94,112 +49,6 @@ def test_footprint():
     assert len(foot) == 2
 
 
-class MockResponse:
-    def __init__(self, data):
-        self.data = data
-
-    @property
-    def content(self):
-        return self.data
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_HttpContent(requests, s3get):
-    """Download mosaic file from http."""
-    with open(mosaic_json, "r") as f:
-        requests.get.return_value = MockResponse(f.read())
-
-    mosaic = utils.get_mosaic_content("https://mymosaic.json")
-    assert mosaic == mosaic_content
-    s3get.assert_not_called()
-    requests.get.assert_called_once()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_HttpContentGz(requests, s3get):
-    """Download Gzip mosaic file from http."""
-    with open(mosaic_gz, "rb") as f:
-        requests.get.return_value = MockResponse(f.read())
-
-    mosaic = utils.get_mosaic_content("https://mymosaic.json.gz")
-    assert mosaic == mosaic_content
-    s3get.assert_not_called()
-    requests.get.assert_called_once()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_S3Content(requests, s3get):
-    """Download mosaic file from S3."""
-    with open(mosaic_json, "r") as f:
-        s3get.return_value = f.read()
-
-    mosaic = utils.get_mosaic_content("s3://mybucket/mymosaic.json")
-    assert mosaic == mosaic_content
-    requests.get.assert_not_called()
-    s3get.assert_called_once()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_S3ContentGz(requests, s3get):
-    """Download Gzip mosaic file from S3."""
-    with open(mosaic_gz, "rb") as f:
-        s3get.return_value = f.read()
-
-    mosaic = utils.get_mosaic_content("s3://mybucket/mymosaic.json.gz")
-    assert mosaic == mosaic_content
-    requests.get.assert_not_called()
-    s3get.assert_called_once()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_Content(requests, s3get):
-    """Download mosaic file."""
-    mosaic = utils.get_mosaic_content(mosaic_json)
-    assert mosaic == mosaic_content
-    requests.get.assert_not_called()
-    s3get.assert_not_called()
-
-
-@patch("cogeo_mosaic.utils._aws_get_data")
-@patch("cogeo_mosaic.utils.requests")
-def test_get_mosaic_ContentGz(requests, s3get):
-    """Download Gzip mosaic."""
-    mosaic = utils.get_mosaic_content(mosaic_gz)
-    assert mosaic == mosaic_content
-    requests.get.assert_not_called()
-    s3get.assert_not_called()
-
-
-@patch("cogeo_mosaic.utils.fetch_mosaic_definition")
-def test_get_assets(getMosaic):
-    """Fetch mosaic and get assets list."""
-    getMosaic.return_value = mosaic_content
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 150, 182, 9)) == 2
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 147, 182, 9)) == 1
-    assert len(utils.fetch_and_find_assets("mymosaic.json", 147, 182, 12)) == 0
-
-
-@patch("cogeo_mosaic.utils.fetch_mosaic_definition")
-def test_get_assets_for_points(getMosaic):
-    """Fetch mosaic and get assets list."""
-    getMosaic.return_value = mosaic_content
-    assert len(utils.fetch_and_find_assets_point("mymosaic.json", -73, 47)) == 2
-    assert len(utils.fetch_and_find_assets_point("mymosaic.json", -60, 47)) == 0
-
-
-def test_get_points():
-    """Get points values for assets."""
-    assets = [asset1, asset2]
-    assert len(utils.get_point_values(assets, -73, 45)) == 2
-    assert len(utils.get_point_values(assets, -75, 45)) == 1
-    assert len(utils.get_point_values(assets, -60, 47)) == 0
-
-
 def test_tiles_to_bounds():
     """Get tiles bounds for zoom level."""
     tiles = [mercantile.Tile(x=150, y=182, z=9), mercantile.Tile(x=151, y=182, z=9)]
@@ -214,6 +63,7 @@ def test_update_mosaic():
     mosaic = create_mosaic([asset1], minzoom=9)
     assert mosaic["version"] == "1.0.0"
     utils.update_mosaic([asset2], mosaic)
+
     assert len(mosaic["tiles"]) == 48
     assert len(mosaic["tiles"]["030230132"]) == 2
     assert mosaic["version"] == "1.0.1"

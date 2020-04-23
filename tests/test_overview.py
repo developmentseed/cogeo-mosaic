@@ -1,10 +1,11 @@
 """tests cogeo_mosaic.overview."""
 
 import os
+import json
 
-import pytest
-import rasterio
 from click.testing import CliRunner
+
+import rasterio
 from rio_cogeo.profiles import cog_profiles
 
 from cogeo_mosaic.create import create_mosaic
@@ -19,19 +20,17 @@ deflate_profile = cog_profiles.get("deflate")
 deflate_profile.update({"blockxsize": 256, "blockysize": 256})
 
 
-@pytest.fixture(autouse=True)
-def testing_env_var(monkeypatch):
-    """Set GDAL env."""
+def test_overview_valid(monkeypatch):
+    """Should work as expected (create cogeo file)."""
     monkeypatch.setenv("GDAL_DISABLE_READDIR_ON_OPEN", "TRUE")
     monkeypatch.setenv("GDAL_TIFF_INTERNAL_MASK", "TRUE")
     monkeypatch.setenv("GDAL_TIFF_OVR_BLOCKSIZE", "128")
 
-
-def test_overview_valid():
-    """Should work as expected (create cogeo file)."""
     runner = CliRunner()
     with runner.isolated_filesystem():
-        create_low_level_cogs(mosaic_content, deflate_profile)
+        with open("mosaic.json", "w") as f:
+            f.write(json.dumps(mosaic_content))
+        create_low_level_cogs("mosaic.json", deflate_profile)
         with rasterio.open("mosaic_ovr_0.tif") as src:
             assert src.height == 512
             assert src.width == 512
