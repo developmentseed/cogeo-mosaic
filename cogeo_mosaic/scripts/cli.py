@@ -9,12 +9,9 @@ from click_plugins import with_plugins
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
+from cogeo_mosaic.utils import get_footprints, update_mosaic
 from cogeo_mosaic.create import create_mosaic
-from cogeo_mosaic.utils import (
-    get_footprints,
-    get_mosaic_content,
-    update_mosaic,
-)
+from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.overviews import create_low_level_cogs
 
 from rasterio.rio import options
@@ -42,6 +39,11 @@ def cogeo_cli():
     type=int,
     help="An integer to overwrite the maximum zoom level derived from the COGs.",
 )
+@click.option(
+    "--quadkey-zoom",
+    type=int,
+    help="An integer to overwrite the quadkey zoom level used for keys in the MosaicJSON.",
+)
 @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
 @click.option(
     "--tile-cover-sort", help="Sort files by covering %", is_flag=True, default=False
@@ -64,6 +66,7 @@ def create(
     output,
     minzoom,
     maxzoom,
+    quadkey_zoom,
     min_tile_cover,
     tile_cover_sort,
     threads,
@@ -71,10 +74,11 @@ def create(
 ):
     """Create mosaic definition file."""
     input_files = input_files.read().splitlines()
-    mosaic_spec = create_mosaic(
+    mosaicjson = create_mosaic(
         input_files,
         minzoom=minzoom,
         maxzoom=maxzoom,
+        quadkey_zoom=quadkey_zoom,
         minimum_tile_cover=min_tile_cover,
         tile_cover_sort=tile_cover_sort,
         max_threads=threads,
@@ -82,10 +86,10 @@ def create(
     )
 
     if output:
-        with open(output, mode="w") as f:
-            f.write(json.dumps(mosaic_spec))
+        with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
+            mosaic.write()
     else:
-        click.echo(json.dumps(mosaic_spec))
+        click.echo(json.dumps(mosaicjson))
 
 
 @cogeo_cli.command(short_help="Create mosaic definition from list of files")
@@ -102,17 +106,20 @@ def create(
 def update(input_files, input_mosaic, output, min_tile_cover, threads):
     """Update mosaic definition file."""
     input_files = input_files.read().splitlines()
-    mosaic_def = get_mosaic_content(input_mosaic)
 
-    mosaic_spec = update_mosaic(
+    # TODO: Won't work for DynamoDB
+    with MosaicBackend(input_mosaic) as mosaic:
+        mosaic_def = mosaic.mosaic_def.dict()
+
+    mosaicjson = update_mosaic(
         input_files, mosaic_def, minimum_tile_cover=min_tile_cover, max_threads=threads
     )
 
     if output:
-        with open(output, mode="w") as f:
-            f.write(json.dumps(mosaic_spec))
+        with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
+            mosaic.write()
     else:
-        click.echo(json.dumps(mosaic_spec))
+        click.echo(json.dumps(mosaicjson))
 
 
 @cogeo_cli.command(short_help="Create geojson from list of files")
@@ -175,8 +182,6 @@ def overview(
     input_mosaic, cogeo_profile, prefix, threads, overview_level, creation_options
 ):
     """Create COG overviews for a mosaic."""
-    mosaic_def = get_mosaic_content(input_mosaic)
-
     output_profile = cog_profiles.get(cogeo_profile)
     output_profile.update(dict(BIGTIFF=os.environ.get("BIGTIFF", "IF_SAFER")))
     if creation_options:
@@ -191,7 +196,7 @@ def overview(
         prefix = os.path.basename(input_mosaic).split(".")[0]
 
     create_low_level_cogs(
-        mosaic_def,
+        input_mosaic,
         output_profile,
         prefix,
         max_overview_level=overview_level,

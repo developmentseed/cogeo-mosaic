@@ -2,7 +2,6 @@
 
 import warnings
 from typing import Callable, Dict, List, Optional, Tuple
-
 import click
 import mercantile
 from pygeos import STRtree, polygons, total_bounds
@@ -129,7 +128,7 @@ def create_mosaic_from_features(
 
     # Find dataset geometries
     dataset_geoms = polygons([feat["geometry"]["coordinates"][0] for feat in features])
-    bounds = total_bounds(dataset_geoms)
+    bounds = list(total_bounds(dataset_geoms))
 
     tiles = burntiles.burn(features, quadkey_zoom)
     tiles = [mercantile.Tile(*tile) for tile in tiles]
@@ -158,7 +157,7 @@ def create_mosaic_from_features(
         tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
 
         # Find intersections from rtree
-        intersections_idx = tree.query(tile_geom, predicate="intersects")
+        intersections_idx = sorted(tree.query(tile_geom, predicate="intersects"))
         if len(intersections_idx) == 0:
             continue
 

@@ -5,16 +5,19 @@ import pytest
 
 from cogeo_mosaic.create import create_mosaic
 
-mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
-mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
-asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
-asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
+basepath = os.path.join(os.path.dirname(__file__), "fixtures")
+mosaic_gz = os.path.join(basepath, "mosaic.json.gz")
+mosaic_json = os.path.join(basepath, "mosaic.json")
+asset1 = os.path.join(basepath, "cog1.tif")
+asset2 = os.path.join(basepath, "cog2.tif")
 
-asset1_uint32 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1_uint32.tif")
-asset1_small = os.path.join(os.path.dirname(__file__), "fixtures", "cog1_small.tif")
+asset1_uint32 = os.path.join(basepath, "cog1_uint32.tif")
+asset1_small = os.path.join(basepath, "cog1_small.tif")
 
 with open(mosaic_json, "r") as f:
     mosaic_content = json.loads(f.read())
+    for qk, asset in mosaic_content["tiles"].items():
+        mosaic_content["tiles"][qk] = [os.path.join(basepath, item) for item in asset]
 
 
 def test_mosaic_create():
@@ -27,6 +30,7 @@ def test_mosaic_create():
     assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
     assert mosaic["minzoom"] == mosaic_content["minzoom"]
     assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
+    assert mosaic["tiles"] == mosaic_content["tiles"]
 
     mosaic = create_mosaic(assets, minzoom=7, maxzoom=9)
     assert [round(b, 3) for b in mosaic["bounds"]] == [

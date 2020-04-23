@@ -1,3 +1,8 @@
+3.0.0 (TBD)
+------------------
+- add quadkey_zoom option in CLI (#41, author @kylebarron)
+- use R-tree from pygeos for testing intersections (#43, author @kylebarron)
+
 2.0.1 (2020-01-28)
 ------------------
 - Bug fix, use pygeos from pypi instead of git repo

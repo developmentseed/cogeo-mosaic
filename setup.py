@@ -7,12 +7,14 @@ from setuptools import setup, find_packages
 inst_reqs = [
     "mercantile",
     "pygeos>=0.7",
-    "supermercado",
+    "pydantic",
     "requests",
     "rasterio[s3]",
+    "requests",
     "rio-cogeo>=1.1.0",
-    "rio_tiler>=1.2.10",
-    "rio_tiler_mosaic>=0.0.1dev3",
+    "rio-tiler>=2.0a4",
+    "rio-tiler-mosaic>=0.0.1dev4",
+    "supermercado",
 ]
 
 extra_reqs = {
