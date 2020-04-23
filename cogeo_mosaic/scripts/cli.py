@@ -9,8 +9,9 @@ from click_plugins import with_plugins
 import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
+from cogeo_mosaic.utils import get_footprints, update_mosaic
+from cogeo_mosaic.create import create_mosaic
 from cogeo_mosaic.backends import MosaicBackend
-from cogeo_mosaic.utils import create_mosaic, get_footprints, update_mosaic
 from cogeo_mosaic.overviews import create_low_level_cogs
 
 from rasterio.rio import options

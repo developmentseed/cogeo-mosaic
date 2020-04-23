@@ -6,8 +6,9 @@ from setuptools import setup, find_packages
 # Runtime requirements.
 inst_reqs = [
     "mercantile",
+    "pygeos>=0.7",
     "pydantic",
-    "pygeos",
+    "requests",
     "rasterio[s3]",
     "requests",
     "rio-cogeo>=1.1.0",

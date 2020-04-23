@@ -1,15 +1,13 @@
 """tests cogeo_mosaic.scripts.cli."""
 
-import os
 import json
-
-from click.testing import CliRunner
-
-from cogeo_mosaic.scripts.cli import cogeo_cli
-from cogeo_mosaic.utils import create_mosaic
+import os
 
 import rasterio
+from click.testing import CliRunner
 
+from cogeo_mosaic.create import create_mosaic
+from cogeo_mosaic.scripts.cli import cogeo_cli
 
 asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
 asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")

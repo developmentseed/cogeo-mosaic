@@ -2,15 +2,13 @@
 
 import os
 import json
-import pytest
 from click.testing import CliRunner
 
 import rasterio
-
 from rio_cogeo.profiles import cog_profiles
-from cogeo_mosaic.utils import create_mosaic
-from cogeo_mosaic.overviews import create_low_level_cogs
 
+from cogeo_mosaic.create import create_mosaic
+from cogeo_mosaic.overviews import create_low_level_cogs
 
 asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
 asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
@@ -21,16 +19,12 @@ deflate_profile = cog_profiles.get("deflate")
 deflate_profile.update({"blockxsize": 256, "blockysize": 256})
 
 
-@pytest.fixture(autouse=True)
-def testing_env_var(monkeypatch):
-    """Set GDAL env."""
+def test_overview_valid(monkeypatch):
+    """Should work as expected (create cogeo file)."""
     monkeypatch.setenv("GDAL_DISABLE_READDIR_ON_OPEN", "TRUE")
     monkeypatch.setenv("GDAL_TIFF_INTERNAL_MASK", "TRUE")
     monkeypatch.setenv("GDAL_TIFF_OVR_BLOCKSIZE", "128")
 
-
-def test_overview_valid():
-    """Should work as expected (create cogeo file)."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         with open("mosaic.json", "w") as f:
