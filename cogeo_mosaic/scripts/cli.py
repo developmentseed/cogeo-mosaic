@@ -7,6 +7,7 @@ from pkg_resources import iter_entry_points
 
 from click_plugins import with_plugins
 import click
+import cligj
 
 from cogeo_mosaic import version as cogeo_mosaic_version
 from cogeo_mosaic.utils import get_footprints, update_mosaic
@@ -82,6 +83,68 @@ def create(
         minimum_tile_cover=min_tile_cover,
         tile_cover_sort=tile_cover_sort,
         max_threads=threads,
+        quiet=quiet,
+    )
+
+    if output:
+        with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
+            mosaic.write()
+    else:
+        click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
+
+
+@cogeo_cli.command(short_help="Create mosaic definition from GeoJSON collection")
+@cligj.features_in_arg
+@click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
+@click.option(
+    "--minzoom",
+    type=int,
+    help="An integer to overwrite the minimum zoom level derived from the COGs.",
+    required=True,
+)
+@click.option(
+    "--maxzoom",
+    type=int,
+    help="An integer to overwrite the maximum zoom level derived from the COGs.",
+    required=True,
+)
+@click.option("--property", type=str, help="Define accessor property", required=True)
+@click.option(
+    "--quadkey-zoom",
+    type=int,
+    help="An integer to overwrite the quadkey zoom level used for keys in the MosaicJSON.",
+)
+@click.option("--min-tile-cover", type=float, help="Minimum % overlap")
+@click.option(
+    "--tile-cover-sort", help="Sort files by covering %", is_flag=True, default=False
+)
+@click.option(
+    "--quiet",
+    "-q",
+    help="Remove progressbar and other non-error output.",
+    is_flag=True,
+    default=False,
+)
+def create_from_features(
+    features,
+    output,
+    minzoom,
+    maxzoom,
+    property,
+    quadkey_zoom,
+    min_tile_cover,
+    tile_cover_sort,
+    quiet,
+):
+    """Create mosaic definition file."""
+    mosaicjson = MosaicJSON.from_features(
+        list(features),
+        minzoom,
+        maxzoom,
+        quadkey_zoom=quadkey_zoom,
+        accessor=lambda feature: feature["properties"][property],
+        minimum_tile_cover=min_tile_cover,
+        tile_cover_sort=tile_cover_sort,
         quiet=quiet,
     )
 
