@@ -1,7 +1,7 @@
 """cogeo_mosaic.create: Create MosaicJSON from features."""
 
 import warnings
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, Optional, Sequence
 import click
 import mercantile
 from pygeos import STRtree, polygons, total_bounds
@@ -11,7 +11,7 @@ from cogeo_mosaic.utils import _filter_and_sort, get_footprints
 
 
 def create_mosaic(
-    dataset_list: Tuple,
+    dataset_list: Sequence[str],
     minzoom: int = None,
     maxzoom: int = None,
     max_threads: int = 20,
@@ -88,7 +88,7 @@ def create_mosaic(
 
 
 def create_mosaic_from_features(
-    features: List[Dict],
+    features: Sequence[Dict],
     minzoom: int,
     maxzoom: int,
     quadkey_zoom: Optional[int] = None,
