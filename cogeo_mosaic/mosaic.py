@@ -222,7 +222,7 @@ class MosaicJSON(BaseModel):
         return cls._create_mosaic(features, quiet=quiet, **kwargs)
 
     @classmethod
-    def from_features(cls, features, **kwargs):
+    def from_features(cls, features: Sequence[Dict], **kwargs):
         """
         Create mosaicjson from a set of GeoJSON Features.
 
