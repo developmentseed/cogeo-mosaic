@@ -180,6 +180,7 @@ def _filter_and_sort(
             indices = [ind for ind in indices if int_pcts[ind] > minimum_cover]
 
         if sort_cover:
+            # https://stackoverflow.com/a/9764364
             indices, _ = zip(*sorted(zip(indices, int_pcts)))
 
     if maximum_items_per_tile:
