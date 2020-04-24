@@ -49,12 +49,6 @@ def cogeo_cli():
     "--tile-cover-sort", help="Sort files by covering %", is_flag=True, default=False
 )
 @click.option(
-    "--threads",
-    type=int,
-    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
-    help="threads",
-)
-@click.option(
     "--quiet",
     "-q",
     help="Remove progressbar and other non-error output.",
@@ -69,19 +63,17 @@ def create(
     quadkey_zoom,
     min_tile_cover,
     tile_cover_sort,
-    threads,
     quiet,
 ):
     """Create mosaic definition file."""
     features = json.load(input_files)
     mosaicjson = MosaicJSON.from_features(
-        features,
+        features['features'],
         minzoom=minzoom,
         maxzoom=maxzoom,
         quadkey_zoom=quadkey_zoom,
         minimum_tile_cover=min_tile_cover,
         tile_cover_sort=tile_cover_sort,
-        max_threads=threads,
         quiet=quiet,
     )
 
