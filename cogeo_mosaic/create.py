@@ -12,6 +12,8 @@ from cogeo_mosaic.utils import _filter_and_sort, get_footprints
 
 def create_mosaic(
     dataset_list: Tuple,
+    minzoom: int = None,
+    maxzoom: int = None,
     max_threads: int = 20,
     version: str = "0.0.2",
     quiet: bool = True,
@@ -75,7 +77,14 @@ def create_mosaic(
     if len(datatype) > 1:
         raise Exception("Dataset should have the same data type")
 
-    return create_mosaic_from_features(features, version=version, quiet=quiet, **kwargs)
+    return create_mosaic_from_features(
+        features,
+        minzoom=minzoom,
+        maxzoom=maxzoom,
+        version=version,
+        quiet=quiet,
+        **kwargs,
+    )
 
 
 def create_mosaic_from_features(
