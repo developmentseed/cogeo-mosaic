@@ -8,6 +8,7 @@ from pygeos import STRtree, polygons, total_bounds
 from supermercado import burntiles
 
 from cogeo_mosaic.utils import _filter_and_sort, get_footprints
+from copy import deepcopy
 
 
 def create_mosaic(
@@ -93,11 +94,10 @@ def create_mosaic_from_features(
     maxzoom: int,
     quadkey_zoom: Optional[int] = None,
     accessor: Callable[[Dict], str] = lambda feature: feature["properties"]["path"],
-    minimum_tile_cover: float = None,
-    tile_cover_sort: bool = False,
-    maximum_items_per_tile: int = 20,
+    asset_filter: Optional[Callable] = None,
     version: str = "0.0.2",
     quiet: bool = True,
+    **kwargs,
 ):
     """Create mosaic definition from footprints
 
@@ -112,6 +112,8 @@ def create_mosaic_from_features(
     quadkey_zoom: int, optional
         Force quadkey zoom.
     accessor: callable, optional
+        Function called on each feature to get its identifier
+    asset_filter: callable, optional
         Function called on each feature to get its identifier
     minimum_tile_cover: float, optional (default: 0)
         Filter files with low tile intersection coverage.
@@ -173,21 +175,17 @@ def create_mosaic_from_features(
         intersections_geoms = [dataset_geoms[idx] for idx in intersections_idx]
         intersections = [features[idx] for idx in intersections_idx]
 
-        dataset = [
-            {"identifier": accessor(f), "geometry": geom}
-            for (f, geom) in zip(intersections, intersections_geoms)
-        ]
+        dataset = deepcopy(intersections)
+        for i in range(len(dataset)):
+            dataset[i]["geometry"] = intersections_geoms[i]
 
-        if minimum_tile_cover is not None or tile_cover_sort:
-            dataset = _filter_and_sort(
-                tile_geom,
-                dataset,
-                minimum_cover=minimum_tile_cover,
-                sort_cover=tile_cover_sort,
-            )
-
-        if dataset and maximum_items_per_tile:
-            dataset = dataset[0:maximum_items_per_tile]
+        if asset_filter:
+            dataset = asset_filter(tile, dataset, **kwargs)
+        elif any(
+            k in kwargs.keys()
+            for k in ["minimum_tile_cover", "tile_cover_sort", "maximum_items_per_tile"]
+        ):
+            dataset = _filter_and_sort(tile, dataset, **kwargs)
 
         if dataset:
             mosaic_definition["tiles"][quadkey] = [f["identifier"] for f in dataset]

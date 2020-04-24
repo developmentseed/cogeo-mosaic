@@ -158,16 +158,26 @@ def _intersect_percent(tile, dataset_geoms):
     return [inter_area / area(tile) for inter_area in inter_areas]
 
 
-def _filter_and_sort(tile, dataset, minimum_cover=None, sort_cover=False):
+def _filter_and_sort(
+    tile: mercantile.Tile,
+    dataset: List[Dict],
+    minimum_cover=None,
+    sort_cover=False,
+    maximum_items_per_tile: int = 20,
+):
     """Filter and/or sort dataset per intersection coverage."""
+    tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
     dataset = list(
-        zip(_intersect_percent(tile, [x["geometry"] for x in dataset]), dataset)
+        zip(_intersect_percent(tile_geom, [x["geometry"] for x in dataset]), dataset)
     )
     if minimum_cover is not None:
         dataset = list(filter(lambda x: x[0] > minimum_cover, dataset))
 
     if sort_cover:
         dataset = sorted(dataset, key=lambda x: x[0], reverse=True)
+
+    if maximum_items_per_tile:
+        dataset = dataset[:maximum_items_per_tile]
 
     return [x[1] for x in dataset]
 
