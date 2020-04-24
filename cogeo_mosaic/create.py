@@ -94,7 +94,7 @@ def create_mosaic_from_features(
     maxzoom: int,
     quadkey_zoom: Optional[int] = None,
     accessor: Callable[[Dict], str] = lambda feature: feature["properties"]["path"],
-    asset_filter: Optional[Callable] = None,
+    asset_filter: Callable = _filter_and_sort,
     version: str = "0.0.2",
     quiet: bool = True,
     **kwargs,
@@ -175,17 +175,7 @@ def create_mosaic_from_features(
         intersections_geoms = [dataset_geoms[idx] for idx in intersections_idx]
         intersections = [features[idx] for idx in intersections_idx]
 
-        dataset = deepcopy(intersections)
-        for i in range(len(dataset)):
-            dataset[i]["geometry"] = intersections_geoms[i]
-
-        if asset_filter:
-            dataset = asset_filter(tile, dataset, **kwargs)
-        elif any(
-            k in kwargs.keys()
-            for k in ["minimum_tile_cover", "tile_cover_sort", "maximum_items_per_tile"]
-        ):
-            dataset = _filter_and_sort(tile, dataset, **kwargs)
+        dataset = asset_filter(tile, intersections, intersections_geoms, **kwargs)
 
         if dataset:
             mosaic_definition["tiles"][quadkey] = [f["identifier"] for f in dataset]

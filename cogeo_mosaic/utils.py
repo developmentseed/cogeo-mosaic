@@ -161,25 +161,31 @@ def _intersect_percent(tile, dataset_geoms):
 def _filter_and_sort(
     tile: mercantile.Tile,
     dataset: List[Dict],
+    geoms: 'Polygons',
     minimum_cover=None,
     sort_cover=False,
     maximum_items_per_tile: int = 20,
 ):
     """Filter and/or sort dataset per intersection coverage."""
-    tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
-    dataset = list(
-        zip(_intersect_percent(tile_geom, [x["geometry"] for x in dataset]), dataset)
-    )
-    if minimum_cover is not None:
-        dataset = list(filter(lambda x: x[0] > minimum_cover, dataset))
+    if not (minimum_cover or sort_cover or maximum_items_per_tile):
+        return dataset
 
-    if sort_cover:
-        dataset = sorted(dataset, key=lambda x: x[0], reverse=True)
+    indices = list(range(len(dataset)))
+
+    if minimum_cover or sort_cover:
+        tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
+        int_pcts = [_intersect_percent(tile_geom, g) for g in geoms]
+
+        if minimum_cover:
+            indices = [ind for ind in indices if int_pcts[ind] > minimum_cover]
+
+        if sort_cover:
+            indices, _ = zip(*sorted(zip(indices, int_pcts)))
 
     if maximum_items_per_tile:
-        dataset = dataset[:maximum_items_per_tile]
+        indices = indices[:maximum_items_per_tile]
 
-    return [x[1] for x in dataset]
+    return [dataset[ind] for ind in indices]
 
 
 def update_mosaic(
