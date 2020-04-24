@@ -83,7 +83,7 @@ def create_mosaic_from_features(
     minzoom: int,
     maxzoom: int,
     quadkey_zoom: Optional[int] = None,
-    accessor: Callable[Dict, str] = lambda feature: feature["path"],
+    accessor: Callable[[Dict], str] = lambda feature: feature["path"],
     minimum_tile_cover: float = None,
     tile_cover_sort: bool = False,
     maximum_items_per_tile: int = 20,
