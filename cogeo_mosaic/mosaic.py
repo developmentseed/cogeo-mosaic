@@ -14,7 +14,7 @@ from cogeo_mosaic.utils import get_footprints, _intersect_percent
 from pydantic import BaseModel, Field
 
 
-default_accessor: Callable = lambda feature: feature["properties"]["path"]
+DEFAULT_ACCESSOR: Callable = lambda feature: feature["properties"]["path"]
 
 
 class MosaicJSON(BaseModel):
@@ -73,7 +73,7 @@ class MosaicJSON(BaseModel):
         minzoom: int,
         maxzoom: int,
         quadkey_zoom: Optional[int] = None,
-        accessor: Callable[[Dict], str] = default_accessor,
+        accessor: Callable[[Dict], str] = DEFAULT_ACCESSOR,
         version: str = "0.0.2",
         quiet: bool = True,
         **kwargs,
@@ -168,7 +168,7 @@ class MosaicJSON(BaseModel):
         **kwargs,
     ):
         """
-        Create mosaicjson from url of COGs.
+        Create mosaicjson from COG urls.
 
         Attributes
         ----------
@@ -236,7 +236,7 @@ class MosaicJSON(BaseModel):
         maxzoom: int, required
             Force mosaic max-zoom.
         kwargs: any
-            Options forwarded to MosaicJSON.from_features
+            Options forwarded to MosaicJSON._create_mosaic
 
         Returns
         -------
