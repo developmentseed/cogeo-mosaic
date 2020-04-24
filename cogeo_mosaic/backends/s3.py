@@ -9,7 +9,7 @@ import mercantile
 
 from boto3.session import Session as boto3_session
 
-from cogeo_mosaic.model import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
     _compress_gz_json,

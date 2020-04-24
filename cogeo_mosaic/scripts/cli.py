@@ -10,7 +10,7 @@ import click
 
 from cogeo_mosaic import version as cogeo_mosaic_version
 from cogeo_mosaic.utils import get_footprints, update_mosaic
-from cogeo_mosaic.create import create_mosaic
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.overviews import create_low_level_cogs
 
@@ -74,7 +74,7 @@ def create(
 ):
     """Create mosaic definition file."""
     input_files = input_files.read().splitlines()
-    mosaicjson = create_mosaic(
+    mosaicjson = MosaicJSON.from_urls(
         input_files,
         minzoom=minzoom,
         maxzoom=maxzoom,
@@ -89,7 +89,7 @@ def create(
         with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
             mosaic.write()
     else:
-        click.echo(json.dumps(mosaicjson))
+        click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
 
 
 @cogeo_cli.command(short_help="Create mosaic definition from list of files")

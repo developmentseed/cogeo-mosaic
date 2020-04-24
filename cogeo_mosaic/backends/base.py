@@ -5,7 +5,7 @@ from typing import Dict, List
 import abc
 from contextlib import AbstractContextManager
 
-from cogeo_mosaic.model import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.utils import get_hash
 
 

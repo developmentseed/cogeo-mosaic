@@ -15,7 +15,7 @@ import mercantile
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
-from cogeo_mosaic.model import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON
 
 
 class DynamoDBBackend(BaseBackend):
