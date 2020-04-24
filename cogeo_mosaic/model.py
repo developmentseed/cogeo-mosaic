@@ -34,7 +34,7 @@ class MosaicJSON(BaseModel):
 
     @classmethod
     def from_dict(cls, mosaic_def: Dict):
-        return MosaicJSON(**mosaic_def)
+        return cls(**mosaic_def)
 
     @classmethod
     def from_features(
@@ -45,7 +45,7 @@ class MosaicJSON(BaseModel):
         quadkey_zoom: Optional[int] = None,
         **kwargs,
     ):
-        return MosaicJSON._create_mosaic(
+        return cls._create_mosaic(
             features,
             minzoom=minzoom,
             maxzoom=maxzoom,
@@ -196,4 +196,4 @@ class MosaicJSON(BaseModel):
             if dataset:
                 mosaic_definition["tiles"][quadkey] = [f["identifier"] for f in dataset]
 
-        return MosaicJSON.from_dict(mosaic_definition)
+        return cls(**mosaic_definition)
