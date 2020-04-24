@@ -1,4 +1,4 @@
-"""mosaic creator."""
+"""cogeo_mosaic.mosaic MosaicJSON models and helper functions."""
 
 from typing import Callable, Dict, List, Optional, Tuple, Sequence
 
@@ -85,16 +85,16 @@ class MosaicJSON(BaseModel):
         ----------
         features : List, required
             List of GeoJSON features.
-        minzoom: int, optional
+        minzoom: int, required
             Force mosaic min-zoom.
-        maxzoom: int, optional
+        maxzoom: int, required
             Force mosaic max-zoom.
         quadkey_zoom: int, optional
             Force mosaic quadkey zoom.
-        max_threads : int
-            Max threads to use (default: 20).
+        accessor: callable, required
+            Function called on each feature to get its identifier (default is feature["properties"]["path"])
         version: str, optional
-            mosaicJSON definition version (default: 0.0.2)
+            mosaicJSON definition version (default: 0.0.2).
         quiet: bool, optional (default: True)
             Mask processing steps.
         kwargs: any
@@ -167,7 +167,30 @@ class MosaicJSON(BaseModel):
         quiet: bool = True,
         **kwargs,
     ):
-        """Create mosaicjson from url of COGs."""
+        """
+        Create mosaicjson from url of COGs.
+
+        Attributes
+        ----------
+        urls : List, required
+            List of COG urls.
+        minzoom: int, optional
+            Force mosaic min-zoom.
+        maxzoom: int, optional
+            Force mosaic max-zoom.
+        max_threads : int
+            Max threads to use (default: 20).
+        quiet: bool, optional (default: True)
+            Mask processing steps.
+        kwargs: any
+            Options forwarded to MosaicJSON.from_features
+
+        Returns
+        -------
+        mosaic_definition : MosaicJSON
+            Mosaic definition.
+
+        """
         features = get_footprints(urls, max_threads=max_threads, quiet=quiet)
 
         if minzoom is None:
@@ -199,5 +222,20 @@ class MosaicJSON(BaseModel):
 
     @classmethod
     def from_features(cls, features: Sequence[Dict], **kwargs):
-        """Create mosaicjson from a set of GeoJSON Features."""
+        """
+        Create mosaicjson from a set of GeoJSON Features.
+
+        Attributes
+        ----------
+        features: list, required
+            List of GeoJSON features.
+        kwargs: any
+            Options forwarded to MosaicJSON.from_features
+
+        Returns
+        -------
+        mosaic_definition : MosaicJSON
+            Mosaic definition.
+
+        """
         return cls._create_mosaic(features, **kwargs)
