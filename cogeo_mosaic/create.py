@@ -83,7 +83,7 @@ def create_mosaic_from_features(
     minzoom: int,
     maxzoom: int,
     quadkey_zoom: Optional[int] = None,
-    accessor: Callable[[Dict], str] = lambda feature: feature["path"],
+    accessor: Callable[[Dict], str] = lambda feature: feature["properties"]["path"],
     minimum_tile_cover: float = None,
     tile_cover_sort: bool = False,
     maximum_items_per_tile: int = 20,
@@ -165,7 +165,7 @@ def create_mosaic_from_features(
         intersections = [features[idx] for idx in intersections_idx]
 
         dataset = [
-            {"path": f["properties"]["path"], "geometry": geom}
+            {"identifier": accessor(f), "geometry": geom}
             for (f, geom) in zip(intersections, intersections_geoms)
         ]
 
@@ -181,6 +181,6 @@ def create_mosaic_from_features(
             dataset = dataset[0:maximum_items_per_tile]
 
         if dataset:
-            mosaic_definition["tiles"][quadkey] = [accessor(f) for f in dataset]
+            mosaic_definition["tiles"][quadkey] = [f["identifier"] for f in dataset]
 
     return mosaic_definition
