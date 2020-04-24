@@ -7,7 +7,7 @@ import mercantile
 import pytest
 
 from cogeo_mosaic import utils
-from cogeo_mosaic.create import create_mosaic
+from cogeo_mosaic.mosaic import MosaicJSON
 
 asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
 asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
@@ -57,10 +57,10 @@ def test_tiles_to_bounds():
 
 def test_update_mosaic():
     """Create mosaic and update it."""
-    mosaic = create_mosaic([asset1], minzoom=9)
+    mosaic = MosaicJSON.from_urls([asset1], minzoom=9).dict(exclude_none=True)
     assert len(mosaic["tiles"]) == 36
 
-    mosaic = create_mosaic([asset1], minzoom=9)
+    mosaic = MosaicJSON.from_urls([asset1], minzoom=9).dict(exclude_none=True)
     assert mosaic["version"] == "1.0.0"
     utils.update_mosaic([asset2], mosaic)
 
@@ -68,7 +68,7 @@ def test_update_mosaic():
     assert len(mosaic["tiles"]["030230132"]) == 2
     assert mosaic["version"] == "1.0.1"
 
-    mosaic = create_mosaic([asset1], minzoom=9)
+    mosaic = MosaicJSON.from_urls([asset1], minzoom=9).dict(exclude_none=True)
     utils.update_mosaic([asset2], mosaic, minimum_tile_cover=0.1)
     assert len(mosaic["tiles"]) == 47
     assert len(mosaic["tiles"]["030230132"]) == 1
