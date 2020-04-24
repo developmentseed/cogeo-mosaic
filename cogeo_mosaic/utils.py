@@ -161,25 +161,25 @@ def _intersect_percent(tile, dataset_geoms):
 def _filter_and_sort(
     tile: mercantile.Tile,
     dataset: List[Dict],
-    geoms: 'Polygons',
-    minimum_cover=None,
-    sort_cover=False,
+    geoms: "Polygons",
+    minimum_tile_cover=None,
+    tile_cover_sort=False,
     maximum_items_per_tile: int = 20,
 ):
     """Filter and/or sort dataset per intersection coverage."""
-    if not (minimum_cover or sort_cover or maximum_items_per_tile):
+    if not (minimum_tile_cover or tile_cover_sort or maximum_items_per_tile):
         return dataset
 
     indices = list(range(len(dataset)))
 
-    if minimum_cover or sort_cover:
+    if minimum_tile_cover or tile_cover_sort:
         tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
         int_pcts = [_intersect_percent(tile_geom, g) for g in geoms]
 
-        if minimum_cover:
-            indices = [ind for ind in indices if int_pcts[ind] > minimum_cover]
+        if minimum_tile_cover:
+            indices = [ind for ind in indices if int_pcts[ind] > minimum_tile_cover]
 
-        if sort_cover:
+        if tile_cover_sort:
             # https://stackoverflow.com/a/9764364
             indices, _ = zip(*sorted(zip(indices, int_pcts)))
 
