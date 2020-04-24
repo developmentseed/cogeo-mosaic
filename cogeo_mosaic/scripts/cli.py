@@ -26,7 +26,7 @@ def cogeo_cli():
     pass
 
 
-@cogeo_cli.command(short_help="Create mosaic definition from list of files")
+@cogeo_cli.command(short_help="Create mosaic definition from features")
 @click.argument("input_files", type=click.File(mode="r"), default="-")
 @click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
 @click.option(
@@ -73,9 +73,9 @@ def create(
     quiet,
 ):
     """Create mosaic definition file."""
-    input_files = input_files.read().splitlines()
-    mosaicjson = MosaicJSON.from_urls(
-        input_files,
+    features = json.load(input_files)
+    mosaicjson = MosaicJSON.from_features(
+        features,
         minzoom=minzoom,
         maxzoom=maxzoom,
         quadkey_zoom=quadkey_zoom,
@@ -122,7 +122,7 @@ def update(input_files, input_mosaic, output, min_tile_cover, threads):
         click.echo(json.dumps(mosaicjson))
 
 
-@cogeo_cli.command(short_help="Create geojson from list of files")
+@cogeo_cli.command(short_help="Create features from list of assets")
 @click.argument("input_files", type=click.File(mode="r"), default="-")
 @click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
 @click.option(
