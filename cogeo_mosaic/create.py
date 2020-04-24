@@ -178,6 +178,6 @@ def create_mosaic_from_features(
         dataset = asset_filter(tile, intersections, intersections_geoms, **kwargs)
 
         if dataset:
-            mosaic_definition["tiles"][quadkey] = [f["identifier"] for f in dataset]
+            mosaic_definition["tiles"][quadkey] = [accessor(f) for f in dataset]
 
     return mosaic_definition
