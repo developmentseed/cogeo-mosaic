@@ -70,8 +70,8 @@ class MosaicJSON(BaseModel):
     def _create_mosaic(
         cls,
         features: Sequence[Dict],
-        minzoom: int,
-        maxzoom: int,
+        minzoom: Optional[int] = None,
+        maxzoom: Optional[int] = None,
         quadkey_zoom: Optional[int] = None,
         accessor: Callable[[Dict], str] = default_accessor,
         version: str = "0.0.2",
@@ -85,13 +85,13 @@ class MosaicJSON(BaseModel):
         ----------
         features : List, required
             List of GeoJSON features.
-        minzoom: int, required
+        minzoom: int, optional
             Force mosaic min-zoom.
-        maxzoom: int, required
+        maxzoom: int, optional
             Force mosaic max-zoom.
         quadkey_zoom: int, optional
             Force mosaic quadkey zoom.
-        accessor: callable, required
+        accessor: callable, optional
             Function called on each feature to get its identifier (default is feature["properties"]["path"])
         version: str, optional
             mosaicJSON definition version (default: 0.0.2).
@@ -106,6 +106,34 @@ class MosaicJSON(BaseModel):
             Mosaic definition.
 
         """
+        if minzoom is None:
+            try:
+                minzoom = {feat["properties"]["minzoom"] for feat in features}
+            except KeyError:
+                msg = "minzoom arg not provided and features lacking metadata"
+                raise ValueError(msg)
+            if len(minzoom) > 1:
+                warnings.warn(
+                    "Multiple MinZoom, Assets different minzoom values", UserWarning
+                )
+
+            minzoom = max(minzoom)
+
+        if maxzoom is None:
+            try:
+                maxzoom = {feat["properties"]["maxzoom"] for feat in features}
+            except KeyError:
+                msg = "maxzoom arg not provided and features lacking metadata"
+                raise ValueError(msg)
+
+            if len(maxzoom) > 1:
+                warnings.warn(
+                    "Multiple MaxZoom, Assets have multiple resolution values",
+                    UserWarning,
+                )
+
+            maxzoom = max(maxzoom)
+
         quadkey_zoom = quadkey_zoom or minzoom
 
         if not quiet:
@@ -159,13 +187,7 @@ class MosaicJSON(BaseModel):
 
     @classmethod
     def from_urls(
-        cls,
-        urls: Sequence[str],
-        minzoom: Optional[int] = None,
-        maxzoom: Optional[int] = None,
-        max_threads: int = 20,
-        quiet: bool = True,
-        **kwargs,
+        cls, urls: Sequence[str], max_threads: int = 20, quiet: bool = True, **kwargs,
     ):
         """
         Create mosaicjson from url of COGs.
@@ -193,35 +215,14 @@ class MosaicJSON(BaseModel):
         """
         features = get_footprints(urls, max_threads=max_threads, quiet=quiet)
 
-        if minzoom is None:
-            minzoom = {feat["properties"]["minzoom"] for feat in features}
-            if len(minzoom) > 1:
-                warnings.warn(
-                    "Multiple MinZoom, Assets different minzoom values", UserWarning
-                )
-
-            minzoom = max(minzoom)
-
-        if maxzoom is None:
-            maxzoom = {feat["properties"]["maxzoom"] for feat in features}
-            if len(maxzoom) > 1:
-                warnings.warn(
-                    "Multiple MaxZoom, Assets have multiple resolution values",
-                    UserWarning,
-                )
-
-            maxzoom = max(maxzoom)
-
         datatype = {feat["properties"]["datatype"] for feat in features}
         if len(datatype) > 1:
             raise Exception("Dataset should have the same data type")
 
-        return cls._create_mosaic(
-            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, **kwargs
-        )
+        return cls._create_mosaic(features, quiet=quiet, **kwargs)
 
     @classmethod
-    def from_features(cls, features: Sequence[Dict], **kwargs):
+    def from_features(cls, **kwargs):
         """
         Create mosaicjson from a set of GeoJSON Features.
 
@@ -230,7 +231,7 @@ class MosaicJSON(BaseModel):
         features: list, required
             List of GeoJSON features.
         kwargs: any
-            Options forwarded to MosaicJSON.from_features
+            Options forwarded to MosaicJSON._create_mosaic
 
         Returns
         -------
@@ -238,4 +239,4 @@ class MosaicJSON(BaseModel):
             Mosaic definition.
 
         """
-        return cls._create_mosaic(features, **kwargs)
+        return cls._create_mosaic(**kwargs)
