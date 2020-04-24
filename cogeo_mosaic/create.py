@@ -1,7 +1,9 @@
 """cogeo_mosaic.create: Create MosaicJSON from features."""
 
-import warnings
 from typing import Callable, Dict, Optional, Sequence
+
+import warnings
+
 import click
 import mercantile
 from pygeos import STRtree, polygons, total_bounds
@@ -24,27 +26,27 @@ def create_mosaic(
 
     Attributes
     ----------
-        dataset_list : tuple or list, required
-            Dataset urls.
-        minzoom: int, optional
-            Force mosaic min-zoom.
-        maxzoom: int, optional
-            Force mosaic max-zoom.
-        minimum_tile_cover: float, optional (default: 0)
-            Filter files with low tile intersection coverage.
-        tile_cover_sort: bool, optional (default: None)
-            Sort intersecting files by coverage.
-        max_threads : int
-            Max threads to use (default: 20).
-        version: str, optional
-            mosaicJSON definition version
-        quiet: bool, optional (default: True)
-            Mask processing steps.
+    dataset_list : tuple or list, required
+        Dataset urls.
+    minzoom: int, optional
+        Force mosaic min-zoom.
+    maxzoom: int, optional
+        Force mosaic max-zoom.
+    minimum_tile_cover: float, optional (default: 0)
+        Filter files with low tile intersection coverage.
+    tile_cover_sort: bool, optional (default: None)
+        Sort intersecting files by coverage.
+    max_threads : int
+        Max threads to use (default: 20).
+    version: str, optional
+        mosaicJSON definition version
+    quiet: bool, optional (default: True)
+        Mask processing steps.
 
     Returns
     -------
-        mosaic_definition : dict
-            Mosaic definition.
+    mosaic_definition : dict
+        Mosaic definition.
 
     """
     if version not in ["0.0.1", "0.0.2"]:
@@ -99,7 +101,8 @@ def create_mosaic_from_features(
     version: str = "0.0.2",
     quiet: bool = True,
 ):
-    """Create mosaic definition from footprints
+    """
+    Create mosaic definition from footprints
 
     Attributes
     ----------
@@ -128,8 +131,8 @@ def create_mosaic_from_features(
     -------
     mosaic_definition : dict
         Mosaic definition.
-    """
 
+    """
     quadkey_zoom = quadkey_zoom or minzoom
 
     if not quiet:
