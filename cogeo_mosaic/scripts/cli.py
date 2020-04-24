@@ -93,21 +93,13 @@ def create(
         click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
 
 
-@cogeo_cli.command(short_help="Create mosaic definition from GeoJSON collection")
+@cogeo_cli.command(
+    short_help="Create mosaic definition from GeoJSON features or features collection"
+)
 @cligj.features_in_arg
 @click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
-@click.option(
-    "--minzoom",
-    type=int,
-    help="An integer to overwrite the minimum zoom level derived from the COGs.",
-    required=True,
-)
-@click.option(
-    "--maxzoom",
-    type=int,
-    help="An integer to overwrite the maximum zoom level derived from the COGs.",
-    required=True,
-)
+@click.option("--minzoom", type=int, help="Mosaic minimum zoom level.", required=True)
+@click.option("--maxzoom", type=int, help="Mosaic maximum zoom level.", required=True)
 @click.option("--property", type=str, help="Define accessor property", required=True)
 @click.option(
     "--quadkey-zoom",
