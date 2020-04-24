@@ -33,10 +33,6 @@ class MosaicJSON(BaseModel):
     tiles: Dict[str, List[str]]
 
     @classmethod
-    def from_dict(cls, mosaic_def: Dict):
-        return cls(**mosaic_def)
-
-    @classmethod
     def from_features(
         cls,
         features,
