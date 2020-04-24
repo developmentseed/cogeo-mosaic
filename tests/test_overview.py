@@ -4,7 +4,6 @@ import os
 import json
 from click.testing import CliRunner
 
-import pytest
 import rasterio
 from rio_cogeo.profiles import cog_profiles
 

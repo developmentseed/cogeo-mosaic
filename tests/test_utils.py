@@ -2,7 +2,6 @@
 
 import os
 from concurrent import futures
-from io import BytesIO
 
 import mercantile
 import pytest
