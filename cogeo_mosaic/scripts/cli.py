@@ -66,9 +66,10 @@ def create(
     quiet,
 ):
     """Create mosaic definition file."""
-    features = json.load(input_files)
+    features = json.load(input_files)['features']
+    minzoom, maxzoom = find_zooms(features, minzoom, maxzoom)
     mosaicjson = MosaicJSON.from_features(
-        features['features'],
+        features,
         minzoom=minzoom,
         maxzoom=maxzoom,
         quadkey_zoom=quadkey_zoom,

@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple, Sequence
 
 import os
 import sys
+import warnings
 import logging
 import functools
 from concurrent import futures
@@ -249,3 +250,51 @@ def update_mosaic(
     ]
 
     return mosaic_def
+
+def find_zooms(features, minzoom=None, maxzoom=None):
+    """Find minzoom and maxzoom from features
+
+    Attributes
+    ----------
+    urls : List, required
+        List of COG urls.
+    minzoom: int, optional
+        Force mosaic min-zoom.
+    maxzoom: int, optional
+        Force mosaic max-zoom.
+
+    Returns
+    -------
+    minzoom, maxzoom : int, int
+        minzoom and maxzoom of features
+    """
+    if minzoom and maxzoom:
+        return minzoom, maxzoom
+
+    if minzoom is None:
+        try:
+            minzoom = {feat["properties"]["minzoom"] for feat in features}
+        except KeyError:
+            msg = "minzoom is a required argument when not used with footprint"
+            raise ValueError(msg)
+        if len(minzoom) > 1:
+            warnings.warn(
+                "Multiple MinZoom, Assets different minzoom values", UserWarning
+            )
+
+        minzoom = max(minzoom)
+
+    if maxzoom is None:
+        try:
+            maxzoom = {feat["properties"]["maxzoom"] for feat in features}
+        except KeyError:
+            msg = "maxzoom is a required argument when not used with footprint"
+            raise ValueError(msg)
+
+        if len(maxzoom) > 1:
+            warnings.warn(
+                "Multiple MaxZoom, Assets have multiple resolution values",
+                UserWarning,
+            )
+
+        maxzoom = max(maxzoom)
