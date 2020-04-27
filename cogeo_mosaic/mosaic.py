@@ -138,7 +138,7 @@ class MosaicJSON(BaseModel):
         tree = STRtree(dataset_geoms)
 
         for tile in tiles:
-            quadkey = str(mercantile.quadkey(tile))
+            quadkey = mercantile.quadkey(tile)
             tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
 
             # Find intersections from rtree

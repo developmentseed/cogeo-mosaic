@@ -110,7 +110,7 @@ def get_footprints(
     return list(_filter_futures(future_work))
 
 
-def tiles_to_bounds(tiles):
+def tiles_to_bounds(tiles: List[mercantile.Tile]) -> List[float]:
     """Get bounds from a set of mercator tiles."""
     zoom = tiles[0].z
     xyz = numpy.array([[t.x, t.y, t.z] for t in tiles])

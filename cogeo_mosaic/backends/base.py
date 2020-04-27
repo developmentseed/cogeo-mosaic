@@ -113,12 +113,11 @@ class BaseBackend(AbstractContextManager):
             tree = STRtree([dataset_geoms[idx]])
 
             for tile in tiles:
-                quadkey = str(mercantile.quadkey(tile))
+                quadkey = mercantile.quadkey(tile)
                 tile_geom = polygons(
                     mercantile.feature(tile)["geometry"]["coordinates"][0]
                 )
 
-                # Find intersections from rtree
                 intersections_idx = sorted(
                     tree.query(tile_geom, predicate="intersects")
                 )
@@ -139,13 +138,13 @@ class BaseBackend(AbstractContextManager):
                 self._update_quadkey(quadkey, assets)
 
                 updated_quadkeys.add(tile)
+
         bounds = self.mosaic_def.bounds
         minimumTile = mercantile.tile(bounds[0], bounds[3], self.quadkey_zoom)
         maximumTile = mercantile.tile(bounds[2], bounds[1], self.quadkey_zoom)
         bounds = tiles_to_bounds(
             [t for t in updated_quadkeys] + [minimumTile, maximumTile]
         )
-
         self._update_metadata(bounds, version)
 
         return
