@@ -46,7 +46,7 @@ class MosaicJSON(BaseModel):
         minimum_tile_cover=None,
         tile_cover_sort=False,
         maximum_items_per_tile: Optional[int] = None,
-    ):
+    ) -> List:
         """Filter and/or sort dataset per intersection coverage."""
         indices = list(range(len(dataset)))
 
@@ -138,7 +138,7 @@ class MosaicJSON(BaseModel):
         tree = STRtree(dataset_geoms)
 
         for tile in tiles:
-            quadkey = mercantile.quadkey(tile)
+            quadkey = str(mercantile.quadkey(tile))
             tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
 
             # Find intersections from rtree

@@ -1,6 +1,6 @@
 """cogeo-mosaic AWS S3 backend."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import json
 import functools
@@ -60,9 +60,17 @@ class S3Backend(BaseBackend):
 
         _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
 
-    def update(self):
+    def update(
+        self,
+        features: Sequence[Dict],
+        accessor: Callable,
+        overwrite: bool = False,
+        **kwargs: Any
+    ):
         """Update the mosaicjson document."""
-        raise NotImplementedError
+        self._update(features, accessor, **kwargs)
+        if overwrite:
+            self.write()
 
     @functools.lru_cache(maxsize=512)
     def _read(self, gzip: bool = None) -> MosaicJSON:

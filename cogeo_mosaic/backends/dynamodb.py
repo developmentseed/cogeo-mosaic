@@ -1,6 +1,6 @@
 """cogeo-mosaic AWS DynamoDB backend."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import functools
 import itertools
@@ -52,9 +52,35 @@ class DynamoDBBackend(BaseBackend):
         items = self._create_items()
         self._write_items(items)
 
-    def update(self):
+    def _update_quadkey(self, quadkey: str, dataset: List[str]):
+        """Update quadkey list."""
+        self.table.put_item(Item={"quadkey": quadkey, "assets": dataset})
+
+    def _update_metadata(self, bounds: List[float], version: str):
+        """Update bounds and center."""
+        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        meta["version"] = version
+        meta["bounds"] = bounds
+        meta["center"] = (
+            (bounds[0] + bounds[2]) / 2,
+            (bounds[1] + bounds[3]) / 2,
+            self.mosaic_def.minzoom,
+        )
+        meta["quadkey"] == "-1"
+        self.table.put_item(Item=meta)
+
+    def update(
+        self,
+        features: Sequence[Dict],
+        accessor: Callable,
+        overwrite: bool = False,
+        **kwargs: Any
+    ):
         """Update the mosaicjson document."""
-        raise NotImplementedError
+        if not overwrite:
+            raise Exception("Overwrite has to be set to True")
+
+        self._update(features, accessor, **kwargs)
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST"):
         # Define schema for primary key

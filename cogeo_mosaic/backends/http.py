@@ -1,8 +1,9 @@
 """cogeo-mosaic HTTP backend."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import json
+import warnings
 import functools
 
 import requests
@@ -45,9 +46,17 @@ class HttpBackend(BaseBackend):
         """Write mosaicjson document."""
         raise NotImplementedError
 
-    def update(self):
+    def update(
+        self,
+        features: Sequence[Dict],
+        accessor: Callable,
+        overwrite: bool = False,
+        **kwargs: Any
+    ):
         """Update the mosaicjson document."""
-        raise NotImplementedError
+        self._update(features, accessor, **kwargs)
+        if overwrite:
+            warnings.warn("Overwrite is not possible for http backend")
 
     @functools.lru_cache(maxsize=512)
     def _read(self, gzip: bool = None) -> MosaicJSON:

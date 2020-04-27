@@ -10,8 +10,8 @@ import click
 import cligj
 
 from cogeo_mosaic import version as cogeo_mosaic_version
-from cogeo_mosaic.utils import get_footprints, update_mosaic
-from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.utils import get_footprints
+from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.overviews import create_low_level_cogs
 
@@ -150,31 +150,40 @@ def create_from_features(
 @cogeo_cli.command(short_help="Create mosaic definition from list of files")
 @click.argument("input_files", type=click.File(mode="r"), default="-")
 @click.argument("input_mosaic", type=click.Path())
-@click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
 @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
+@click.option(
+    "--on-top/--on-bottom",
+    help="happens dataset on top of the existing scenes.",
+    is_flag=True,
+    default=True,
+)
+@click.option("--overwrite", help="overwrite mosaic.", is_flag=True)
 @click.option(
     "--threads",
     type=int,
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
-def update(input_files, input_mosaic, output, min_tile_cover, threads):
+def update(input_files, input_mosaic, min_tile_cover, on_top, overwrite, threads):
     """Update mosaic definition file."""
+    if input_mosaic.startswith("dynamodb://") and not overwrite:
+        raise Exception(
+            "DynamoDB hosted mosaic has to be overwriten on update. Please use `--overwrite`"
+        )
+
     input_files = input_files.read().splitlines()
+    features = get_footprints(input_files)
 
-    # TODO: Won't work for DynamoDB
     with MosaicBackend(input_mosaic) as mosaic:
-        mosaic_def = mosaic.mosaic_def.dict()
-
-    mosaicjson = update_mosaic(
-        input_files, mosaic_def, minimum_tile_cover=min_tile_cover, max_threads=threads
-    )
-
-    if output:
-        with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
-            mosaic.write()
-    else:
-        click.echo(json.dumps(mosaicjson))
+        mosaic.update(
+            features,
+            DEFAULT_ACCESSOR,
+            on_top=on_top,
+            overwrite=overwrite,
+            minimum_tile_cover=min_tile_cover,
+        )
+        if not overwrite and not input_mosaic.startswith("dynamodb://"):
+            click.echo(json.dumps(mosaic.mosaic_def.dict(exclude=None)))
 
 
 @cogeo_cli.command(short_help="Create geojson from list of files")

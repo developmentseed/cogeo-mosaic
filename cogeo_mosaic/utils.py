@@ -11,9 +11,8 @@ from concurrent import futures
 import click
 
 import numpy
-from pygeos import intersection, polygons, area
+from pygeos import intersection, area
 import mercantile
-from supermercado import burntiles
 
 import rasterio
 from rio_tiler.mercator import get_zooms
@@ -156,96 +155,3 @@ def _intersect_percent(tile, dataset_geoms):
     """Return the overlap percent."""
     inter_areas = area(intersection(tile, dataset_geoms))
     return [inter_area / area(tile) for inter_area in inter_areas]
-
-
-def _filter_and_sort(tile, dataset, minimum_cover=None, sort_cover=False):
-    """Filter and/or sort dataset per intersection coverage."""
-    dataset = list(
-        zip(_intersect_percent(tile, [x["geometry"] for x in dataset]), dataset)
-    )
-    if minimum_cover is not None:
-        dataset = list(filter(lambda x: x[0] > minimum_cover, dataset))
-
-    if sort_cover:
-        dataset = sorted(dataset, key=lambda x: x[0], reverse=True)
-
-    return [x[1] for x in dataset]
-
-
-def update_mosaic(
-    dataset_list: Sequence[str],
-    mosaic_def: dict,
-    max_threads: int = 20,
-    minimum_tile_cover: float = None,
-) -> Dict:
-    """
-    Create mosaic definition content.
-
-    Attributes
-    ----------
-        dataset_list : tuple or list, required
-            Dataset urls.
-        mosaic_def : dict
-            Mosaic definition to update.
-        max_threads : int
-            Max threads to use (default: 20).
-        minimum_tile_cover: float, optional (default: 0)
-            Filter files with low tile intersection coverage.
-
-    Returns
-    -------
-        mosaic_definition : dict
-            Updated mosaic definition.
-
-    """
-    version = mosaic_def.get("version")
-    if version:
-        version = list(map(int, version.split(".")))
-        version[-1] += 1
-        version = ".".join(map(str, version))
-    else:
-        version = "1.0.0"
-    mosaic_def["version"] = version
-
-    results = get_footprints(dataset_list, max_threads=max_threads)
-    min_zoom = mosaic_def["minzoom"]
-    quadkey_zoom = mosaic_def.get("quadkey_zoom", min_zoom)
-
-    dataset_geoms = polygons([feat["geometry"]["coordinates"][0] for feat in results])
-    for idx, r in enumerate(results):
-        tiles = burntiles.burn([r], quadkey_zoom)
-        tiles = ["{2}-{0}-{1}".format(*tile.tolist()) for tile in tiles]
-
-        dataset = [{"path": r["properties"]["path"], "geometry": dataset_geoms[idx]}]
-        for parent in tiles:
-            z, x, y = list(map(int, parent.split("-")))
-            parent = mercantile.Tile(x=x, y=y, z=z)
-            quad = mercantile.quadkey(*parent)
-            tile_geometry = polygons(
-                mercantile.feature(parent)["geometry"]["coordinates"][0]
-            )
-
-            fdataset = dataset
-            if minimum_tile_cover is not None:
-                fdataset = _filter_and_sort(
-                    tile_geometry, fdataset, minimum_cover=minimum_tile_cover
-                )
-
-            if len(fdataset):
-                dst_quad = mosaic_def["tiles"].get(quad, [])
-                for f in fdataset:
-                    dst_quad.append(f["path"])
-
-                mosaic_def["tiles"][quad] = dst_quad
-
-    tiles = [mercantile.quadkey_to_tile(qk) for qk in mosaic_def["tiles"].keys()]
-    bounds = tiles_to_bounds(tiles)
-
-    mosaic_def["bounds"] = bounds
-    mosaic_def["center"] = [
-        (bounds[0] + bounds[2]) / 2,
-        (bounds[1] + bounds[3]) / 2,
-        mosaic_def["minzoom"],
-    ]
-
-    return mosaic_def
