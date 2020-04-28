@@ -11,7 +11,7 @@ import cligj
 
 from cogeo_mosaic import version as cogeo_mosaic_version
 from cogeo_mosaic.utils import get_footprints
-from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.overviews import create_low_level_cogs
 
@@ -157,33 +157,19 @@ def create_from_features(
     is_flag=True,
     default=True,
 )
-@click.option("--overwrite", help="overwrite mosaic.", is_flag=True)
 @click.option(
     "--threads",
     type=int,
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
-def update(input_files, input_mosaic, min_tile_cover, add_first, overwrite, threads):
+def update(input_files, input_mosaic, min_tile_cover, add_first, threads):
     """Update mosaic definition file."""
-    if input_mosaic.startswith("dynamodb://") and not overwrite:
-        raise Exception(
-            "DynamoDB hosted mosaic has to be overwriten on update. Please use `--overwrite`"
-        )
-
     input_files = input_files.read().splitlines()
-    features = get_footprints(input_files)
+    features = get_footprints(input_files, max_threads=threads)
 
     with MosaicBackend(input_mosaic) as mosaic:
-        mosaic.update(
-            features,
-            DEFAULT_ACCESSOR,
-            add_first=add_first,
-            overwrite=overwrite,
-            minimum_tile_cover=min_tile_cover,
-        )
-        if not overwrite and not input_mosaic.startswith("dynamodb://"):
-            click.echo(json.dumps(mosaic.mosaic_def.dict(exclude=None)))
+        mosaic.update(features, add_first=add_first, minimum_tile_cover=min_tile_cover)
 
 
 @cogeo_cli.command(short_help="Create geojson from list of files")

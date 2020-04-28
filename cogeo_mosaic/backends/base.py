@@ -1,6 +1,6 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
-from typing import Any, Callable, Dict, List, Sequence
+from typing import Callable, Dict, List, Sequence
 
 import abc
 from contextlib import AbstractContextManager
@@ -17,6 +17,7 @@ from cogeo_mosaic.backends.utils import get_hash
 class BaseBackend(AbstractContextManager):
     """Base Class for cogeo-mosaic backend storage."""
 
+    path: str
     mosaic_def: MosaicJSON
 
     @abc.abstractmethod
@@ -66,16 +67,6 @@ class BaseBackend(AbstractContextManager):
     def write(self):
         """Upload new MosaicJSON to backend."""
 
-    @abc.abstractmethod
-    def update(
-        self,
-        features: Sequence[Dict],
-        accessor: Callable = DEFAULT_ACCESSOR,
-        overwrite: bool = False,
-        **kwargs: Any,
-    ):
-        """Update existing MosaicJSON on backend."""
-
     def _update_quadkey(self, quadkey: str, dataset: List[str]):
         """Update quadkey list."""
         self.mosaic_def.tiles[quadkey] = dataset
@@ -90,10 +81,10 @@ class BaseBackend(AbstractContextManager):
             self.mosaic_def.minzoom,
         )
 
-    def _update(
+    def update(
         self,
         features: Sequence[Dict],
-        accessor: Callable,
+        accessor: Callable = DEFAULT_ACCESSOR,
         add_first: bool = True,
         **kwargs,
     ):
@@ -146,4 +137,6 @@ class BaseBackend(AbstractContextManager):
         )
         self._update_metadata(bounds, version)
 
+        if self.path:
+            self.write()
         return

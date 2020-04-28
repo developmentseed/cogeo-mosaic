@@ -1,6 +1,6 @@
 """cogeo-mosaic AWS S3 backend."""
 
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Union
 
 import json
 import functools
@@ -9,7 +9,7 @@ import mercantile
 
 from boto3.session import Session as boto3_session
 
-from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
     _compress_gz_json,
@@ -27,12 +27,13 @@ class S3Backend(BaseBackend):
         key: str,
         mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
         client: Optional[boto3_session.client] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         """Initialize S3Backend."""
         self.client = client or boto3_session().client("s3")
         self.key = key
         self.bucket = bucket
+        self.path = f"s3://{bucket}/{key}"
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
@@ -59,18 +60,6 @@ class S3Backend(BaseBackend):
             body = json.dumps(body).encode("utf-8")
 
         _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
-
-    def update(
-        self,
-        features: Sequence[Dict],
-        accessor: Callable = DEFAULT_ACCESSOR,
-        overwrite: bool = False,
-        **kwargs: Any
-    ):
-        """Update the mosaicjson document."""
-        self._update(features, accessor, **kwargs)
-        if overwrite:
-            self.write()
 
     @functools.lru_cache(maxsize=512)
     def _read(self, gzip: bool = None) -> MosaicJSON:
