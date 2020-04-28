@@ -153,7 +153,7 @@ def create_from_features(
 @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
 @click.option(
     "--add-first/--add-last",
-    help="Happens dataset on top of the existing scenes.",
+    help="Appends dataset on top of the existing scenes.",
     is_flag=True,
     default=True,
 )
