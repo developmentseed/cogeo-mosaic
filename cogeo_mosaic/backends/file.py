@@ -7,7 +7,7 @@ import functools
 
 import mercantile
 
-from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
     _compress_gz_json,
@@ -23,7 +23,7 @@ class FileBackend(BaseBackend):
         self,
         path: str,
         mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         """Initialize FileBackend."""
         self.path = path
@@ -56,9 +56,9 @@ class FileBackend(BaseBackend):
     def update(
         self,
         features: Sequence[Dict],
-        accessor: Callable,
+        accessor: Callable = DEFAULT_ACCESSOR,
         overwrite: bool = False,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         """Update the mosaicjson document."""
         self._update(features, accessor, **kwargs)

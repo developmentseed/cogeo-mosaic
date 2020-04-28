@@ -152,8 +152,8 @@ def create_from_features(
 @click.argument("input_mosaic", type=click.Path())
 @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
 @click.option(
-    "--on-top/--on-bottom",
-    help="happens dataset on top of the existing scenes.",
+    "--add-first/--add-last",
+    help="Happens dataset on top of the existing scenes.",
     is_flag=True,
     default=True,
 )
@@ -164,7 +164,7 @@ def create_from_features(
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
-def update(input_files, input_mosaic, min_tile_cover, on_top, overwrite, threads):
+def update(input_files, input_mosaic, min_tile_cover, add_first, overwrite, threads):
     """Update mosaic definition file."""
     if input_mosaic.startswith("dynamodb://") and not overwrite:
         raise Exception(
@@ -178,7 +178,7 @@ def update(input_files, input_mosaic, min_tile_cover, on_top, overwrite, threads
         mosaic.update(
             features,
             DEFAULT_ACCESSOR,
-            on_top=on_top,
+            add_first=add_first,
             overwrite=overwrite,
             minimum_tile_cover=min_tile_cover,
         )

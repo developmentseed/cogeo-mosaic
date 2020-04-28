@@ -37,6 +37,11 @@ class MosaicJSON(BaseModel):
     center: Optional[Tuple[float, float, int]]
     tiles: Dict[str, List[str]]
 
+    class Config:
+        """Validate model on update."""
+
+        validate_asignment = True
+
     @classmethod
     def _filter(
         cls,

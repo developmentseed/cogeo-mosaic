@@ -15,7 +15,7 @@ import mercantile
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
-from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
 
 
 class DynamoDBBackend(BaseBackend):
@@ -58,22 +58,22 @@ class DynamoDBBackend(BaseBackend):
 
     def _update_metadata(self, bounds: List[float], version: str):
         """Update bounds and center."""
-        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
-        meta["version"] = version
-        meta["bounds"] = bounds
-        meta["center"] = (
+        self.mosaic_def.bounds = bounds
+        self.mosaic_def.center = (
             (bounds[0] + bounds[2]) / 2,
             (bounds[1] + bounds[3]) / 2,
             self.mosaic_def.minzoom,
         )
-        meta["quadkey"] == "-1"
+        self.mosaic_def.version = version
+        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        meta["quadkey"] = "-1"
         self.table.put_item(Item=meta)
 
     def update(
         self,
         features: Sequence[Dict],
-        accessor: Callable,
-        overwrite: bool = False,
+        accessor: Callable = DEFAULT_ACCESSOR,
+        overwrite: bool = True,
         **kwargs: Any
     ):
         """Update the mosaicjson document."""

@@ -52,7 +52,7 @@ def test_update_valid():
         assert not mosaic_content.tiles == updated_mosaic["tiles"]
 
         result = runner.invoke(
-            cogeo_cli, ["update", "list.txt", "mosaic.json", "--on-bottom"]
+            cogeo_cli, ["update", "list.txt", "mosaic.json", "--add-last"]
         )
         assert not result.exception
         assert result.exit_code == 0
@@ -62,7 +62,7 @@ def test_update_valid():
 
         result = runner.invoke(
             cogeo_cli,
-            ["update", "list.txt", "mosaic.json", "--overwrite", "--on-bottom"],
+            ["update", "list.txt", "mosaic.json", "--overwrite", "--add-last"],
         )
         assert not result.exception
         assert result.exit_code == 0

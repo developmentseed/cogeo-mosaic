@@ -1,6 +1,6 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
-from typing import Callable, Dict, List, Sequence
+from typing import Any, Callable, Dict, List, Sequence
 
 import abc
 from contextlib import AbstractContextManager
@@ -10,7 +10,7 @@ from pygeos import STRtree, polygons
 from supermercado import burntiles
 
 from cogeo_mosaic.utils import tiles_to_bounds
-from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
 from cogeo_mosaic.backends.utils import get_hash
 
 
@@ -67,7 +67,13 @@ class BaseBackend(AbstractContextManager):
         """Upload new MosaicJSON to backend."""
 
     @abc.abstractmethod
-    def update(self):
+    def update(
+        self,
+        features: Sequence[Dict],
+        accessor: Callable = DEFAULT_ACCESSOR,
+        overwrite: bool = False,
+        **kwargs: Any,
+    ):
         """Update existing MosaicJSON on backend."""
 
     def _update_quadkey(self, quadkey: str, dataset: List[str]):
@@ -88,17 +94,13 @@ class BaseBackend(AbstractContextManager):
         self,
         features: Sequence[Dict],
         accessor: Callable,
-        on_top: bool = True,
-        **kwargs
+        add_first: bool = True,
+        **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
-        version = self.mosaic_def.version
-        if version:
-            uversion = list(map(int, version.split(".")))
-            uversion[-1] += 1
-            version = ".".join(map(str, uversion))
-        else:
-            version = "1.0.0"
+        version = list(map(int, self.mosaic_def.version.split(".")))
+        version[-1] += 1
+        version = ".".join(map(str, version))
 
         updated_quadkeys = set()
 
@@ -134,7 +136,7 @@ class BaseBackend(AbstractContextManager):
                 new_assets = [accessor(f) for f in dataset]
 
                 assets = self.tile(*tile)
-                assets = [*new_assets, *assets] if on_top else [*assets, *new_assets]
+                assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
                 self._update_quadkey(quadkey, assets)
 
                 updated_quadkeys.add(tile)

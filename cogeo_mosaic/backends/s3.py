@@ -9,7 +9,7 @@ import mercantile
 
 from boto3.session import Session as boto3_session
 
-from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
     _compress_gz_json,
@@ -63,7 +63,7 @@ class S3Backend(BaseBackend):
     def update(
         self,
         features: Sequence[Dict],
-        accessor: Callable,
+        accessor: Callable = DEFAULT_ACCESSOR,
         overwrite: bool = False,
         **kwargs: Any
     ):
