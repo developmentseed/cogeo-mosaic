@@ -108,38 +108,35 @@ class BaseBackend(AbstractContextManager):
             [feat["geometry"]["coordinates"][0] for feat in features]
         )
 
-        for idx, feature in enumerate(features):
-            tiles = burntiles.burn([feature], self.quadkey_zoom)
-            tiles = [mercantile.Tile(*tile) for tile in tiles]
+        tiles = burntiles.burn(features, self.quadkey_zoom)
+        tiles = [mercantile.Tile(*tile) for tile in tiles]
 
-            tree = STRtree([dataset_geoms[idx]])
+        tree = STRtree(dataset_geoms)
 
-            for tile in tiles:
-                quadkey = mercantile.quadkey(tile)
-                tile_geom = polygons(
-                    mercantile.feature(tile)["geometry"]["coordinates"][0]
-                )
+        for tile in tiles:
+            quadkey = mercantile.quadkey(tile)
+            tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
 
-                intersections_idx = sorted(
-                    tree.query(tile_geom, predicate="intersects")
-                )
-                if len(intersections_idx) == 0:
-                    continue
+            # Find intersections from rtree
+            intersections_idx = sorted(tree.query(tile_geom, predicate="intersects"))
+            if len(intersections_idx) == 0:
+                continue
 
-                intersect_dataset, intersect_geoms = zip(
-                    *[(features[idx], dataset_geoms[idx]) for idx in intersections_idx]
-                )
+            intersect_dataset, intersect_geoms = zip(
+                *[(features[idx], dataset_geoms[idx]) for idx in intersections_idx]
+            )
 
-                dataset = self.mosaic_def._filter(
-                    tile, intersect_dataset, intersect_geoms, **kwargs
-                )
-                new_assets = [accessor(f) for f in dataset]
+            dataset = self.mosaic_def._filter(
+                tile, intersect_dataset, intersect_geoms, **kwargs
+            )
 
-                assets = self.tile(*tile)
-                assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
-                self._update_quadkey(quadkey, assets)
+            new_assets = [accessor(f) for f in dataset]
 
-                updated_quadkeys.add(tile)
+            assets = self.tile(*tile)
+            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+            self._update_quadkey(quadkey, assets)
+
+            updated_quadkeys.add(tile)
 
         bounds = self.mosaic_def.bounds
         minimumTile = mercantile.tile(bounds[0], bounds[3], self.quadkey_zoom)
