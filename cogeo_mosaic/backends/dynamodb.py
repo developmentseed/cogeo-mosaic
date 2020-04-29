@@ -1,6 +1,6 @@
 """cogeo-mosaic AWS DynamoDB backend."""
 
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Union
 
 import functools
 import itertools
@@ -15,7 +15,7 @@ import mercantile
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
-from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
+from cogeo_mosaic.mosaic import MosaicJSON
 
 
 class DynamoDBBackend(BaseBackend):
@@ -31,6 +31,7 @@ class DynamoDBBackend(BaseBackend):
         """Initialize DynamoDBBackend."""
         self.client = client or boto3.resource("dynamodb", region_name=region)
         self.table = self.client.Table(table_name)
+        self.path = f"dynamodb://{region}/{table_name}"
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
@@ -68,19 +69,6 @@ class DynamoDBBackend(BaseBackend):
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
         meta["quadkey"] = "-1"
         self.table.put_item(Item=meta)
-
-    def update(
-        self,
-        features: Sequence[Dict],
-        accessor: Callable = DEFAULT_ACCESSOR,
-        overwrite: bool = True,
-        **kwargs: Any
-    ):
-        """Update the mosaicjson document."""
-        if not overwrite:
-            raise Exception("Overwrite has to be set to True")
-
-        self._update(features, accessor, **kwargs)
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST"):
         # Define schema for primary key

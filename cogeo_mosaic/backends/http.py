@@ -1,15 +1,14 @@
 """cogeo-mosaic HTTP backend."""
 
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Union
 
 import json
-import warnings
 import functools
 
 import requests
 import mercantile
 
-from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import _decompress_gz, get_assets_from_json
 
@@ -24,7 +23,7 @@ class HttpBackend(BaseBackend):
         **kwargs: Any
     ):
         """Initialize HttpBackend."""
-        self.url = url
+        self.path = url
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
@@ -46,24 +45,16 @@ class HttpBackend(BaseBackend):
         """Write mosaicjson document."""
         raise NotImplementedError
 
-    def update(
-        self,
-        features: Sequence[Dict],
-        accessor: Callable = DEFAULT_ACCESSOR,
-        overwrite: bool = False,
-        **kwargs: Any
-    ):
+    def update(self, *args, **kwargs: Any):
         """Update the mosaicjson document."""
-        self._update(features, accessor, **kwargs)
-        if overwrite:
-            warnings.warn("Overwrite is not possible for http backend")
+        raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
     def _read(self, gzip: bool = None) -> MosaicJSON:
         """Get mosaicjson document."""
-        body = requests.get(self.url).content
+        body = requests.get(self.path).content
 
-        if gzip or (gzip is None and self.url.endswith(".gz")):
+        if gzip or (gzip is None and self.path.endswith(".gz")):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))
