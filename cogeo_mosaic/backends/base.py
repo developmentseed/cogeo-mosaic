@@ -1,16 +1,12 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
-from typing import Callable, Dict, List, Sequence
+from typing import Dict, List, Sequence
 
 import abc
 from contextlib import AbstractContextManager
 
 import mercantile
-from pygeos import STRtree, polygons
-from supermercado import burntiles
-
-from cogeo_mosaic.utils import tiles_to_bounds
-from cogeo_mosaic.mosaic import MosaicJSON, DEFAULT_ACCESSOR
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.utils import get_hash
 
 
@@ -84,8 +80,8 @@ class BaseBackend(AbstractContextManager):
     def update(
         self,
         features: Sequence[Dict],
-        accessor: Callable = DEFAULT_ACCESSOR,
         add_first: bool = True,
+        mosaic_class=MosaicJSON,
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
@@ -93,50 +89,33 @@ class BaseBackend(AbstractContextManager):
         version[-1] += 1
         version = ".".join(map(str, version))
 
-        updated_quadkeys = set()
-
-        dataset_geoms = polygons(
-            [feat["geometry"]["coordinates"][0] for feat in features]
+        new_mosaic = mosaic_class.from_features(
+            features,
+            self.mosaic_def.minzoom,
+            self.mosaic_def.maxzoom,
+            quadkey_zoom=self.quadkey_zoom,
+            **kwargs,
         )
-
-        tiles = burntiles.burn(features, self.quadkey_zoom)
-        tiles = [mercantile.Tile(*tile) for tile in tiles]
-
-        tree = STRtree(dataset_geoms)
-
-        for tile in tiles:
-            quadkey = mercantile.quadkey(tile)
-            tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
-
-            # Find intersections from rtree
-            intersections_idx = sorted(tree.query(tile_geom, predicate="intersects"))
-            if len(intersections_idx) == 0:
-                continue
-
-            intersect_dataset, intersect_geoms = zip(
-                *[(features[idx], dataset_geoms[idx]) for idx in intersections_idx]
-            )
-
-            dataset = self.mosaic_def._filter(
-                tile, intersect_dataset, intersect_geoms, **kwargs
-            )
-
-            new_assets = [accessor(f) for f in dataset]
-
+        for quadkey, new_assets in new_mosaic.tiles.items():
+            tile = mercantile.quadkey_to_tile(quadkey)
             assets = self.tile(*tile)
             assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+
+            # add custom sorting algorithm (e.g based on path name)
             self._update_quadkey(quadkey, assets)
 
-            updated_quadkeys.add(tile)
-
-        bounds = self.mosaic_def.bounds
-        minimumTile = mercantile.tile(bounds[0], bounds[3], self.quadkey_zoom)
-        maximumTile = mercantile.tile(bounds[2], bounds[1], self.quadkey_zoom)
-        bounds = tiles_to_bounds(
-            [t for t in updated_quadkeys] + [minimumTile, maximumTile]
-        )
+        nxmin, nymin, nxmax, nymax = new_mosaic.bounds
+        oxmin, oymin, oxmax, oymax = self.mosaic_def.bounds
+        bounds = [
+            min(nxmin, oxmin),
+            min(nymin, oymin),
+            max(nxmax, oxmax),
+            max(nymax, oymax),
+        ]
         self._update_metadata(bounds, version)
 
+        # We only write if path is set
         if self.path:
             self.write()
+
         return
