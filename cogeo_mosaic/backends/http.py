@@ -23,7 +23,7 @@ class HttpBackend(BaseBackend):
         **kwargs: Any
     ):
         """Initialize HttpBackend."""
-        self.url = url
+        self.path = url
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
@@ -45,16 +45,16 @@ class HttpBackend(BaseBackend):
         """Write mosaicjson document."""
         raise NotImplementedError
 
-    def update(self):
+    def update(self, *args, **kwargs: Any):
         """Update the mosaicjson document."""
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
     def _read(self, gzip: bool = None) -> MosaicJSON:
         """Get mosaicjson document."""
-        body = requests.get(self.url).content
+        body = requests.get(self.path).content
 
-        if gzip or (gzip is None and self.url.endswith(".gz")):
+        if gzip or (gzip is None and self.path.endswith(".gz")):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))

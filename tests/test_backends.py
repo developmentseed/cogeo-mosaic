@@ -76,10 +76,6 @@ def test_file_backend():
             "center",
         ]
 
-    with pytest.raises(NotImplementedError):
-        with MosaicBackend(mosaic_json) as mosaic:
-            mosaic.update()
-
     runner = CliRunner()
     with runner.isolated_filesystem():
         with MosaicBackend("mosaic.json", mosaic_def=mosaic_content) as mosaic:
@@ -205,16 +201,6 @@ def test_s3_backend(session):
         }
     session.return_value.client.return_value.put_object.return_value = True
 
-    with pytest.raises(NotImplementedError):
-        with MosaicBackend("s3://mybucket/mymosaic.json.gz") as mosaic:
-            assert isinstance(mosaic, S3Backend)
-            mosaic.update()
-    session.return_value.client.return_value.get_object.assert_called_once_with(
-        Bucket="mybucket", Key="mymosaic.json.gz"
-    )
-    session.return_value.client.return_value.put_object.assert_not_called()
-    session.reset_mock()
-
     with MosaicBackend(
         "s3://mybucket/mymosaic.json.gz", mosaic_def=mosaic_content
     ) as mosaic:
@@ -314,13 +300,6 @@ def test_dynamoDB_backend(client):
         ]
         assert mosaic.tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.point(-73, 45) == ["cog1.tif", "cog2.tif"]
-
-    with pytest.raises(NotImplementedError):
-        with MosaicBackend(
-            "dynamodb:///thiswaskylebarronidea", mosaic_def=mosaic_content
-        ) as mosaic:
-            assert isinstance(mosaic, DynamoDBBackend)
-            mosaic.update()
 
     with MosaicBackend(
         "dynamodb:///thiswaskylebarronidea", mosaic_def=mosaic_content

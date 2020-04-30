@@ -27,12 +27,13 @@ class S3Backend(BaseBackend):
         key: str,
         mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
         client: Optional[boto3_session.client] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         """Initialize S3Backend."""
         self.client = client or boto3_session().client("s3")
         self.key = key
         self.bucket = bucket
+        self.path = f"s3://{bucket}/{key}"
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
@@ -59,10 +60,6 @@ class S3Backend(BaseBackend):
             body = json.dumps(body).encode("utf-8")
 
         _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
-
-    def update(self):
-        """Update the mosaicjson document."""
-        raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
     def _read(self, gzip: bool = None) -> MosaicJSON:

@@ -44,20 +44,25 @@ def test_update_valid():
         with open("./list.txt", "w") as f:
             f.write("\n".join([asset2]))
 
-        result = runner.invoke(cogeo_cli, ["update", "list.txt", "mosaic.json"])
-
-        assert not result.exception
-        assert result.exit_code == 0
-        updated_mosaic = json.loads(result.output)
-        updated_mosaic["version"] == "1.0.1"
-        assert mosaic_content.tiles == updated_mosaic["tiles"]
-
         result = runner.invoke(
-            cogeo_cli, ["update", "list.txt", "mosaic.json", "-o", "mosaicU.json"]
+            cogeo_cli, ["update", "list.txt", "mosaic.json", "--quiet"]
         )
         assert not result.exception
         assert result.exit_code == 0
-        with open("mosaicU.json", "r") as f:
+        with open("mosaic.json", "r") as f:
+            updated_mosaic = json.load(f)
+            updated_mosaic["version"] == "1.0.1"
+            assert not mosaic_content.tiles == updated_mosaic["tiles"]
+
+        with open("mosaic.json", "w") as f:
+            f.write(json.dumps(MosaicJSON.from_urls([asset1]).dict(exclude_none=True)))
+
+        result = runner.invoke(
+            cogeo_cli, ["update", "list.txt", "mosaic.json", "--add-last", "--quiet"]
+        )
+        assert not result.exception
+        assert result.exit_code == 0
+        with open("mosaic.json", "r") as f:
             updated_mosaic = json.load(f)
             updated_mosaic["version"] == "1.0.1"
             assert mosaic_content.tiles == updated_mosaic["tiles"]

@@ -31,6 +31,7 @@ class DynamoDBBackend(BaseBackend):
         """Initialize DynamoDBBackend."""
         self.client = client or boto3.resource("dynamodb", region_name=region)
         self.table = self.client.Table(table_name)
+        self.path = f"dynamodb://{region}/{table_name}"
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
@@ -52,9 +53,22 @@ class DynamoDBBackend(BaseBackend):
         items = self._create_items()
         self._write_items(items)
 
-    def update(self):
-        """Update the mosaicjson document."""
-        raise NotImplementedError
+    def _update_quadkey(self, quadkey: str, dataset: List[str]):
+        """Update quadkey list."""
+        self.table.put_item(Item={"quadkey": quadkey, "assets": dataset})
+
+    def _update_metadata(self, bounds: List[float], version: str):
+        """Update bounds and center."""
+        self.mosaic_def.bounds = bounds
+        self.mosaic_def.center = (
+            (bounds[0] + bounds[2]) / 2,
+            (bounds[1] + bounds[3]) / 2,
+            self.mosaic_def.minzoom,
+        )
+        self.mosaic_def.version = version
+        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        meta["quadkey"] = "-1"
+        self.table.put_item(Item=meta)
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST"):
         # Define schema for primary key
