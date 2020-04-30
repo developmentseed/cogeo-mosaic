@@ -44,7 +44,9 @@ def test_update_valid():
         with open("./list.txt", "w") as f:
             f.write("\n".join([asset2]))
 
-        result = runner.invoke(cogeo_cli, ["update", "list.txt", "mosaic.json"])
+        result = runner.invoke(
+            cogeo_cli, ["update", "list.txt", "mosaic.json", "--quiet"]
+        )
         assert not result.exception
         assert result.exit_code == 0
         with open("mosaic.json", "r") as f:
@@ -56,7 +58,7 @@ def test_update_valid():
             f.write(json.dumps(MosaicJSON.from_urls([asset1]).dict(exclude_none=True)))
 
         result = runner.invoke(
-            cogeo_cli, ["update", "list.txt", "mosaic.json", "--add-last"]
+            cogeo_cli, ["update", "list.txt", "mosaic.json", "--add-last", "--quiet"]
         )
         assert not result.exception
         assert result.exit_code == 0

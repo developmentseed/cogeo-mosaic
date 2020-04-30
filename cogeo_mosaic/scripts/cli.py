@@ -163,13 +163,24 @@ def create_from_features(
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
-def update(input_files, input_mosaic, min_tile_cover, add_first, threads):
+@click.option(
+    "--quiet",
+    "-q",
+    help="Remove progressbar and other non-error output.",
+    is_flag=True,
+    default=False,
+)
+def update(input_files, input_mosaic, min_tile_cover, add_first, threads, quiet):
     """Update mosaic definition file."""
     input_files = input_files.read().splitlines()
     features = get_footprints(input_files, max_threads=threads)
-
     with MosaicBackend(input_mosaic) as mosaic:
-        mosaic.update(features, add_first=add_first, minimum_tile_cover=min_tile_cover)
+        mosaic.update(
+            features,
+            add_first=add_first,
+            minimum_tile_cover=min_tile_cover,
+            quiet=quiet,
+        )
 
 
 @cogeo_cli.command(short_help="Create geojson from list of files")

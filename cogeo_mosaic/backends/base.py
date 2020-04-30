@@ -2,8 +2,12 @@
 
 from typing import Dict, List, Sequence
 
+import os
 import abc
+import sys
 from contextlib import AbstractContextManager
+
+import click
 
 import mercantile
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -77,7 +81,13 @@ class BaseBackend(AbstractContextManager):
             self.mosaic_def.minzoom,
         )
 
-    def update(self, features: Sequence[Dict], add_first: bool = True, **kwargs):
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
         """Update existing MosaicJSON on backend."""
         version = list(map(int, self.mosaic_def.version.split(".")))
         version[-1] += 1
@@ -88,15 +98,21 @@ class BaseBackend(AbstractContextManager):
             self.mosaic_def.minzoom,
             self.mosaic_def.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
+            quiet=quiet,
             **kwargs,
         )
-        for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = mercantile.quadkey_to_tile(quadkey)
-            assets = self.tile(*tile)
-            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
-            # add custom sorting algorithm (e.g based on path name)
-            self._update_quadkey(quadkey, assets)
+        fout = os.devnull if quiet else sys.stderr
+        with click.progressbar(
+            new_mosaic.tiles.items(), file=fout, show_percent=True
+        ) as items:
+            for quadkey, new_assets in items:
+                tile = mercantile.quadkey_to_tile(quadkey)
+                assets = self.tile(*tile)
+                assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+
+                # add custom sorting algorithm (e.g based on path name)
+                self._update_quadkey(quadkey, assets)
 
         nxmin, nymin, nxmax, nymax = new_mosaic.bounds
         oxmin, oymin, oxmax, oymax = self.mosaic_def.bounds
