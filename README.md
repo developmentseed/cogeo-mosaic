@@ -73,6 +73,10 @@ $ cogeo-mosaic create list.txt -o mosaic.json
 # or 
 
 $ cat list.txt | cogeo-mosaic create - | gzip > mosaic.json.gz
+
+# or use backends like AWS S3 or DynamoDB
+
+$ cogeo-mosaic create list.txt -o s3://my-bucket/my-key.json.gz
 ```
 
 #### Example: create a mosaic from OAM
@@ -135,7 +139,7 @@ Starting in version `3.0.0`, we introduced specific backend storage for:
 - **File** (default, `file:///`)
 - **HTTP/HTTPS/FTP** (`https://`, `https://`, `ftp://`)
 - **AWS S3** (`s3://`)
-- **AWS DynamoDB*** (`dynamodb://{region}/{table_name}`)
+- **AWS DynamoDB** (`dynamodb://{region}/{table_name}`)
 
 More info on Backend can be found in [/docs/backends.md](/docs/backends.md)
 
@@ -145,9 +149,9 @@ More info on Backend can be found in [/docs/backends.md](/docs/backends.md)
 - **tile(x, y, z)**: find assets for a specific tile
 - **point(lng, lat)**: find assets for a specific point
 - **write**: Write mosaicJSON doc to the backend
-- **update**: Update mosaicJSON data
+- **update(features)**: Update mosaicJSON data with a list of features
 
-##### Read
+##### Read and Get assets
 ```python
 # MosaicBackend is the top level backend and will distribute to the
 # correct backend by checking the path/url schema.
@@ -166,6 +170,16 @@ mosaicdata = create_mosaic(["1.tif", "2.tif"])
 
 with MosaicBackend("s3://mybucket/amosaic.json", mosaic_def=mosaicdata) as mosaic:
     mosaic.write() # trigger upload to S3
+```
+
+##### Update
+```python
+from cogeo_mosaic.utils import get_footprints
+from cogeo_mosaic.backends import MosaicBackend
+
+with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
+    features = get_footprints(["3.tif"]) # Get footprint
+    mosaic.update(features) # Update mosaicJSON and upload to S3
 ```
 
 #### In Memory
