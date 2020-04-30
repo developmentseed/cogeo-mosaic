@@ -1,11 +1,12 @@
 """cogeo-mosaic AWS DynamoDB backend."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Sequence
 
 import functools
 import itertools
 import json
 import os
+import sys
 import warnings
 from decimal import Decimal
 
@@ -69,6 +70,60 @@ class DynamoDBBackend(BaseBackend):
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
         meta["quadkey"] = "-1"
         self.table.put_item(Item=meta)
+
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
+        """Update existing MosaicJSON on backend."""
+        version = list(map(int, self.mosaic_def.version.split(".")))
+        version[-1] += 1
+        new_version = ".".join(map(str, version))
+
+        new_mosaic = self.mosaic_def.from_features(
+            features,
+            self.mosaic_def.minzoom,
+            self.mosaic_def.maxzoom,
+            quadkey_zoom=self.quadkey_zoom,
+            quiet=quiet,
+            **kwargs,
+        )
+
+        fout = os.devnull if quiet else sys.stderr
+        with click.progressbar(
+            new_mosaic.tiles.items(), file=fout, show_percent=True
+        ) as items:
+            for quadkey, new_assets in items:
+                tile = mercantile.quadkey_to_tile(quadkey)
+                assets = self.tile(*tile)
+                assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+
+                # add custom sorting algorithm (e.g based on path name)
+                self._update_quadkey(quadkey, assets)
+
+        nxmin, nymin, nxmax, nymax = new_mosaic.bounds
+        oxmin, oymin, oxmax, oymax = self.mosaic_def.bounds
+        bounds = [
+            min(nxmin, oxmin),
+            min(nymin, oymin),
+            max(nxmax, oxmax),
+            max(nymax, oymax),
+        ]
+
+        nxmin, nymin, nxmax, nymax = new_mosaic.bounds
+        oxmin, oymin, oxmax, oymax = self.mosaic_def.bounds
+        bounds = [
+            min(nxmin, oxmin),
+            min(nymin, oymin),
+            max(nxmax, oxmax),
+            max(nymax, oymax),
+        ]
+        self._update_metadata(bounds, new_version)
+
+        return
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST"):
         # Define schema for primary key

@@ -2,12 +2,8 @@
 
 from typing import Dict, List, Sequence
 
-import os
 import abc
-import sys
 from contextlib import AbstractContextManager
-
-import click
 
 import mercantile
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -67,20 +63,6 @@ class BaseBackend(AbstractContextManager):
     def write(self):
         """Upload new MosaicJSON to backend."""
 
-    def _update_quadkey(self, quadkey: str, dataset: List[str]):
-        """Update quadkey list."""
-        self.mosaic_def.tiles[quadkey] = dataset
-
-    def _update_metadata(self, bounds: List[float], version: str):
-        """Update bounds and center."""
-        self.mosaic_def.version = version
-        self.mosaic_def.bounds = bounds
-        self.mosaic_def.center = (
-            (bounds[0] + bounds[2]) / 2,
-            (bounds[1] + bounds[3]) / 2,
-            self.mosaic_def.minzoom,
-        )
-
     def update(
         self,
         features: Sequence[Dict],
@@ -102,17 +84,13 @@ class BaseBackend(AbstractContextManager):
             **kwargs,
         )
 
-        fout = os.devnull if quiet else sys.stderr
-        with click.progressbar(
-            new_mosaic.tiles.items(), file=fout, show_percent=True
-        ) as items:
-            for quadkey, new_assets in items:
-                tile = mercantile.quadkey_to_tile(quadkey)
-                assets = self.tile(*tile)
-                assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+        for quadkey, new_assets in new_mosaic.tiles.items():
+            tile = mercantile.quadkey_to_tile(quadkey)
+            assets = self.tile(*tile)
+            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
-                # add custom sorting algorithm (e.g based on path name)
-                self._update_quadkey(quadkey, assets)
+            # add custom sorting algorithm (e.g based on path name)
+            self.mosaic_def.tiles[quadkey] = assets
 
         nxmin, nymin, nxmax, nymax = new_mosaic.bounds
         oxmin, oymin, oxmax, oymax = self.mosaic_def.bounds
@@ -122,7 +100,14 @@ class BaseBackend(AbstractContextManager):
             max(nxmax, oxmax),
             max(nymax, oymax),
         ]
-        self._update_metadata(bounds, new_version)
+
+        self.mosaic_def.version = new_version
+        self.mosaic_def.bounds = bounds
+        self.mosaic_def.center = (
+            (bounds[0] + bounds[2]) / 2,
+            (bounds[1] + bounds[3]) / 2,
+            self.mosaic_def.minzoom,
+        )
 
         # We only write if path is set
         if self.path:
