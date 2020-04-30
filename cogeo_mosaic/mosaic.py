@@ -14,7 +14,37 @@ from cogeo_mosaic.utils import get_footprints, _intersect_percent
 from pydantic import BaseModel, Field
 
 
-DEFAULT_ACCESSOR: Callable = lambda feature: feature["properties"]["path"]
+def default_accessor(feature: Dict):
+    """Return specific feature identifier."""
+    return feature["properties"]["path"]
+
+
+def default_filter(
+    tile: mercantile.Tile,
+    dataset: Sequence[Dict],
+    geoms: Sequence[polygons],
+    minimum_tile_cover=None,
+    tile_cover_sort=False,
+    maximum_items_per_tile: Optional[int] = None,
+) -> List:
+    """Filter and/or sort dataset per intersection coverage."""
+    indices = list(range(len(dataset)))
+
+    if minimum_tile_cover or tile_cover_sort:
+        tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
+        int_pcts = _intersect_percent(tile_geom, geoms)
+
+        if minimum_tile_cover:
+            indices = [ind for ind in indices if int_pcts[ind] > minimum_tile_cover]
+
+        if tile_cover_sort:
+            # https://stackoverflow.com/a/9764364
+            indices, _ = zip(*sorted(zip(indices, int_pcts), reverse=True))
+
+    if maximum_items_per_tile:
+        indices = indices[:maximum_items_per_tile]
+
+    return [dataset[ind] for ind in indices]
 
 
 class MosaicJSON(BaseModel):
@@ -43,42 +73,14 @@ class MosaicJSON(BaseModel):
         validate_asignment = True
 
     @classmethod
-    def _filter(
-        cls,
-        tile: mercantile.Tile,
-        dataset: Sequence[Dict],
-        geoms: Sequence[polygons],
-        minimum_tile_cover=None,
-        tile_cover_sort=False,
-        maximum_items_per_tile: Optional[int] = None,
-    ) -> List:
-        """Filter and/or sort dataset per intersection coverage."""
-        indices = list(range(len(dataset)))
-
-        if minimum_tile_cover or tile_cover_sort:
-            tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
-            int_pcts = _intersect_percent(tile_geom, geoms)
-
-            if minimum_tile_cover:
-                indices = [ind for ind in indices if int_pcts[ind] > minimum_tile_cover]
-
-            if tile_cover_sort:
-                # https://stackoverflow.com/a/9764364
-                indices, _ = zip(*sorted(zip(indices, int_pcts), reverse=True))
-
-        if maximum_items_per_tile:
-            indices = indices[:maximum_items_per_tile]
-
-        return [dataset[ind] for ind in indices]
-
-    @classmethod
     def _create_mosaic(
         cls,
         features: Sequence[Dict],
         minzoom: int,
         maxzoom: int,
         quadkey_zoom: Optional[int] = None,
-        accessor: Callable[[Dict], str] = DEFAULT_ACCESSOR,
+        accessor: Callable[[Dict], str] = default_accessor,
+        asset_filter: Callable = default_filter,
         version: str = "0.0.2",
         quiet: bool = True,
         **kwargs,
@@ -97,13 +99,15 @@ class MosaicJSON(BaseModel):
         quadkey_zoom: int, optional
             Force mosaic quadkey zoom.
         accessor: callable, required
-            Function called on each feature to get its identifier (default is feature["properties"]["path"])
+            Function called on each feature to get its identifier (default is feature["properties"]["path"]).
+        asset_filter: callable, required
+            Function to filter features.
         version: str, optional
             mosaicJSON definition version (default: 0.0.2).
         quiet: bool, optional (default: True)
             Mask processing steps.
         kwargs: any
-            Options forwarded to MosaicJSON._filter
+            Options forwarded to `asset_filter`
 
         Returns
         -------
@@ -155,7 +159,7 @@ class MosaicJSON(BaseModel):
                 *[(features[idx], dataset_geoms[idx]) for idx in intersections_idx]
             )
 
-            dataset = cls._filter(tile, intersect_dataset, intersect_geoms, **kwargs)
+            dataset = asset_filter(tile, intersect_dataset, intersect_geoms, **kwargs)
 
             if dataset:
                 mosaic_definition["tiles"][quadkey] = [accessor(f) for f in dataset]
