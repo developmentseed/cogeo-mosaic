@@ -77,19 +77,13 @@ class BaseBackend(AbstractContextManager):
             self.mosaic_def.minzoom,
         )
 
-    def update(
-        self,
-        features: Sequence[Dict],
-        add_first: bool = True,
-        mosaic_class=MosaicJSON,
-        **kwargs,
-    ):
+    def update(self, features: Sequence[Dict], add_first: bool = True, **kwargs):
         """Update existing MosaicJSON on backend."""
         version = list(map(int, self.mosaic_def.version.split(".")))
         version[-1] += 1
-        version = ".".join(map(str, version))
+        new_version = ".".join(map(str, version))
 
-        new_mosaic = mosaic_class.from_features(
+        new_mosaic = self.mosaic_def.from_features(
             features,
             self.mosaic_def.minzoom,
             self.mosaic_def.maxzoom,
@@ -112,7 +106,7 @@ class BaseBackend(AbstractContextManager):
             max(nxmax, oxmax),
             max(nymax, oymax),
         ]
-        self._update_metadata(bounds, version)
+        self._update_metadata(bounds, new_version)
 
         # We only write if path is set
         if self.path:
