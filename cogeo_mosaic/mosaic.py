@@ -1,6 +1,6 @@
 """cogeo_mosaic.mosaic MosaicJSON models and helper functions."""
 
-from typing import Callable, Dict, List, Optional, Tuple, Sequence
+from typing import Any, Callable, Dict, List, Optional, Tuple, Sequence
 
 import warnings
 
@@ -129,13 +129,13 @@ class MosaicJSON(BaseModel):
         tiles = burntiles.burn(features, quadkey_zoom)
         tiles = [mercantile.Tile(*tile) for tile in tiles]
 
-        mosaic_definition = dict(
+        mosaic_definition: Dict[str, Any] = dict(
             mosaicjson=version,
             minzoom=minzoom,
             maxzoom=maxzoom,
             quadkey_zoom=quadkey_zoom,
             bounds=bounds,
-            center=[(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom],
+            center=((bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom),
             tiles={},
             version="1.0.0",
         )
