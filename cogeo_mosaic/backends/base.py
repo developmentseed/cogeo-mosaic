@@ -8,6 +8,7 @@ from contextlib import AbstractContextManager
 import mercantile
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.utils import get_hash
+from cogeo_mosaic.utils import bbox_union
 
 
 class BaseBackend(AbstractContextManager):
@@ -71,10 +72,6 @@ class BaseBackend(AbstractContextManager):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
-        version = list(map(int, self.mosaic_def.version.split(".")))
-        version[-1] += 1
-        new_version = ".".join(map(str, version))
-
         new_mosaic = self.mosaic_def.from_features(
             features,
             self.mosaic_def.minzoom,
@@ -92,16 +89,9 @@ class BaseBackend(AbstractContextManager):
             # add custom sorting algorithm (e.g based on path name)
             self.mosaic_def.tiles[quadkey] = assets
 
-        nxmin, nymin, nxmax, nymax = new_mosaic.bounds
-        oxmin, oymin, oxmax, oymax = self.mosaic_def.bounds
-        bounds = [
-            min(nxmin, oxmin),
-            min(nymin, oymin),
-            max(nxmax, oxmax),
-            max(nymax, oymax),
-        ]
+        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
 
-        self.mosaic_def.version = new_version
+        self.mosaic_def._increase_version()
         self.mosaic_def.bounds = bounds
         self.mosaic_def.center = (
             (bounds[0] + bounds[2]) / 2,

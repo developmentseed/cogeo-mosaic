@@ -17,6 +17,7 @@ import mercantile
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.utils import bbox_union
 
 
 class DynamoDBBackend(BaseBackend):
@@ -58,15 +59,8 @@ class DynamoDBBackend(BaseBackend):
         """Update quadkey list."""
         self.table.put_item(Item={"quadkey": quadkey, "assets": dataset})
 
-    def _update_metadata(self, bounds: List[float], version: str):
+    def _update_metadata(self):
         """Update bounds and center."""
-        self.mosaic_def.bounds = bounds
-        self.mosaic_def.center = (
-            (bounds[0] + bounds[2]) / 2,
-            (bounds[1] + bounds[3]) / 2,
-            self.mosaic_def.minzoom,
-        )
-        self.mosaic_def.version = version
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
         meta["quadkey"] = "-1"
         self.table.put_item(Item=meta)
@@ -79,10 +73,6 @@ class DynamoDBBackend(BaseBackend):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
-        version = list(map(int, self.mosaic_def.version.split(".")))
-        version[-1] += 1
-        new_version = ".".join(map(str, version))
-
         new_mosaic = self.mosaic_def.from_features(
             features,
             self.mosaic_def.minzoom,
@@ -104,24 +94,17 @@ class DynamoDBBackend(BaseBackend):
                 # add custom sorting algorithm (e.g based on path name)
                 self._update_quadkey(quadkey, assets)
 
-        nxmin, nymin, nxmax, nymax = new_mosaic.bounds
-        oxmin, oymin, oxmax, oymax = self.mosaic_def.bounds
-        bounds = [
-            min(nxmin, oxmin),
-            min(nymin, oymin),
-            max(nxmax, oxmax),
-            max(nymax, oymax),
-        ]
+        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
 
-        nxmin, nymin, nxmax, nymax = new_mosaic.bounds
-        oxmin, oymin, oxmax, oymax = self.mosaic_def.bounds
-        bounds = [
-            min(nxmin, oxmin),
-            min(nymin, oymin),
-            max(nxmax, oxmax),
-            max(nymax, oymax),
-        ]
-        self._update_metadata(bounds, new_version)
+        self.mosaic_def._increase_version()
+        self.mosaic_def.bounds = bounds
+        self.mosaic_def.center = (
+            (bounds[0] + bounds[2]) / 2,
+            (bounds[1] + bounds[3]) / 2,
+            self.mosaic_def.minzoom,
+        )
+
+        self._update_metadata()
 
         return
 

@@ -72,6 +72,13 @@ class MosaicJSON(BaseModel):
 
         validate_asignment = True
 
+    def _increase_version(self):
+        """Increment mosaicjson document version."""
+        version = list(map(int, self.version.split(".")))
+        version[-1] += 1
+        new_version = ".".join(map(str, version))
+        self.version = new_version
+
     @classmethod
     def _create_mosaic(
         cls,

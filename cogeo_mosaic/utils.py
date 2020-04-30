@@ -155,3 +155,13 @@ def _intersect_percent(tile, dataset_geoms):
     """Return the overlap percent."""
     inter_areas = area(intersection(tile, dataset_geoms))
     return [inter_area / area(tile) for inter_area in inter_areas]
+
+
+def bbox_union(bbox_1: List[float], bbox_2: List[float]) -> List[float]:
+    """Return the union of two bounding boxes."""
+    return [
+        min(bbox_1[0], bbox_2[0]),
+        min(bbox_1[1], bbox_2[1]),
+        max(bbox_1[2], bbox_2[2]),
+        max(bbox_1[3], bbox_2[3]),
+    ]
