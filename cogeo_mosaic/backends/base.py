@@ -61,9 +61,9 @@ class BaseBackend(AbstractContextManager):
         return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
 
     @property
-    def quadkeys(self) -> List[str]:
-        """Return the list of quadkey tiles."""
-        return [qk for qk, _ in self.mosaic_def.tiles.items()]
+    def _quadkeys(self) -> List[str]:
+        """Return the list of quadkeys"""
+        return list(self.mosaic_def.tiles.keys())
 
     @abc.abstractmethod
     def write(self):

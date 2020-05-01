@@ -129,3 +129,13 @@ def test_overview_valid():
             assert src_dst.height == 512
             assert src_dst.overviews(1) == [2, 4]
             assert not src_dst.compression
+
+
+def test_overview_DynamoDB():
+    """Should work as expected."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cogeo_cli, ["overview", "dynamodb://afakemosaic"], input="n\n"
+    )
+    assert not result.exception
+    assert result.exit_code == 0

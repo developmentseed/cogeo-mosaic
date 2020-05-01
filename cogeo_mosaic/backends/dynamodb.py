@@ -49,9 +49,12 @@ class DynamoDBBackend(BaseBackend):
         return self.get_assets(tile.x, tile.y, tile.z)
 
     @property
-    def quadkeys(self) -> List[str]:
+    def _quadkeys(self) -> List[str]:
         """Return the list of quadkey tiles."""
-        resp = self.table.scan(ProjectionExpression="quadkey")
+        warnings.warn(
+            "Performing full scan operation might be slow and expensive on large database."
+        )
+        resp = self.table.scan(ProjectionExpression="quadkey")  # TODO: Add pagination
         return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
 
     def write(self):

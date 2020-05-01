@@ -42,8 +42,8 @@ Commands:
   create                Create mosaic definition from list of files
   create-from-features  Create mosaic definition from GeoJSON features or features collection
   footprint             Create geojson from list of files
-  overview              [EXPERIMENT] Create COG overviews for a mosaic
-  update                Create mosaic definition from list of files
+  overview              [EXPERIMENTAL] Create a low resolution version of a mosaic
+  update                Update a mosaic definition from list of files
 ```
 
 ### Create Mosaic definition
@@ -130,6 +130,18 @@ curl https://earth-search.aws.element84.com/collections/landsat-8-l1/items | cog
     ...
 }
 ```
+
+### Create Mosaic Overview [experimental]
+
+The CLI provides an `overview` command to create low-resolution version of a mosaic. 
+This is hightly experimental and might incure some cost if you are hosting mosaic on DynamoDB or COG files on S3. To create the overview, the `overview` method will fetch all the asset's overviews (COG internal overview) and construct one or multiple COG .
+
+```
+$ cogeo-mosaic overview s3://bucket/mymosaic.json
+```
+
+![](https://user-images.githubusercontent.com/10407788/80844578-fa7c5000-8bd4-11ea-9eb8-5d1f84461dad.png)
+
 
 # Image Order
 

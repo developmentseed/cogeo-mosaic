@@ -146,7 +146,7 @@ def create_from_features(
         click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
 
 
-@cogeo_cli.command(short_help="Create mosaic definition from list of files")
+@cogeo_cli.command(short_help="Update a mosaic definition from list of files")
 @click.argument("input_files", type=click.File(mode="r"), default="-")
 @click.argument("input_mosaic", type=click.Path())
 @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
@@ -213,7 +213,9 @@ def footprint(input_files, output, threads, quiet):
         click.echo(json.dumps(foot))
 
 
-@cogeo_cli.command(short_help="[EXPERIMENT] Create COG overviews for a mosaic")
+@cogeo_cli.command(
+    short_help="[EXPERIMENTAL] Create a low resolution version of a mosaic"
+)
 @click.argument("input_mosaic", type=click.Path())
 @click.option(
     "--cog-profile",
@@ -238,10 +240,30 @@ def footprint(input_files, output, threads, quiet):
     f"Will be used to get the size of each COG. Default is {256 * 2 **6}",
 )
 @options.creation_options
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="Force overview creation for DynamoDB without asking for confirmation",
+)
 def overview(
-    input_mosaic, cogeo_profile, prefix, threads, overview_level, creation_options
+    input_mosaic, cogeo_profile, prefix, threads, overview_level, creation_options, yes
 ):
-    """Create COG overviews for a mosaic."""
+    """Create a low resolution version of a mosaic."""
+    if input_mosaic.startswith("dynamodb://") and not yes:
+        value = click.prompt(
+            click.style(
+                f"Creating overviews from a DynamoDB-backed mosaic will many read requests and might be expensive. Continue? (Y/n)"
+            ),
+            type=str,
+            default="Y",
+            err=True,
+        )
+
+        if value.lower() != "y":
+            click.secho("Alright, this might be a good thing!", err=True)
+            return
+
     output_profile = cog_profiles.get(cogeo_profile)
     output_profile.update(dict(BIGTIFF=os.environ.get("BIGTIFF", "IF_SAFER")))
     if creation_options:

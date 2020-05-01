@@ -19,6 +19,7 @@ from rio_tiler_mosaic.mosaic import mosaic_tiler
 from supermercado.burntiles import tile_extrema
 
 from cogeo_mosaic.backends import MosaicBackend
+from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.utils import _filter_futures
 
 
@@ -94,10 +95,12 @@ def create_low_level_cogs(
     """
     with MosaicBackend(mosaic_path) as mosaic:
         base_zoom = mosaic.metadata["minzoom"] - 1
+        mosaic_quadkey_zoom = mosaic.quadkey_zoom
         bounds = mosaic.metadata["bounds"]
-        mosaic_quadkeys = mosaic.quadkeys
+        mosaic_quadkeys = set(mosaic._quadkeys)
 
-        tile = mercantile.quadkey_to_tile(mosaic_quadkeys[0])
+        # Select a random quakey/asset and get dataset info
+        tile = mercantile.quadkey_to_tile(random.sample(mosaic_quadkeys, 1)[0])
         assets = mosaic.tile(*tile)
         info = _get_info(assets[0])
 
@@ -142,8 +145,13 @@ def create_low_level_cogs(
                             idx, window = wind
                             x = extrema["x"]["min"] + idx[1]
                             y = extrema["y"]["min"] + idx[0]
+                            t = mercantile.Tile(x, y, base_zoom)
 
-                            assets = mosaic.tile(x, y, base_zoom)
+                            kds = set(find_quadkeys(t, mosaic_quadkey_zoom))
+                            if not mosaic_quadkeys.intersection(kds):
+                                return window, None, None
+
+                            assets = mosaic.tile(*t)
                             if not assets:
                                 raise Exception(
                                     f"No asset for tile {x}-{y}-{base_zoom}"
@@ -160,10 +168,6 @@ def create_low_level_cogs(
                                     tilesize=tilesize,
                                     pixel_selection=defaults.FirstMethod(),
                                 )
-                                if tile is None:
-                                    raise Exception(
-                                        f"ERROR - mosaic-tiler returned empty for tile {x}-{y}-{base_zoom}"
-                                    )
 
                             return window, tile, mask
 
@@ -183,6 +187,9 @@ def create_low_level_cogs(
 
                         for f in _filter_futures(future_work):
                             window, tile, mask = f
+                            if tile is None:
+                                continue
+
                             mem.write(tile, window=window)
                             if info[5]:
                                 mem.write_mask(mask.astype("uint8"), window=window)
