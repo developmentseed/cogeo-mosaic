@@ -48,6 +48,12 @@ class DynamoDBBackend(BaseBackend):
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
+    @property
+    def quadkeys(self) -> List[str]:
+        """Return the list of quadkey tiles."""
+        resp = self.table.scan(ProjectionExpression="quadkey")
+        return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
+
     def write(self):
         """Write mosaicjson document to AWS DynamoDB."""
         self._create_table()

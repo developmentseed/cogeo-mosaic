@@ -60,6 +60,11 @@ class BaseBackend(AbstractContextManager):
         """Return Quadkey zoom property."""
         return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
 
+    @property
+    def quadkeys(self) -> List[str]:
+        """Return the list of quadkey tiles."""
+        return [qk for qk, _ in self.mosaic_def.tiles.items()]
+
     @abc.abstractmethod
     def write(self):
         """Upload new MosaicJSON to backend."""
