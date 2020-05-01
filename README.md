@@ -131,6 +131,20 @@ curl https://earth-search.aws.element84.com/collections/landsat-8-l1/items | cog
 }
 ```
 
+# Image Order
+
+**By default the order of the dataset, either passed via the CLI or in the API, defines the order of the quadkey's assets.**
+
+```python
+from cogeo_mosaic.mosaic import MosaicJSON
+
+# list of COG
+dataset = ["1.tif", "2.tif"]
+mosaic_definition = MosaicJSON.from_urls(dataset)
+
+print(mosaic_definition.tiles)
+> {"tile": {"0": ["cog1.tif", "2.tif"]}}
+```
 
 # API 
 ## Mosaic Storage Backends
