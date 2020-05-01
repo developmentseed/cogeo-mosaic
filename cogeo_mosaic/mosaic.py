@@ -210,23 +210,23 @@ class MosaicJSON(BaseModel):
         features = get_footprints(urls, max_threads=max_threads, quiet=quiet)
 
         if minzoom is None:
-            minzoom = {feat["properties"]["minzoom"] for feat in features}
-            if len(minzoom) > 1:
+            data_minzoom = {feat["properties"]["minzoom"] for feat in features}
+            if len(data_minzoom) > 1:
                 warnings.warn(
                     "Multiple MinZoom, Assets different minzoom values", UserWarning
                 )
 
-            minzoom = max(minzoom)
+            minzoom = max(data_minzoom)
 
         if maxzoom is None:
-            maxzoom = {feat["properties"]["maxzoom"] for feat in features}
-            if len(maxzoom) > 1:
+            data_maxzoom = {feat["properties"]["maxzoom"] for feat in features}
+            if len(data_maxzoom) > 1:
                 warnings.warn(
                     "Multiple MaxZoom, Assets have multiple resolution values",
                     UserWarning,
                 )
 
-            maxzoom = max(maxzoom)
+            maxzoom = max(data_maxzoom)
 
         datatype = {feat["properties"]["datatype"] for feat in features}
         if len(datatype) > 1:

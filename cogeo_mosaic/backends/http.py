@@ -50,7 +50,7 @@ class HttpBackend(BaseBackend):
         raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
-    def _read(self, gzip: bool = None) -> MosaicJSON:
+    def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         body = requests.get(self.path).content
 

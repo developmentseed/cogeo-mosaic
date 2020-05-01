@@ -239,9 +239,9 @@ $ pip install -e .[dev]
 ```
 
 
-**Python >=3.6 only**
+**Python >=3.7 only**
 
-This repo is set to use `pre-commit` to run *flake8*, *pydocstring* and *black* ("uncompromising Python code formatter") when committing new code.
+This repo is set to use `pre-commit` to run *flake8*, *pydocstring*, *black* ("uncompromising Python code formatter") and mypy when committing new code.
 
 ```
 $ pre-commit install

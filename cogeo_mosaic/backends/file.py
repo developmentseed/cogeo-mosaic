@@ -54,7 +54,7 @@ class FileBackend(BaseBackend):
                 f.write(json.dumps(body).encode("utf-8"))
 
     @functools.lru_cache(maxsize=512)
-    def _read(self, gzip: bool = None) -> MosaicJSON:
+    def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         with open(self.path, "rb") as f:
             body = f.read()

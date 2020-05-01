@@ -53,16 +53,16 @@ class S3Backend(BaseBackend):
 
     def write(self, gzip: bool = None, **kwargs: Any):
         """Write mosaicjson document to AWS S3."""
-        body = self.mosaic_def.dict(exclude_none=True)
+        mosaic_doc = self.mosaic_def.dict(exclude_none=True)
         if gzip or (gzip is None and self.key.endswith(".gz")):
-            body = _compress_gz_json(body)
+            body = _compress_gz_json(mosaic_doc)
         else:
-            body = json.dumps(body).encode("utf-8")
+            body = json.dumps(mosaic_doc).encode("utf-8")
 
         _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
 
     @functools.lru_cache(maxsize=512)
-    def _read(self, gzip: bool = None) -> MosaicJSON:
+    def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         body = _aws_get_data(self.key, self.bucket, client=self.client)
 

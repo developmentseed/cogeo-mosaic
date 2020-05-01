@@ -83,7 +83,7 @@ class DynamoDBBackend(BaseBackend):
         )
 
         fout = os.devnull if quiet else sys.stderr
-        with click.progressbar(
+        with click.progressbar(  # type: ignore
             new_mosaic.tiles.items(), file=fout, show_percent=True
         ) as items:
             for quadkey, new_assets in items:
@@ -156,7 +156,7 @@ class DynamoDBBackend(BaseBackend):
                     batch.put_item(item)
 
     @functools.lru_cache(maxsize=512)
-    def _read(self) -> MosaicJSON:
+    def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
         meta = self._fetch_dynamodb("-1")
 
