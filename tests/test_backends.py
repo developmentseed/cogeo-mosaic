@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from cogeo_mosaic.model import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
@@ -75,10 +75,6 @@ def test_file_backend():
             "bounds",
             "center",
         ]
-
-    with pytest.raises(NotImplementedError):
-        with MosaicBackend(mosaic_json) as mosaic:
-            mosaic.update()
 
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -205,16 +201,6 @@ def test_s3_backend(session):
         }
     session.return_value.client.return_value.put_object.return_value = True
 
-    with pytest.raises(NotImplementedError):
-        with MosaicBackend("s3://mybucket/mymosaic.json.gz") as mosaic:
-            assert isinstance(mosaic, S3Backend)
-            mosaic.update()
-    session.return_value.client.return_value.get_object.assert_called_once_with(
-        Bucket="mybucket", Key="mymosaic.json.gz"
-    )
-    session.return_value.client.return_value.put_object.assert_not_called()
-    session.reset_mock()
-
     with MosaicBackend(
         "s3://mybucket/mymosaic.json.gz", mosaic_def=mosaic_content
     ) as mosaic:
@@ -314,13 +300,6 @@ def test_dynamoDB_backend(client):
         ]
         assert mosaic.tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.point(-73, 45) == ["cog1.tif", "cog2.tif"]
-
-    with pytest.raises(NotImplementedError):
-        with MosaicBackend(
-            "dynamodb:///thiswaskylebarronidea", mosaic_def=mosaic_content
-        ) as mosaic:
-            assert isinstance(mosaic, DynamoDBBackend)
-            mosaic.update()
 
     with MosaicBackend(
         "dynamodb:///thiswaskylebarronidea", mosaic_def=mosaic_content

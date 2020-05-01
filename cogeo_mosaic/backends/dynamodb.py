@@ -1,11 +1,12 @@
 """cogeo-mosaic AWS DynamoDB backend."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Sequence
 
 import functools
 import itertools
 import json
 import os
+import sys
 import warnings
 from decimal import Decimal
 
@@ -15,7 +16,8 @@ import mercantile
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
-from cogeo_mosaic.model import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.utils import bbox_union
 
 
 class DynamoDBBackend(BaseBackend):
@@ -31,6 +33,7 @@ class DynamoDBBackend(BaseBackend):
         """Initialize DynamoDBBackend."""
         self.client = client or boto3.resource("dynamodb", region_name=region)
         self.table = self.client.Table(table_name)
+        self.path = f"dynamodb://{region}/{table_name}"
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
@@ -52,9 +55,58 @@ class DynamoDBBackend(BaseBackend):
         items = self._create_items()
         self._write_items(items)
 
-    def update(self):
-        """Update the mosaicjson document."""
-        raise NotImplementedError
+    def _update_quadkey(self, quadkey: str, dataset: List[str]):
+        """Update quadkey list."""
+        self.table.put_item(Item={"quadkey": quadkey, "assets": dataset})
+
+    def _update_metadata(self):
+        """Update bounds and center."""
+        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        meta["quadkey"] = "-1"
+        self.table.put_item(Item=meta)
+
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
+        """Update existing MosaicJSON on backend."""
+        new_mosaic = self.mosaic_def.from_features(
+            features,
+            self.mosaic_def.minzoom,
+            self.mosaic_def.maxzoom,
+            quadkey_zoom=self.quadkey_zoom,
+            quiet=quiet,
+            **kwargs,
+        )
+
+        fout = os.devnull if quiet else sys.stderr
+        with click.progressbar(
+            new_mosaic.tiles.items(), file=fout, show_percent=True
+        ) as items:
+            for quadkey, new_assets in items:
+                tile = mercantile.quadkey_to_tile(quadkey)
+                assets = self.tile(*tile)
+                assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+
+                # add custom sorting algorithm (e.g based on path name)
+                self._update_quadkey(quadkey, assets)
+
+        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
+
+        self.mosaic_def._increase_version()
+        self.mosaic_def.bounds = bounds
+        self.mosaic_def.center = (
+            (bounds[0] + bounds[2]) / 2,
+            (bounds[1] + bounds[3]) / 2,
+            self.mosaic_def.minzoom,
+        )
+
+        self._update_metadata()
+
+        return
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST"):
         # Define schema for primary key

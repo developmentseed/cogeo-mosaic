@@ -7,7 +7,6 @@ import mercantile
 import pytest
 
 from cogeo_mosaic import utils
-from cogeo_mosaic.create import create_mosaic
 
 asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
 asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
@@ -53,22 +52,3 @@ def test_tiles_to_bounds():
     """Get tiles bounds for zoom level."""
     tiles = [mercantile.Tile(x=150, y=182, z=9), mercantile.Tile(x=151, y=182, z=9)]
     assert len(utils.tiles_to_bounds(tiles)) == 4
-
-
-def test_update_mosaic():
-    """Create mosaic and update it."""
-    mosaic = create_mosaic([asset1], minzoom=9)
-    assert len(mosaic["tiles"]) == 36
-
-    mosaic = create_mosaic([asset1], minzoom=9)
-    assert mosaic["version"] == "1.0.0"
-    utils.update_mosaic([asset2], mosaic)
-
-    assert len(mosaic["tiles"]) == 48
-    assert len(mosaic["tiles"]["030230132"]) == 2
-    assert mosaic["version"] == "1.0.1"
-
-    mosaic = create_mosaic([asset1], minzoom=9)
-    utils.update_mosaic([asset2], mosaic, minimum_tile_cover=0.1)
-    assert len(mosaic["tiles"]) == 47
-    assert len(mosaic["tiles"]["030230132"]) == 1

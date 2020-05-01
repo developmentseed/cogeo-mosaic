@@ -7,13 +7,13 @@ from click.testing import CliRunner
 import rasterio
 from rio_cogeo.profiles import cog_profiles
 
-from cogeo_mosaic.create import create_mosaic
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.overviews import create_low_level_cogs
 
 asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
 asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
 assets = [asset1, asset2]
-mosaic_content = create_mosaic(assets)
+mosaic_content = MosaicJSON.from_urls(assets).dict(exclude_none=True)
 
 deflate_profile = cog_profiles.get("deflate")
 deflate_profile.update({"blockxsize": 256, "blockysize": 256})

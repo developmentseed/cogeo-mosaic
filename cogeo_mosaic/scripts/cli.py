@@ -7,10 +7,11 @@ from pkg_resources import iter_entry_points
 
 from click_plugins import with_plugins
 import click
+import cligj
 
 from cogeo_mosaic import version as cogeo_mosaic_version
-from cogeo_mosaic.utils import get_footprints, update_mosaic
-from cogeo_mosaic.create import create_mosaic
+from cogeo_mosaic.utils import get_footprints
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.overviews import create_low_level_cogs
 
@@ -74,7 +75,7 @@ def create(
 ):
     """Create mosaic definition file."""
     input_files = input_files.read().splitlines()
-    mosaicjson = create_mosaic(
+    mosaicjson = MosaicJSON.from_urls(
         input_files,
         minzoom=minzoom,
         maxzoom=maxzoom,
@@ -89,37 +90,97 @@ def create(
         with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
             mosaic.write()
     else:
-        click.echo(json.dumps(mosaicjson))
+        click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
 
 
-@cogeo_cli.command(short_help="Create mosaic definition from list of files")
-@click.argument("input_files", type=click.File(mode="r"), default="-")
-@click.argument("input_mosaic", type=click.Path())
+@cogeo_cli.command(
+    short_help="Create mosaic definition from GeoJSON features or features collection"
+)
+@cligj.features_in_arg
 @click.option("--output", "-o", type=click.Path(exists=False), help="Output file name")
+@click.option("--minzoom", type=int, help="Mosaic minimum zoom level.", required=True)
+@click.option("--maxzoom", type=int, help="Mosaic maximum zoom level.", required=True)
+@click.option("--property", type=str, help="Define accessor property", required=True)
+@click.option(
+    "--quadkey-zoom",
+    type=int,
+    help="An integer to overwrite the quadkey zoom level used for keys in the MosaicJSON.",
+)
 @click.option("--min-tile-cover", type=float, help="Minimum % overlap")
 @click.option(
-    "--threads",
-    type=int,
-    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
-    help="threads",
+    "--tile-cover-sort", help="Sort files by covering %", is_flag=True, default=False
 )
-def update(input_files, input_mosaic, output, min_tile_cover, threads):
-    """Update mosaic definition file."""
-    input_files = input_files.read().splitlines()
-
-    # TODO: Won't work for DynamoDB
-    with MosaicBackend(input_mosaic) as mosaic:
-        mosaic_def = mosaic.mosaic_def.dict()
-
-    mosaicjson = update_mosaic(
-        input_files, mosaic_def, minimum_tile_cover=min_tile_cover, max_threads=threads
+@click.option(
+    "--quiet",
+    "-q",
+    help="Remove progressbar and other non-error output.",
+    is_flag=True,
+    default=False,
+)
+def create_from_features(
+    features,
+    output,
+    minzoom,
+    maxzoom,
+    property,
+    quadkey_zoom,
+    min_tile_cover,
+    tile_cover_sort,
+    quiet,
+):
+    """Create mosaic definition file."""
+    mosaicjson = MosaicJSON.from_features(
+        list(features),
+        minzoom,
+        maxzoom,
+        quadkey_zoom=quadkey_zoom,
+        accessor=lambda feature: feature["properties"][property],
+        minimum_tile_cover=min_tile_cover,
+        tile_cover_sort=tile_cover_sort,
+        quiet=quiet,
     )
 
     if output:
         with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
             mosaic.write()
     else:
-        click.echo(json.dumps(mosaicjson))
+        click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
+
+
+@cogeo_cli.command(short_help="Create mosaic definition from list of files")
+@click.argument("input_files", type=click.File(mode="r"), default="-")
+@click.argument("input_mosaic", type=click.Path())
+@click.option("--min-tile-cover", type=float, help="Minimum % overlap")
+@click.option(
+    "--add-first/--add-last",
+    help="Appends dataset on top of the existing scenes.",
+    is_flag=True,
+    default=True,
+)
+@click.option(
+    "--threads",
+    type=int,
+    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
+    help="threads",
+)
+@click.option(
+    "--quiet",
+    "-q",
+    help="Remove progressbar and other non-error output.",
+    is_flag=True,
+    default=False,
+)
+def update(input_files, input_mosaic, min_tile_cover, add_first, threads, quiet):
+    """Update mosaic definition file."""
+    input_files = input_files.read().splitlines()
+    features = get_footprints(input_files, max_threads=threads)
+    with MosaicBackend(input_mosaic) as mosaic:
+        mosaic.update(
+            features,
+            add_first=add_first,
+            minimum_tile_cover=min_tile_cover,
+            quiet=quiet,
+        )
 
 
 @cogeo_cli.command(short_help="Create geojson from list of files")

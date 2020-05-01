@@ -7,7 +7,7 @@ import functools
 
 import mercantile
 
-from cogeo_mosaic.model import MosaicJSON
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
     _compress_gz_json,
@@ -23,7 +23,7 @@ class FileBackend(BaseBackend):
         self,
         path: str,
         mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         """Initialize FileBackend."""
         self.path = path
@@ -52,10 +52,6 @@ class FileBackend(BaseBackend):
                 f.write(_compress_gz_json(body))
             else:
                 f.write(json.dumps(body).encode("utf-8"))
-
-    def update(self):
-        """Update the mosaicjson document."""
-        raise NotImplementedError
 
     @functools.lru_cache(maxsize=512)
     def _read(self, gzip: bool = None) -> MosaicJSON:

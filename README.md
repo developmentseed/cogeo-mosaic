@@ -39,9 +39,11 @@ Options:
   --help     Show this message and exit.
 
 Commands:
-  create     Create mosaic definition from list of files
-  footprint  Create geojson from list of files
-  overview   [EXPERIMENT] Create COG overviews for a mosaic
+  create                Create mosaic definition from list of files
+  create-from-features  Create mosaic definition from GeoJSON features or features collection
+  footprint             Create geojson from list of files
+  overview              [EXPERIMENT] Create COG overviews for a mosaic
+  update                Create mosaic definition from list of files
 ```
 
 ### Create Mosaic definition
@@ -71,6 +73,10 @@ $ cogeo-mosaic create list.txt -o mosaic.json
 # or 
 
 $ cat list.txt | cogeo-mosaic create - | gzip > mosaic.json.gz
+
+# or use backends like AWS S3 or DynamoDB
+
+$ cogeo-mosaic create list.txt -o s3://my-bucket/my-key.json.gz
 ```
 
 #### Example: create a mosaic from OAM
@@ -83,6 +89,49 @@ $ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.res
 $ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.results.images[] | .uuid' | cogeo-mosaic footprint | gist -p -f test.geojson
 ```
 
+### Create Mosaic definition from a GeoJSON features collection (e.g STAC)
+
+This module is first design to create mosaicJSON from a set of COG urls but starting in version `3.0.0` we have added a CLI to be able to create mosaicJSON from GeoJSON features.
+```
+$ cogeo-mosaic create-from-features --help
+Usage: cogeo-mosaic create-from-features [OPTIONS] FEATURES...
+
+  Create mosaic definition file.
+
+Options:
+  -o, --output PATH       Output file name
+  --minzoom INTEGER       Mosaic minimum zoom level.  [required]
+  --maxzoom INTEGER       Mosaic maximum zoom level.  [required]
+  --property TEXT         Define accessor property  [required]
+  --quadkey-zoom INTEGER  An integer to overwrite the quadkey zoom level used for keys in the MosaicJSON.
+  --min-tile-cover FLOAT  Minimum % overlap
+  --tile-cover-sort       Sort files by covering %
+  -q, --quiet             Remove progressbar and other non-error output.
+  --help                  Show this message and exit.
+```
+
+#### Use it with STAC
+
+```bash
+curl https://earth-search.aws.element84.com/collections/landsat-8-l1/items | cogeo-mosaic create-from-features --minzoom 7 --maxzoom 12 --property "landsat:scene_id" --quiet | jq
+
+{
+  "mosaicjson": "0.0.2",
+  "version": "1.0.0",
+  "minzoom": 7,
+  "maxzoom": 12,
+  "quadkey_zoom": 7,
+  "bounds": [16.142300225571994, -28.513088675819393, 67.21380296165974, 81.2067478836583],
+  "center": [41.67805159361586, 26.346829603919453, 7],
+  "tiles": {
+    "1012123": [
+      "LC81930022020114LGN00"
+    ],
+    ...
+}
+```
+
+
 # API 
 ## Mosaic Storage Backend
 
@@ -90,7 +139,7 @@ Starting in version `3.0.0`, we introduced specific backend storage for:
 - **File** (default, `file:///`)
 - **HTTP/HTTPS/FTP** (`https://`, `https://`, `ftp://`)
 - **AWS S3** (`s3://`)
-- **AWS DynamoDB*** (`dynamodb://{region}/{table_name}`)
+- **AWS DynamoDB** (`dynamodb://{region}/{table_name}`)
 
 More info on Backend can be found in [/docs/backends.md](/docs/backends.md)
 
@@ -100,9 +149,9 @@ More info on Backend can be found in [/docs/backends.md](/docs/backends.md)
 - **tile(x, y, z)**: find assets for a specific tile
 - **point(lng, lat)**: find assets for a specific point
 - **write**: Write mosaicJSON doc to the backend
-- **update**: Update mosaicJSON data
+- **update(features)**: Update mosaicJSON data with a list of features
 
-##### Read
+##### Read and Get assets
 ```python
 # MosaicBackend is the top level backend and will distribute to the
 # correct backend by checking the path/url schema.
@@ -121,6 +170,16 @@ mosaicdata = create_mosaic(["1.tif", "2.tif"])
 
 with MosaicBackend("s3://mybucket/amosaic.json", mosaic_def=mosaicdata) as mosaic:
     mosaic.write() # trigger upload to S3
+```
+
+##### Update
+```python
+from cogeo_mosaic.utils import get_footprints
+from cogeo_mosaic.backends import MosaicBackend
+
+with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
+    features = get_footprints(["3.tif"]) # Get footprint
+    mosaic.update(features) # Update mosaicJSON and upload to S3
 ```
 
 #### In Memory

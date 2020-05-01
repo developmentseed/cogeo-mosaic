@@ -1,17 +1,20 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 import abc
 from contextlib import AbstractContextManager
 
-from cogeo_mosaic.model import MosaicJSON
+import mercantile
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.utils import get_hash
+from cogeo_mosaic.utils import bbox_union
 
 
 class BaseBackend(AbstractContextManager):
     """Base Class for cogeo-mosaic backend storage."""
 
+    path: str
     mosaic_def: MosaicJSON
 
     @abc.abstractmethod
@@ -61,6 +64,43 @@ class BaseBackend(AbstractContextManager):
     def write(self):
         """Upload new MosaicJSON to backend."""
 
-    @abc.abstractmethod
-    def update(self):
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
         """Update existing MosaicJSON on backend."""
+        new_mosaic = self.mosaic_def.from_features(
+            features,
+            self.mosaic_def.minzoom,
+            self.mosaic_def.maxzoom,
+            quadkey_zoom=self.quadkey_zoom,
+            quiet=quiet,
+            **kwargs,
+        )
+
+        for quadkey, new_assets in new_mosaic.tiles.items():
+            tile = mercantile.quadkey_to_tile(quadkey)
+            assets = self.tile(*tile)
+            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+
+            # add custom sorting algorithm (e.g based on path name)
+            self.mosaic_def.tiles[quadkey] = assets
+
+        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
+
+        self.mosaic_def._increase_version()
+        self.mosaic_def.bounds = bounds
+        self.mosaic_def.center = (
+            (bounds[0] + bounds[2]) / 2,
+            (bounds[1] + bounds[3]) / 2,
+            self.mosaic_def.minzoom,
+        )
+
+        # We only write if path is set
+        if self.path:
+            self.write()
+
+        return

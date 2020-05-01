@@ -3,7 +3,8 @@ import os
 
 import pytest
 
-from cogeo_mosaic.create import create_mosaic
+from cogeo_mosaic.mosaic import MosaicJSON, default_filter
+
 
 basepath = os.path.join(os.path.dirname(__file__), "fixtures")
 mosaic_gz = os.path.join(basepath, "mosaic.json.gz")
@@ -20,57 +21,62 @@ with open(mosaic_json, "r") as f:
         mosaic_content["tiles"][qk] = [os.path.join(basepath, item) for item in asset]
 
 
+def _filter_and_sort(*args, **kwargs):
+    dataset = default_filter(*args, **kwargs)
+    return sorted(dataset, key=lambda x: x["properties"]["path"], reverse=True)
+
+
 def test_mosaic_create():
     """Fetch info from dataset and create the mosaicJSON definition."""
     assets = [asset1, asset2]
-    mosaic = create_mosaic(assets, quiet=False)
-    assert [round(b, 3) for b in mosaic["bounds"]] == [
+    mosaic = MosaicJSON.from_urls(assets, quiet=False)
+    assert [round(b, 3) for b in list(mosaic.bounds)] == [
         round(b, 3) for b in mosaic_content["bounds"]
     ]
-    assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
-    assert mosaic["minzoom"] == mosaic_content["minzoom"]
-    assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
-    assert mosaic["tiles"] == mosaic_content["tiles"]
+    assert mosaic.maxzoom == mosaic_content["maxzoom"]
+    assert mosaic.minzoom == mosaic_content["minzoom"]
+    assert list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
+    assert mosaic.tiles == mosaic_content["tiles"]
 
-    mosaic = create_mosaic(assets, minzoom=7, maxzoom=9)
-    assert [round(b, 3) for b in mosaic["bounds"]] == [
+    mosaic = MosaicJSON.from_urls(assets, minzoom=7, maxzoom=9)
+    assert [round(b, 3) for b in list(mosaic.bounds)] == [
         round(b, 3) for b in mosaic_content["bounds"]
     ]
-    assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
-    assert mosaic["minzoom"] == mosaic_content["minzoom"]
-    assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
+    assert mosaic.maxzoom == mosaic_content["maxzoom"]
+    assert mosaic.minzoom == mosaic_content["minzoom"]
+    assert list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
 
     # 5% tile cover filter
-    mosaic = create_mosaic(assets, minimum_tile_cover=0.05)
-    assert not list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
+    mosaic = MosaicJSON.from_urls(assets, minimum_tile_cover=0.059)
+    assert not list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
 
     # sort by tile cover
-    mosaic = create_mosaic(assets, tile_cover_sort=True)
-    assert list(mosaic["tiles"].keys()) == list(mosaic_content["tiles"].keys())
-    assert not mosaic["tiles"] == mosaic_content["tiles"]
+    mosaic = MosaicJSON.from_urls(assets, tile_cover_sort=True)
+    assert list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
+    assert not mosaic.tiles == mosaic_content["tiles"]
 
     assets = [asset1, asset2]
-    mosaic = create_mosaic(assets)
-    assert [round(b, 3) for b in mosaic["bounds"]] == [
+    mosaic = MosaicJSON.from_urls(assets)
+    assert [round(b, 3) for b in list(mosaic.bounds)] == [
         round(b, 3) for b in mosaic_content["bounds"]
     ]
-    assert mosaic["maxzoom"] == mosaic_content["maxzoom"]
-
-    # Wrong MosaicJSON version
-    with pytest.raises(Exception):
-        create_mosaic(assets, version="0.0.3")
+    assert mosaic.maxzoom == mosaic_content["maxzoom"]
 
     with pytest.warns(None) as record:
-        mosaic = create_mosaic([asset1_small, asset2], minzoom=7, maxzoom=9)
+        MosaicJSON.from_urls([asset1_small, asset2], minzoom=7, maxzoom=9)
         assert not len(record)
 
     # Multiple MaxZoom
     with pytest.warns(UserWarning):
         assets = [asset1_small, asset2]
-        create_mosaic(assets)
+        MosaicJSON.from_urls(assets)
 
     # Mixed datatype
     with pytest.raises(Exception):
         asset1_uint32
         assets = [asset1_uint32, asset2]
-        create_mosaic(assets)
+        MosaicJSON.from_urls(assets)
+
+    assets = [asset1, asset2]
+    mosaic = MosaicJSON.from_urls(assets, asset_filter=_filter_and_sort, quiet=False)
+    assert not mosaic.tiles == mosaic_content["tiles"]
