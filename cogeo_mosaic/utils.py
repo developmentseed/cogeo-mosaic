@@ -1,11 +1,10 @@
 """cogeo_mosaic.utils: utility functions."""
 
-from typing import Dict, List, Tuple, Sequence
+from typing import Dict, List, Sequence
 
 import os
 import sys
 import logging
-import functools
 from concurrent import futures
 
 import click
@@ -121,34 +120,6 @@ def tiles_to_bounds(tiles: List[mercantile.Tile]) -> List[float]:
     ulx, uly = mercantile.ul(extrema["x"]["min"], extrema["y"]["min"], zoom)
     lrx, lry = mercantile.ul(extrema["x"]["max"], extrema["y"]["max"], zoom)
     return [ulx, lry, lrx, uly]
-
-
-def get_point_values(assets: Tuple[str], lng: float, lat: float) -> List:
-    """Read assets and return point values."""
-
-    def _get_point(asset: str, coordinates: Tuple[float, float]) -> dict:
-        with rasterio.open(asset) as src_dst:
-            lng_srs, lat_srs = rasterio.warp.transform(
-                "epsg:4326", src_dst.crs, [coordinates[0]], [coordinates[1]]
-            )
-
-            if not (
-                (src_dst.bounds[0] < lng_srs[0] < src_dst.bounds[2])
-                and (src_dst.bounds[1] < lat_srs[0] < src_dst.bounds[3])
-            ):
-                raise Exception("Outside bounds")
-
-            return {
-                "asset": asset,
-                "values": list(
-                    src_dst.sample([(lng_srs[0], lat_srs[0])], indexes=src_dst.indexes)
-                )[0].tolist(),
-            }
-
-    _points = functools.partial(_get_point, coordinates=[lng, lat])
-    with futures.ThreadPoolExecutor() as executor:
-        future_work = [executor.submit(_points, item) for item in assets]
-        return list(_filter_futures(future_work))
 
 
 def _intersect_percent(tile, dataset_geoms):

@@ -133,7 +133,7 @@ curl https://earth-search.aws.element84.com/collections/landsat-8-l1/items | cog
 
 
 # API 
-## Mosaic Storage Backend
+## Mosaic Storage Backends
 
 Starting in version `3.0.0`, we introduced specific backend storage for:
 - **File** (default, `file:///`)
@@ -141,15 +141,43 @@ Starting in version `3.0.0`, we introduced specific backend storage for:
 - **AWS S3** (`s3://`)
 - **AWS DynamoDB** (`dynamodb://{region}/{table_name}`)
 
-More info on Backend can be found in [/docs/backends.md](/docs/backends.md)
+To ease the usage we added a helper function to use the right backend based on the uri schema: `cogeo_mosaic.backends.MosaicBackend`
 
-##### Methods & properties
-- **mosaic_def**: MosaicJSON data (pydantic model)
-- **metadata**: mosaic metadata (all set values except `tiles`)
-- **tile(x, y, z)**: find assets for a specific tile
-- **point(lng, lat)**: find assets for a specific point
-- **write**: Write mosaicJSON doc to the backend
-- **update(features)**: Update mosaicJSON data with a list of features
+```python
+from cogeo_mosaic.backends import MosaicBackend
+
+with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.s3.S3Backend)
+
+with MosaicBackend("https://mosaic.com/amosaic.json.gz") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.http.HttpBackend)
+
+with MosaicBackend("dynamodb://us-east-1/amosaic") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.dynamodb.DynamoDBBackend)
+
+with MosaicBackend("file:///amosaic.json.gz") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
+
+with MosaicBackend("amosaic.json.gz") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
+```
+
+##### Properties and Methods
+```python
+from cogeo_mosaic.backends import MosaicBackend
+
+# Read
+with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
+    mosaic.mosaic_def         # property - MosaicJSON document, wrapped in a Pydantic Model
+    mosaic.metadata           # property - Return mosaic metadata
+    mosaic.mosaicid           # property - Return sha224 id from the mosaicjson doc
+    mosaic.quadkey_zoom       # property - Return Quadkey zoom of the mosaic
+
+    mosaic.tile(1,2,3)        # method - Find assets for a specific mercator tile
+    mosaic.point(lng, lat)    # method - Find assets for a specific point
+    mosaic.write()            # method - Write the mosaicjson to the given location
+    mosaic.update([features]) # method - Update the mosaicjson data with a list of features
+```
 
 ##### Read and Get assets
 ```python

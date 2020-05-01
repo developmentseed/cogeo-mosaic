@@ -1,7 +1,13 @@
 3.0.0 (TBD)
 ------------------
+This is a major version, meaning a lot of refactoring was done and may lead to breacking changes.
+
 - add quadkey_zoom option in CLI (#41, author @kylebarron)
 - use R-tree from pygeos for testing intersections (#43, author @kylebarron)
+
+**API breacking changes**
+- added BackendStorage for dynamodb, s3, file and http (with @kylebarron)
+- added MosaicJSON pydantic model for internal mosaicjson representation (with @kylebarron and @geospatial-jeff)
 
 2.0.1 (2020-01-28)
 ------------------
