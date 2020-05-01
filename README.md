@@ -245,11 +245,15 @@ This repo is set to use `pre-commit` to run *flake8*, *pydocstring*, *black* ("u
 
 ```
 $ pre-commit install
+
 $ git add .
+
 $ git commit -m'my change'
 black....................................................................Passed
 Flake8...................................................................Passed
 Verifying PEP257 Compliance..............................................Passed
+mypy.....................................................................Passed
+
 $ git push origin
 ```
 
