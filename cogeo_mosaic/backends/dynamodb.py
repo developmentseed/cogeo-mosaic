@@ -48,6 +48,15 @@ class DynamoDBBackend(BaseBackend):
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
+    @property
+    def _quadkeys(self) -> List[str]:
+        """Return the list of quadkey tiles."""
+        warnings.warn(
+            "Performing full scan operation might be slow and expensive on large database."
+        )
+        resp = self.table.scan(ProjectionExpression="quadkey")  # TODO: Add pagination
+        return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
+
     def write(self):
         """Write mosaicjson document to AWS DynamoDB."""
         self._create_table()

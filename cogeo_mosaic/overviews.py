@@ -11,13 +11,15 @@ from affine import Affine
 from rasterio.io import MemoryFile
 from rasterio.windows import Window
 from rio_cogeo.cogeo import cog_translate
-from rio_cogeo.utils import _meters_per_pixel, has_mask_band
+from rio_cogeo.utils import _meters_per_pixel
 from rio_tiler.io import cogeo
+from rio_tiler.utils import has_mask_band, non_alpha_indexes
 from rio_tiler_mosaic.methods import defaults
 from rio_tiler_mosaic.mosaic import mosaic_tiler
 from supermercado.burntiles import tile_extrema
 
 from cogeo_mosaic.backends import MosaicBackend
+from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.utils import _filter_futures
 
 
@@ -26,6 +28,7 @@ def _get_info(asset: str) -> Tuple:
         description = [
             src_dst.descriptions[b - 1] for i, b in enumerate(src_dst.indexes)
         ]
+        indexes = non_alpha_indexes(src_dst)
         mask = has_mask_band(src_dst)
         return (
             src_dst.count,
@@ -34,14 +37,8 @@ def _get_info(asset: str) -> Tuple:
             src_dst.tags(),
             src_dst.nodata,
             mask,
+            indexes,
         )
-
-
-# TODO: Won't work with DynamoDB
-def _get_asset_example(mosaic_def: Dict) -> str:
-    t = list(mosaic_def["tiles"].keys())[0]
-    asset = mosaic_def["tiles"][t][0]
-    return asset
 
 
 def _split_extrema(extrema: Dict, max_ovr: int = 6, tilesize: int = 256):
@@ -96,14 +93,16 @@ def create_low_level_cogs(
         Rasterio Env options.
 
     """
-    # TODO: Won't work for DynamoDB
     with MosaicBackend(mosaic_path) as mosaic:
-        mosaic_def = mosaic.mosaic_def.dict()
+        base_zoom = mosaic.metadata["minzoom"] - 1
+        mosaic_quadkey_zoom = mosaic.quadkey_zoom
+        bounds = mosaic.metadata["bounds"]
+        mosaic_quadkeys = set(mosaic._quadkeys)
 
-        base_zoom = mosaic_def["minzoom"] - 1
-        bounds = mosaic_def["bounds"]
-        asset = _get_asset_example(mosaic_def)
-        info = _get_info(asset)
+        # Select a random quakey/asset and get dataset info
+        tile = mercantile.quadkey_to_tile(random.sample(mosaic_quadkeys, 1)[0])
+        assets = mosaic.tile(*tile)
+        info = _get_info(assets[0])
 
         extrema = tile_extrema(bounds, base_zoom)
         tilesize = 256
@@ -126,7 +125,7 @@ def create_low_level_cogs(
             params = dict(
                 driver="GTiff",
                 dtype=info[1],
-                count=info[0],
+                count=len(info[6]),
                 width=width,
                 height=height,
                 crs="epsg:3857",
@@ -146,7 +145,18 @@ def create_low_level_cogs(
                             idx, window = wind
                             x = extrema["x"]["min"] + idx[1]
                             y = extrema["y"]["min"] + idx[0]
-                            assets = list(set(mosaic.tile(x, y, base_zoom)))
+                            t = mercantile.Tile(x, y, base_zoom)
+
+                            kds = set(find_quadkeys(t, mosaic_quadkey_zoom))
+                            if not mosaic_quadkeys.intersection(kds):
+                                return window, None, None
+
+                            assets = mosaic.tile(*t)
+                            if not assets:
+                                raise Exception(
+                                    f"No asset for tile {x}-{y}-{base_zoom}"
+                                )
+
                             if assets:
                                 tile, mask = mosaic_tiler(
                                     assets,
@@ -154,11 +164,10 @@ def create_low_level_cogs(
                                     y,
                                     base_zoom,
                                     cogeo.tile,
+                                    indexes=info[6],
                                     tilesize=tilesize,
                                     pixel_selection=defaults.FirstMethod(),
                                 )
-                                if tile is None:
-                                    raise Exception("Empty")
 
                             return window, tile, mask
 
@@ -178,6 +187,9 @@ def create_low_level_cogs(
 
                         for f in _filter_futures(future_work):
                             window, tile, mask = f
+                            if tile is None:
+                                continue
+
                             mem.write(tile, window=window)
                             if info[5]:
                                 mem.write_mask(mask.astype("uint8"), window=window)

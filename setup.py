@@ -2,6 +2,9 @@
 
 from setuptools import find_packages, setup
 
+with open("README.md") as f:
+    readme = f.read()
+
 # Runtime requirements.
 inst_reqs = [
     "mercantile",
@@ -23,9 +26,10 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="2.0.1",
-    description=u"Create Cloud Optimized GeoTIFF mosaicsJSON.",
-    long_description=u"Create Cloud Optimized GeoTIFF mosaicsJSON.",
+    version="3.0a1",
+    description=u"Create mosaicJSON.",
+    long_description=readme,
+    long_description_content_type="text/markdown",
     python_requires=">=3",
     classifiers=[
         "Intended Audience :: Information Technology",
@@ -33,8 +37,9 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Topic :: Scientific/Engineering :: GIS",
     ],
-    keywords="COG COGEO Mosaic GIS",
+    keywords="COG Mosaic GIS",
     author=u"Vincent Sarago",
     author_email="vincent@developmentseed.org",
     url="https://github.com/developmentseed/cogeo-mosaic",
