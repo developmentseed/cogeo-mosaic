@@ -5,7 +5,6 @@ import pytest
 
 from cogeo_mosaic.mosaic import MosaicJSON, default_filter
 
-
 basepath = os.path.join(os.path.dirname(__file__), "fixtures")
 mosaic_gz = os.path.join(basepath, "mosaic.json.gz")
 mosaic_json = os.path.join(basepath, "mosaic.json")

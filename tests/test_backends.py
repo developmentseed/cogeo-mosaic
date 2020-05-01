@@ -1,26 +1,23 @@
 """Test backends."""
 
-from typing import Dict, List
-
-import os
 import json
+import os
 import time
-from io import BytesIO
 from decimal import Decimal
-
-import pytest
+from io import BytesIO
+from typing import Dict, List
 from unittest.mock import patch
 
+import pytest
 from click.testing import CliRunner
 
-from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.backends.http import HttpBackend
 from cogeo_mosaic.backends.s3 import S3Backend
 from cogeo_mosaic.backends.utils import _decompress_gz
-
+from cogeo_mosaic.mosaic import MosaicJSON
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
 mosaic_bin = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.bin")

@@ -1,22 +1,21 @@
 """Cogeo-mosaic: cli."""
 
-import os
 import json
 import multiprocessing
-from pkg_resources import iter_entry_points
+import os
 
-from click_plugins import with_plugins
 import click
 import cligj
-
-from cogeo_mosaic import version as cogeo_mosaic_version
-from cogeo_mosaic.utils import get_footprints
-from cogeo_mosaic.mosaic import MosaicJSON
-from cogeo_mosaic.backends import MosaicBackend
-from cogeo_mosaic.overviews import create_low_level_cogs
-
+from click_plugins import with_plugins
+from pkg_resources import iter_entry_points
 from rasterio.rio import options
 from rio_cogeo.profiles import cog_profiles
+
+from cogeo_mosaic import version as cogeo_mosaic_version
+from cogeo_mosaic.backends import MosaicBackend
+from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.overviews import create_low_level_cogs
+from cogeo_mosaic.utils import get_footprints
 
 
 @with_plugins(iter_entry_points("cogeo_mosaic.plugins"))

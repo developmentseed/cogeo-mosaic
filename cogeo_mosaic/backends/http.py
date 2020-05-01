@@ -1,16 +1,15 @@
 """cogeo-mosaic HTTP backend."""
 
+import functools
+import json
 from typing import Any, Dict, List, Optional, Union
 
-import json
-import functools
-
-import requests
 import mercantile
+import requests
 
-from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import _decompress_gz, get_assets_from_json
+from cogeo_mosaic.mosaic import MosaicJSON
 
 
 class HttpBackend(BaseBackend):

@@ -1,7 +1,5 @@
 """cogeo-mosaic AWS DynamoDB backend."""
 
-from typing import Any, Dict, List, Optional, Union, Sequence
-
 import functools
 import itertools
 import json
@@ -9,6 +7,7 @@ import os
 import sys
 import warnings
 from decimal import Decimal
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import boto3
 import click

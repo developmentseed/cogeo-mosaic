@@ -1,10 +1,10 @@
 """tests cogeo_mosaic.overview."""
 
-import os
 import json
-from click.testing import CliRunner
+import os
 
 import rasterio
+from click.testing import CliRunner
 from rio_cogeo.profiles import cog_profiles
 
 from cogeo_mosaic.mosaic import MosaicJSON

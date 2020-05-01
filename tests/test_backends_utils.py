@@ -1,12 +1,12 @@
 """Test backends utils."""
 
+import json
 import os
 import re
-import json
 
 import mercantile
-from cogeo_mosaic.backends import utils
 
+from cogeo_mosaic.backends import utils
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
 mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
