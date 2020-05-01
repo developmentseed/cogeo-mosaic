@@ -1,22 +1,18 @@
 """cogeo_mosaic.utils: utility functions."""
 
-from typing import Dict, List, Sequence
-
+import logging
 import os
 import sys
-import logging
 from concurrent import futures
+from typing import Dict, List, Sequence
 
 import click
-
-import numpy
-from pygeos import intersection, area
 import mercantile
-
+import numpy
 import rasterio
-from rio_tiler.mercator import get_zooms
+from pygeos import area, intersection
 from rasterio.warp import transform_bounds
-
+from rio_tiler.mercator import get_zooms
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

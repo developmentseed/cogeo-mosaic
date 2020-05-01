@@ -1,13 +1,13 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
-from typing import Dict, List, Sequence
-
 import abc
 from contextlib import AbstractContextManager
+from typing import Dict, List, Sequence
 
 import mercantile
-from cogeo_mosaic.mosaic import MosaicJSON
+
 from cogeo_mosaic.backends.utils import get_hash
+from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
 

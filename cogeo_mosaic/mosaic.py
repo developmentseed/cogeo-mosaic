@@ -1,17 +1,15 @@
 """cogeo_mosaic.mosaic MosaicJSON models and helper functions."""
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Sequence
-
 import warnings
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import click
 import mercantile
+from pydantic import BaseModel, Field
 from pygeos import STRtree, polygons, total_bounds
 from supermercado import burntiles
 
-from cogeo_mosaic.utils import get_footprints, _intersect_percent
-
-from pydantic import BaseModel, Field
+from cogeo_mosaic.utils import _intersect_percent, get_footprints
 
 
 def default_accessor(feature: Dict):

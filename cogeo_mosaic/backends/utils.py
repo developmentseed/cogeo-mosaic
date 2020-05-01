@@ -1,12 +1,11 @@
 """cogeo-mosaic.backends utility functions."""
 
-from typing import Any, Dict, List
-
 import hashlib
 import itertools
 import json
 import os
 import zlib
+from typing import Any, Dict, List
 
 import mercantile
 

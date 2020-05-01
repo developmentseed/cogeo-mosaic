@@ -1,21 +1,19 @@
 """cogeo-mosaic AWS S3 backend."""
 
+import functools
+import json
 from typing import Any, Dict, List, Optional, Union
 
-import json
-import functools
-
 import mercantile
-
 from boto3.session import Session as boto3_session
 
-from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
     _compress_gz_json,
     _decompress_gz,
     get_assets_from_json,
 )
+from cogeo_mosaic.mosaic import MosaicJSON
 
 
 class S3Backend(BaseBackend):

@@ -1,26 +1,21 @@
 """cogeo_mosaic.overviews: create low resolution image from a mosaic."""
 
-from typing import Dict, Tuple
-
 import random
 from concurrent import futures
+from typing import Dict, Tuple
 
 import click
-
 import mercantile
-from affine import Affine
-from supermercado.burntiles import tile_extrema
-
 import rasterio
+from affine import Affine
 from rasterio.io import MemoryFile
 from rasterio.windows import Window
-
-from rio_tiler.io import cogeo
-from rio_tiler_mosaic.mosaic import mosaic_tiler
-from rio_tiler_mosaic.methods import defaults
-
 from rio_cogeo.cogeo import cog_translate
 from rio_cogeo.utils import _meters_per_pixel, has_mask_band
+from rio_tiler.io import cogeo
+from rio_tiler_mosaic.methods import defaults
+from rio_tiler_mosaic.mosaic import mosaic_tiler
+from supermercado.burntiles import tile_extrema
 
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.utils import _filter_futures

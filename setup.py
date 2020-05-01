@@ -1,7 +1,6 @@
 """Setup cogeo-mosaic."""
 
-from setuptools import setup, find_packages
-
+from setuptools import find_packages, setup
 
 # Runtime requirements.
 inst_reqs = [
