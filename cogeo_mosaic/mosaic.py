@@ -68,7 +68,7 @@ class MosaicJSON(BaseModel):
     class Config:
         """Validate model on update."""
 
-        validate_asignment = True
+        validate_assignment = True
 
     @root_validator(pre=True)
     def compute_center(cls, values):
