@@ -1,4 +1,9 @@
-3.0.0 (2020-05-01)
+
+3.0a2 (2020-05-01)
+------------------
+- Better mosaicJSON model testing and default center from bounds (#73, author @geospatial-jeff)
+
+3.0a1 (2020-05-01)
 ------------------
 This is a major version, meaning a lot of refactoring was done and may lead to breacking changes.
 
