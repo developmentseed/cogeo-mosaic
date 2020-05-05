@@ -21,7 +21,7 @@ def test_validation_error():
         data = json.load(f)
         data["minzoom"] = -1
         with pytest.raises(ValidationError):
-            mosaic = MosaicJSON(**data)
+            MosaicJSON(**data)
 
 
 def test_compute_center():
