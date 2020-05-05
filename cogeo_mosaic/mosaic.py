@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import click
 import mercantile
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 from pygeos import STRtree, polygons, total_bounds
 from supermercado import burntiles
 
@@ -68,7 +68,19 @@ class MosaicJSON(BaseModel):
     class Config:
         """Validate model on update."""
 
-        validate_asignment = True
+        validate_assignment = True
+
+    @root_validator(pre=True)
+    def compute_center(cls, values):
+        """Compute center if it does not exist."""
+        bounds = values["bounds"]
+        if not values.get("center"):
+            values["center"] = (
+                (bounds[0] + bounds[2]) / 2,
+                (bounds[1] + bounds[3]) / 2,
+                values["minzoom"],
+            )
+        return values
 
     def _increase_version(self):
         """Increment mosaicjson document version."""
