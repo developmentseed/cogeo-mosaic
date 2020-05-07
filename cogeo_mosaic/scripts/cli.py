@@ -97,9 +97,7 @@ def create(
 @click.option(
     "--url", type=str, required=True, help="URL to which the mosaic should be uploaded."
 )
-def upload(
-    file, url,
-):
+def upload(file, url):
     """Upload mosaic definition file."""
     mosaicjson = json.loads(file)
 
