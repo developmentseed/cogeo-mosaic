@@ -23,7 +23,7 @@ $ pip install cogeo-mosaic
 $ pip install git+http://github.com/developmentseed/cogeo-mosaic
 ```
 
-**Notes**: 
+**Notes**:
 - Starting with version 2.0, pygeos has replaced shapely and thus makes `libgeos` a requirement.
 - **pygeos** hosted on pypi migth not compile on certain machine. This has been fixed in the master branch and can be installed with `pip install git+https://github.com/pygeos/pygeos.git`
 
@@ -70,7 +70,7 @@ Options:
 ```
 $ cogeo-mosaic create list.txt -o mosaic.json
 
-# or 
+# or
 
 $ cat list.txt | cogeo-mosaic create - | gzip > mosaic.json.gz
 
@@ -81,7 +81,7 @@ $ cogeo-mosaic create list.txt -o s3://my-bucket/my-key.json.gz
 
 #### Example: create a mosaic from OAM
 
-```bash 
+```bash
 # Create Mosaic
 $ curl https://api.openaerialmap.org/user/5d6a0d1a2103c90007707fa0 | jq -r '.results.images[] | .uuid' | cogeo-mosaic create - | gzip >  5d6a0d1a2103c90007707fa0.json.gz
 
@@ -128,12 +128,13 @@ curl https://earth-search.aws.element84.com/collections/landsat-8-l1/items | cog
       "LC81930022020114LGN00"
     ],
     ...
+  }
 }
 ```
 
 ### Create Mosaic Overview [experimental]
 
-The CLI provides an `overview` command to create low-resolution version of a mosaic. 
+The CLI provides an `overview` command to create low-resolution version of a mosaic.
 This is hightly experimental and might incure some cost if you are hosting mosaic on DynamoDB or COG files on S3. To create the overview, the `overview` method will fetch all the asset's overviews (COG internal overview) and construct one or multiple COG .
 
 ```
@@ -158,14 +159,15 @@ print(mosaic_definition.tiles)
 > {"tile": {"0": ["cog1.tif", "2.tif"]}}
 ```
 
-# API 
+# API
 ## Mosaic Storage Backends
 
 Starting in version `3.0.0`, we introduced specific backend storage for:
+
 - **File** (default, `file:///`)
 - **HTTP/HTTPS/FTP** (`https://`, `https://`, `ftp://`)
 - **AWS S3** (`s3://`)
-- **AWS DynamoDB** (`dynamodb://{region}/{table_name}`)
+- **AWS DynamoDB** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
 
 To ease the usage we added a helper function to use the right backend based on the uri schema: `cogeo_mosaic.backends.MosaicBackend`
 
