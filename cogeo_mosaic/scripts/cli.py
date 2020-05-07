@@ -93,7 +93,7 @@ def create(
 
 
 @cogeo_cli.command(short_help="Upload mosaic definition to backend")
-@click.argument("input", type=click.File(mode="r"), default="-")
+@click.argument("file", type=click.File(mode="r"), default="-")
 @click.option("--url", type=str, help="URL to which the mosaic should be uploaded.")
 def upload(
     file, url,
