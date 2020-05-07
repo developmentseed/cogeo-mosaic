@@ -92,6 +92,19 @@ def create(
         click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
 
 
+@cogeo_cli.command(short_help="Upload mosaic definition to backend")
+@click.argument("file", type=click.File(mode="r"), default="-")
+@click.option(
+    "--url", type=str, required=True, help="URL to which the mosaic should be uploaded."
+)
+def upload(file, url):
+    """Upload mosaic definition file."""
+    mosaicjson = json.load(file)
+
+    with MosaicBackend(url, mosaic_def=mosaicjson) as mosaic:
+        mosaic.write()
+
+
 @cogeo_cli.command(
     short_help="Create mosaic definition from GeoJSON features or features collection"
 )
