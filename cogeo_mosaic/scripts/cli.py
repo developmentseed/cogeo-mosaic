@@ -99,7 +99,7 @@ def create(
 )
 def upload(file, url):
     """Upload mosaic definition file."""
-    mosaicjson = json.loads(file)
+    mosaicjson = json.load(file)
 
     with MosaicBackend(url, mosaic_def=mosaicjson) as mosaic:
         mosaic.write()
