@@ -134,7 +134,7 @@ class DynamoDBBackend(BaseBackend):
             # If outside try/except block, could wait forever if unable to
             # create table
             self.table.wait_until_exists()
-        except self.client.exceptions.ResourceInUseException:
+        except boto3.client("dynamodb").exceptions.ResourceInUseException:
             warnings.warn("Unable to create table, may already exist")
             return
 

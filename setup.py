@@ -26,7 +26,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="3.0a2",
+    version="3.0a3",
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",
