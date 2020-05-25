@@ -1,0 +1,12 @@
+language: python
+notifications:
+  email: false
+python:
+    - "3.7"
+script:
+  - git config user.name "Kyle Barron";
+  - git config user.email "kylebarron2@gmail.com";
+  - git remote add gh-token "https://developmentseed:${GITHUB_TOKEN}@github.com/developmentseed/cogeo-mosaic.git";
+  - git fetch gh-token && git fetch gh-token gh-pages:gh-pages;
+  - pip install -U mkdocs mkdocs-material pygments;
+  - mkdocs gh-deploy -v --clean --remote-name gh-token -b gh-pages --force;

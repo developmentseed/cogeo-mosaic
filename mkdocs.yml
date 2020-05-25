@@ -1,0 +1,78 @@
+# Project Information
+site_name: 'cogeo-mosaic'
+site_description: 'mosaicJSON tools for Landsat 8 imagery'
+
+docs_dir: 'docs'
+site_dir: 'build'
+
+# Repository
+repo_name: 'developmentseed/cogeo-mosaic'
+repo_url: 'https://github.com/developmentseed/cogeo-mosaic'
+edit_uri: 'blob/master/docs/src/'
+site_url: 'https://developmentseed.github.io/cogeo-mosaic/'
+
+# Social links
+extra:
+  social:
+    - icon: 'fontawesome/brands/github'
+      link: 'https://github.com/developmentseed'
+    - icon: 'fontawesome/brands/twitter'
+      link: 'https://twitter.com/developmentseed'
+
+# Layout
+nav:
+  - Home: 'index.md'
+  - Install: 'install.md'
+  - Examples:
+    - Global Basemap: 'examples/global.md'
+    - STAC Features: 'examples/stac.md'
+  - CLI: 'cli.md'
+
+# Theme
+theme:
+  icon:
+    logo: 'material/home'
+    repo: 'fontawesome/brands/github'
+  name: 'material'
+  language: 'en'
+  palette:
+    primary: 'blue'
+    accent:  'light blue'
+  font:
+    text: 'Nunito Sans'
+    code: 'Fira Code'
+
+# Uncomment if I use math in the docs in the future
+# extra_javascript:
+#     - helpers/helpers.js
+#     - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML
+
+# These extensions are chosen to be a superset of Pandoc's Markdown.
+# This way, I can write in Pandoc's Markdown and have it be supported here.
+# https://pandoc.org/MANUAL.html
+markdown_extensions:
+    - admonition
+    - attr_list
+    - codehilite:
+        guess_lang: false
+    - def_list
+    - footnotes
+    - pymdownx.arithmatex
+    - pymdownx.betterem
+    - pymdownx.caret:
+        insert: false
+    - pymdownx.details
+    - pymdownx.emoji
+    - pymdownx.escapeall:
+        hardbreak: true
+        nbsp: true
+    - pymdownx.magiclink:
+        hide_protocol: true
+        repo_url_shortener: true
+    - pymdownx.smartsymbols
+    - pymdownx.superfences
+    - pymdownx.tasklist:
+        custom_checkbox: true
+    - pymdownx.tilde
+    - toc:
+        permalink: true
