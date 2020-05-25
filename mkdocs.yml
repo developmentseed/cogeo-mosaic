@@ -1,6 +1,6 @@
 # Project Information
 site_name: 'cogeo-mosaic'
-site_description: 'mosaicJSON tools for Landsat 8 imagery'
+site_description: 'Create and use COG mosaic based on mosaicJSON'
 
 docs_dir: 'docs'
 site_dir: 'build'
