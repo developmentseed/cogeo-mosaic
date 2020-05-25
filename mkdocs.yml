@@ -22,11 +22,8 @@ extra:
 # Layout
 nav:
   - Home: 'index.md'
-  - Install: 'install.md'
-  - Examples:
-    - Global Basemap: 'examples/global.md'
-    - STAC Features: 'examples/stac.md'
-  - CLI: 'cli.md'
+  - V3 Migration: 'v3_migration.md'
+  - Advanced Topics: 'AdvancedTopics.md'
 
 # Theme
 theme:
