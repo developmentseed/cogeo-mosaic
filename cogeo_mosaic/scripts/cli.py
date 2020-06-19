@@ -292,7 +292,7 @@ def overview(
     if input_mosaic.startswith("dynamodb://") and not yes:
         value = click.prompt(
             click.style(
-                f"Creating overviews from a DynamoDB-backed mosaic will many read requests and might be expensive. Continue? (Y/n)"
+                "Creating overviews from a DynamoDB-backed mosaic will many read requests and might be expensive. Continue? (Y/n)"
             ),
             type=str,
             default="Y",
