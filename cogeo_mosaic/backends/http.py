@@ -15,6 +15,8 @@ from cogeo_mosaic.mosaic import MosaicJSON
 class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
+    _backend_name = "HTTP"
+
     def __init__(
         self,
         url: str,
@@ -52,6 +54,8 @@ class HttpBackend(BaseBackend):
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         body = requests.get(self.path).content
+
+        self._file_byte_size = len(body)
 
         if gzip or (gzip is None and self.path.endswith(".gz")):
             body = _decompress_gz(body)

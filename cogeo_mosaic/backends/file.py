@@ -18,6 +18,8 @@ from cogeo_mosaic.mosaic import MosaicJSON
 class FileBackend(BaseBackend):
     """Local File Backend Adapter"""
 
+    _backend_name = "File"
+
     def __init__(
         self,
         path: str,
@@ -57,6 +59,8 @@ class FileBackend(BaseBackend):
         """Get mosaicjson document."""
         with open(self.path, "rb") as f:
             body = f.read()
+
+        self._file_byte_size = len(body)
 
         if gzip or (gzip is None and self.path.endswith(".gz")):
             body = _decompress_gz(body)

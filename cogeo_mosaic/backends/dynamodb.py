@@ -22,6 +22,8 @@ from cogeo_mosaic.utils import bbox_union
 class DynamoDBBackend(BaseBackend):
     """DynamoDB Backend Adapter."""
 
+    _backend_name = "AWS DynamoDB"
+
     def __init__(
         self,
         table_name: str,

@@ -19,6 +19,8 @@ from cogeo_mosaic.mosaic import MosaicJSON
 class S3Backend(BaseBackend):
     """S3 Backend Adapter"""
 
+    _backend_name = "AWS S3"
+
     def __init__(
         self,
         bucket: str,
@@ -63,6 +65,8 @@ class S3Backend(BaseBackend):
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         body = _aws_get_data(self.key, self.bucket, client=self.client)
+
+        self._file_byte_size = len(body)
 
         if gzip or (gzip is None and self.key.endswith(".gz")):
             body = _decompress_gz(body)
