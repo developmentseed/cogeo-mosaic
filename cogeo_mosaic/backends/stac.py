@@ -26,7 +26,7 @@ class STACBackend(BaseBackend):
     def __init__(
         self, url: str, minzoom: int, maxzoom: int, query: Dict = {}, **kwargs: Any
     ):
-        """Initialize HttpBackend."""
+        """Initialize STACBackend."""
         self.path = url
         self.mosaic_def = self._read(json.dumps(query), minzoom, maxzoom, **kwargs)
 
