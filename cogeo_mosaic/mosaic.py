@@ -158,7 +158,7 @@ class MosaicJSON(BaseModel):
         )
 
         if not quiet:
-            click.echo(f"Feed Quadkey index", err=True)
+            click.echo("Feed Quadkey index", err=True)
 
         # Create tree and find assets that overlap each tile
         tree = STRtree(dataset_geoms)

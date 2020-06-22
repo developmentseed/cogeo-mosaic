@@ -30,8 +30,29 @@ def test_create_valid():
         result = runner.invoke(cogeo_cli, ["create", "list.txt", "-o", "mosaic.json"])
         assert not result.exception
         assert result.exit_code == 0
-        with open("mosaic.json", "r") as f:
-            assert mosaic_content == MosaicJSON(**json.load(f))
+        assert mosaic_content == MosaicJSON.parse_file("mosaic.json")
+
+        result = runner.invoke(
+            cogeo_cli,
+            [
+                "create",
+                "list.txt",
+                "-o",
+                "mosaic.json",
+                "--name",
+                "my_mosaic",
+                "--description",
+                "A mosaic",
+                "--attribution",
+                "someone",
+            ],
+        )
+        assert not result.exception
+        assert result.exit_code == 0
+        mosaic = MosaicJSON.parse_file("mosaic.json")
+        assert mosaic.name == "my_mosaic"
+        assert mosaic.description == "A mosaic"
+        assert mosaic.attribution == "someone"
 
 
 def test_update_valid():
@@ -91,6 +112,85 @@ def test_footprint_valid():
             assert len(footprint["features"]) == 2
 
 
+def test_from_features():
+    """Should work as expected."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        with open("./list.txt", "w") as f:
+            f.write("\n".join([asset1, asset2]))
+
+        result = runner.invoke(
+            cogeo_cli, ["footprint", "list.txt", "-o", "mosaic.geojson"]
+        )
+        with open("mosaic.geojson", "r") as f:
+            features = f.read()
+
+        result = runner.invoke(
+            cogeo_cli,
+            [
+                "create-from-features",
+                "--minzoom",
+                "7",
+                "--maxzoom",
+                "9",
+                "--property",
+                "path",
+                "--quiet",
+            ],
+            input=features,
+        )
+        assert not result.exception
+        assert result.exit_code == 0
+        assert mosaic_content == MosaicJSON(**json.loads(result.output))
+
+        result = runner.invoke(
+            cogeo_cli,
+            [
+                "create-from-features",
+                "--minzoom",
+                "7",
+                "--maxzoom",
+                "9",
+                "--property",
+                "path",
+                "-o",
+                "mosaic.json",
+                "--quiet",
+            ],
+            input=features,
+        )
+        assert not result.exception
+        assert result.exit_code == 0
+        assert mosaic_content == MosaicJSON.parse_file("mosaic.json")
+
+        result = runner.invoke(
+            cogeo_cli,
+            [
+                "create-from-features",
+                "--minzoom",
+                "7",
+                "--maxzoom",
+                "9",
+                "--property",
+                "path",
+                "--name",
+                "my_mosaic",
+                "--description",
+                "A mosaic",
+                "--attribution",
+                "someone",
+                "--quiet",
+            ],
+            input=features,
+        )
+        assert not result.exception
+        assert result.exit_code == 0
+        mosaic = MosaicJSON(**json.loads(result.output))
+        assert mosaic.name == "my_mosaic"
+        assert mosaic.description == "A mosaic"
+        assert mosaic.attribution == "someone"
+
+
 def test_overview_valid():
     """Should work as expected."""
     runner = CliRunner()
@@ -139,3 +239,30 @@ def test_overview_DynamoDB():
     )
     assert not result.exception
     assert result.exit_code == 0
+
+
+def test_info_valid():
+    """Should work as expected."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
+        result = runner.invoke(cogeo_cli, ["info", mosaic, "--json"])
+        assert not result.exception
+        assert result.exit_code == 0
+        info = json.loads(result.output)
+        assert info["Backend"] == "File"
+        assert not info["Compressed"]
+
+        mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
+        result = runner.invoke(cogeo_cli, ["info", mosaic, "--json"])
+        assert not result.exception
+        assert result.exit_code == 0
+        info = json.loads(result.output)
+        assert info["Backend"] == "File"
+        assert info["Compressed"]
+
+        mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
+        result = runner.invoke(cogeo_cli, ["info", mosaic])
+        assert not result.exception
+        assert result.exit_code == 0
+        assert "Compressed: True" in result.output

@@ -31,6 +31,7 @@ with open(mosaic_json, "r") as f:
 def test_file_backend():
     """Test File backend."""
     with MosaicBackend(mosaic_gz) as mosaic:
+        assert mosaic._backend_name == "File"
         assert isinstance(mosaic, FileBackend)
         assert (
             mosaic.mosaicid
@@ -111,6 +112,7 @@ def test_http_backend(requests):
         requests.get.return_value = MockResponse(f.read())
 
     with MosaicBackend("https://mymosaic.json") as mosaic:
+        assert mosaic._backend_name == "HTTP"
         assert isinstance(mosaic, HttpBackend)
         assert (
             mosaic.mosaicid
@@ -169,6 +171,7 @@ def test_s3_backend(session):
     session.return_value.client.return_value.put_object.return_value = True
 
     with MosaicBackend("s3://mybucket/mymosaic.json.gz") as mosaic:
+        assert mosaic._backend_name == "AWS S3"
         assert isinstance(mosaic, S3Backend)
         assert (
             mosaic.mosaicid
@@ -284,6 +287,7 @@ def test_dynamoDB_backend(client):
     client.return_value.Table = MockTable
 
     with MosaicBackend("dynamodb:///thiswaskylebarronidea") as mosaic:
+        assert mosaic._backend_name == "AWS DynamoDB"
         assert isinstance(mosaic, DynamoDBBackend)
         assert mosaic.quadkey_zoom == 7
         assert list(mosaic.metadata.keys()) == [

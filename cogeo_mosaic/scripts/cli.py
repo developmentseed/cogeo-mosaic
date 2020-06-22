@@ -54,6 +54,9 @@ def cogeo_cli():
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
+@click.option("--name", type=str, help="Mosaic name")
+@click.option("--description", type=str, help="Mosaic description")
+@click.option("--attribution", type=str, help="Image attibution")
 @click.option(
     "--quiet",
     "-q",
@@ -70,6 +73,9 @@ def create(
     min_tile_cover,
     tile_cover_sort,
     threads,
+    name,
+    description,
+    attribution,
     quiet,
 ):
     """Create mosaic definition file."""
@@ -85,11 +91,18 @@ def create(
         quiet=quiet,
     )
 
+    if name:
+        mosaicjson.name = name
+    if description:
+        mosaicjson.description = description
+    if attribution:
+        mosaicjson.attribution = attribution
+
     if output:
         with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
             mosaic.write()
     else:
-        click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
+        click.echo(mosaicjson.json(exclude_none=True))
 
 
 @cogeo_cli.command(short_help="Upload mosaic definition to backend")
@@ -122,6 +135,9 @@ def upload(file, url):
 @click.option(
     "--tile-cover-sort", help="Sort files by covering %", is_flag=True, default=False
 )
+@click.option("--name", type=str, help="Mosaic name")
+@click.option("--description", type=str, help="Mosaic description")
+@click.option("--attribution", type=str, help="Image attibution")
 @click.option(
     "--quiet",
     "-q",
@@ -138,6 +154,9 @@ def create_from_features(
     quadkey_zoom,
     min_tile_cover,
     tile_cover_sort,
+    name,
+    description,
+    attribution,
     quiet,
 ):
     """Create mosaic definition file."""
@@ -152,11 +171,18 @@ def create_from_features(
         quiet=quiet,
     )
 
+    if name:
+        mosaicjson.name = name
+    if description:
+        mosaicjson.description = description
+    if attribution:
+        mosaicjson.attribution = attribution
+
     if output:
         with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
             mosaic.write()
     else:
-        click.echo(json.dumps(mosaicjson.dict(exclude_none=True)))
+        click.echo(mosaicjson.json(exclude_none=True))
 
 
 @cogeo_cli.command(short_help="Update a mosaic definition from list of files")
@@ -266,7 +292,7 @@ def overview(
     if input_mosaic.startswith("dynamodb://") and not yes:
         value = click.prompt(
             click.style(
-                f"Creating overviews from a DynamoDB-backed mosaic will many read requests and might be expensive. Continue? (Y/n)"
+                "Creating overviews from a DynamoDB-backed mosaic will many read requests and might be expensive. Continue? (Y/n)"
             ),
             type=str,
             default="Y",
@@ -298,3 +324,81 @@ def overview(
         config=config,
         threads=threads,
     )
+
+
+@cogeo_cli.command(short_help="Return info about the mosaic")
+@click.argument("input", type=click.Path())
+@click.option(
+    "--json", "to_json", default=False, is_flag=True, help="Print as JSON.",
+)
+def info(input, to_json):
+    """Return info about the mosaic."""
+    with MosaicBackend(input) as mosaic:
+        _info = {
+            "Path": input,
+            "Backend": mosaic._backend_name,
+            "File Size": mosaic._file_byte_size,
+            "Compressed": True if input.endswith(".gz") else False,
+        }
+
+        profile = {
+            "MosaicJSON": mosaic.mosaic_def.mosaicjson,
+            "Version": mosaic.mosaic_def.version,
+            "Name": mosaic.mosaic_def.name,
+            "Description": mosaic.mosaic_def.description,
+            "Attribution": mosaic.mosaic_def.attribution,
+        }
+
+        geo = {
+            "TileMatrixSet": "WebMercatorQuad",
+            "BoundingBox": tuple(mosaic.mosaic_def.bounds),
+            "Center": mosaic.mosaic_def.center,
+            "Min Zoom": mosaic.mosaic_def.minzoom,
+            "Max Zoom": mosaic.mosaic_def.maxzoom,
+            "QuadKey Zoom": mosaic.mosaic_def.quadkey_zoom,
+        }
+
+        tiles = {}
+        mosaic_tiles = mosaic.mosaic_def.tiles
+        if mosaic_tiles:
+            tiles["Nb Tiles"] = len(mosaic_tiles.keys())
+            file_numb = [len(t) for t in mosaic_tiles.values()]
+            tiles["Min Files"] = min(file_numb)
+            tiles["Max Files"] = max(file_numb)
+            tiles["Mean Files"] = round(sum(file_numb) / len(file_numb), 2)
+
+    if to_json:
+        output = _info.copy()
+        output["Profile"] = profile
+        output["GEO"] = geo
+        output["TILES"] = tiles
+        click.echo(json.dumps(output))
+    else:
+        sep = 25
+        click.echo(
+            f"""{click.style('File:', bold=True)} {_info['Path']}
+{click.style('Backend:', bold=True)} {_info['Backend']}
+{click.style('File Size:', bold=True)} {_info['File Size']}
+{click.style('Compressed:', bold=True)} {_info['Compressed']}
+
+{click.style('Profile', bold=True)}
+    {click.style("MosaicJSON:", bold=True):<{sep}} {profile['MosaicJSON']}
+    {click.style("Version:", bold=True):<{sep}} {profile['Version']}
+    {click.style("Name:", bold=True):<{sep}} {profile['Name']}
+    {click.style("Description:", bold=True):<{sep}} {profile['Description']}
+    {click.style("Attribution:", bold=True):<{sep}} {profile['Attribution']}
+
+{click.style('Geo', bold=True)}
+    {click.style("TileMatrixSet:", bold=True):<{sep}} {geo['TileMatrixSet']}
+    {click.style("BoundingBox:", bold=True):<{sep}} {geo['BoundingBox']}
+    {click.style("Center:", bold=True):<{sep}} {geo['Center']}
+    {click.style("Min Zoom:", bold=True):<{sep}} {geo['Min Zoom']}
+    {click.style("Max Zoom:", bold=True):<{sep}} {geo['Max Zoom']}
+    {click.style("QuadKey Zoom:", bold=True):<{sep}} {geo['QuadKey Zoom']}
+
+{click.style('Tiles', bold=True)}
+    {click.style("Nb Tiles:", bold=True):<{sep}} {tiles.get('Nb Tiles')}
+    {click.style("Min Files:", bold=True):<{sep}} {tiles.get('Min Files')}
+    {click.style("Max Files:", bold=True):<{sep}} {tiles.get('Max Files')}
+    {click.style("Mean Files:", bold=True):<{sep}} {tiles.get('Mean Files')}"""
+        )
