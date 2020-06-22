@@ -16,6 +16,7 @@ from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.backends.http import HttpBackend
 from cogeo_mosaic.backends.s3 import S3Backend
+from cogeo_mosaic.backends.stac import STACBackend, stac_search
 from cogeo_mosaic.backends.utils import _decompress_gz
 from cogeo_mosaic.mosaic import MosaicJSON
 
@@ -23,6 +24,8 @@ mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz"
 mosaic_bin = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.bin")
 mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
 mosaic_jsonV1 = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic_0.0.1.json")
+stac_page1 = os.path.join(os.path.dirname(__file__), "fixtures", "stac_p1.geojson")
+stac_page2 = os.path.join(os.path.dirname(__file__), "fixtures", "stac_p2.geojson")
 
 with open(mosaic_json, "r") as f:
     mosaic_content = json.loads(f.read())
@@ -310,3 +313,98 @@ def test_dynamoDB_backend(client):
         assert len(items) == 10
         assert items[-1] == {"quadkey": "0302330", "assets": ["cog1.tif", "cog2.tif"]}
         mosaic._create_table()
+
+
+class STACMockResponse:
+    def __init__(self, data):
+        self.data = data
+
+    def json(self):
+        return self.data
+
+
+@patch("cogeo_mosaic.backends.stac.requests.post")
+def test_stac_backend(post):
+    """Test STAC backend."""
+    with open(stac_page1, "r") as f1, open(stac_page2, "r") as f2:
+        post.side_effect = [
+            STACMockResponse(json.loads(f1.read())),
+            STACMockResponse(json.loads(f2.read())),
+        ]
+
+    with STACBackend("https://a_stac.api/search", 8, 14, max_items=8) as mosaic:
+        assert mosaic._backend_name == "STAC"
+        assert isinstance(mosaic, STACBackend)
+        assert post.call_count == 1
+        assert mosaic.quadkey_zoom == 8
+        assert list(mosaic.metadata.keys()) == [
+            "mosaicjson",
+            "version",
+            "minzoom",
+            "maxzoom",
+            "quadkey_zoom",
+            "bounds",
+            "center",
+        ]
+        assert mosaic.tile(210, 90, 10) == [
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
+        ]
+        assert mosaic.point(-106.050, 81.43) == [
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
+        ]
+    post.reset_mock()
+
+    with open(stac_page1, "r") as f1, open(stac_page2, "r") as f2:
+        post.side_effect = [
+            STACMockResponse(json.loads(f1.read())),
+            STACMockResponse(json.loads(f2.read())),
+        ]
+
+    with STACBackend("https://a_stac.api/search", 8, 14, max_items=15) as mosaic:
+        assert mosaic._backend_name == "STAC"
+        assert isinstance(mosaic, STACBackend)
+        assert post.call_count == 2
+        assert mosaic.quadkey_zoom == 8
+        assert list(mosaic.metadata.keys()) == [
+            "mosaicjson",
+            "version",
+            "minzoom",
+            "maxzoom",
+            "quadkey_zoom",
+            "bounds",
+            "center",
+        ]
+    post.reset_mock()
+
+    with open(stac_page1, "r") as f1, open(stac_page2, "r") as f2:
+        post.side_effect = [
+            STACMockResponse(json.loads(f1.read())),
+            STACMockResponse(json.loads(f2.read())),
+        ]
+
+    with STACBackend("https://a_stac.api/search", 8, 14, max_items=15) as mosaic:
+        with pytest.raises(NotImplementedError):
+            mosaic.write()
+
+        with pytest.raises(NotImplementedError):
+            mosaic.update()
+
+
+@patch("cogeo_mosaic.backends.stac.requests.post")
+def test_stac_search(post):
+    """Test stac_search."""
+    post.side_effect = [
+        STACMockResponse({"context": {"returned": 0}}),
+    ]
+    assert stac_search("https://a_stac.api/search&limit=10") == []
+
+    with open(stac_page1, "r") as f1:
+        resp = json.loads(f1.read())
+        resp["links"] = []
+        post.side_effect = [
+            STACMockResponse(resp),
+        ]
+
+    assert len(stac_search("https://a_stac.api/search", max_items=100)) == 10

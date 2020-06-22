@@ -137,10 +137,17 @@ class MosaicJSON(BaseModel):
         if not quiet:
             click.echo(f"Get quadkey list for zoom: {quadkey_zoom}", err=True)
 
-        # Find dataset geometries
-        dataset_geoms = polygons(
-            [feat["geometry"]["coordinates"][0] for feat in features]
-        )
+        # If Pygeos throws an error, fall back to non-vectorized operation
+        # Ref: https://github.com/developmentseed/cogeo-mosaic/issues/81
+        try:
+            dataset_geoms = polygons(
+                [feat["geometry"]["coordinates"][0] for feat in features]
+            )
+        except TypeError:
+            dataset_geoms = [
+                polygons(feat["geometry"]["coordinates"][0]) for feat in features
+            ]
+
         bounds = list(total_bounds(dataset_geoms))
 
         tiles = burntiles.burn(features, quadkey_zoom)
