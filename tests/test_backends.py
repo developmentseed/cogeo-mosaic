@@ -16,7 +16,9 @@ from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.backends.http import HttpBackend
 from cogeo_mosaic.backends.s3 import S3Backend
-from cogeo_mosaic.backends.stac import STACBackend, stac_search
+from cogeo_mosaic.backends.stac import STACBackend
+from cogeo_mosaic.backends.stac import _fetch as stac_search
+from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
 from cogeo_mosaic.mosaic import MosaicJSON
 
@@ -398,7 +400,7 @@ def test_stac_search(post):
     post.side_effect = [
         STACMockResponse({"context": {"returned": 0}}),
     ]
-    assert stac_search("https://a_stac.api/search&limit=10") == []
+    assert stac_search("https://a_stac.api/search&limit=10", json.dumps({})) == []
 
     with open(stac_page1, "r") as f1:
         resp = json.loads(f1.read())
@@ -407,4 +409,48 @@ def test_stac_search(post):
             STACMockResponse(resp),
         ]
 
-    assert len(stac_search("https://a_stac.api/search", max_items=100)) == 10
+    assert (
+        len(stac_search("https://a_stac.api/search", json.dumps({}), max_items=100))
+        == 10
+    )
+
+
+def test_stac_accessor():
+    """Test stac_accessor."""
+    # First return the `self` link
+    feat = {
+        "type": "Feature",
+        "id": "S2A_11XNM_20200621_0_L2A",
+        "collection": "sentinel-s2-l2a",
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://a_stac.api/collections/sentinel-s2-l2a/items/S2A_11XNM_20200621_0_L2A",
+            },
+        ],
+    }
+    assert (
+        stac_accessor(feat)
+        == "https://a_stac.api/collections/sentinel-s2-l2a/items/S2A_11XNM_20200621_0_L2A"
+    )
+
+    # Construct the `self` link
+    feat = {
+        "type": "Feature",
+        "id": "S2A_11XNM_20200621_0_L2A",
+        "collection": "sentinel-s2-l2a",
+        "links": [{"rel": "root", "href": "https://a_stac.api"}],
+    }
+    assert (
+        stac_accessor(feat)
+        == "https://a_stac.api/collections/sentinel-s2-l2a/items/S2A_11XNM_20200621_0_L2A"
+    )
+
+    # Construct the `self` link
+    feat = {
+        "type": "Feature",
+        "id": "S2A_11XNM_20200621_0_L2A",
+        "collection": "sentinel-s2-l2a",
+        "links": [],
+    }
+    assert stac_accessor(feat) == "S2A_11XNM_20200621_0_L2A"
