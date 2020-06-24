@@ -4,6 +4,7 @@ import functools
 import json
 import os
 from typing import Any, Callable, Dict, List, Optional
+from urllib.parse import parse_qsl, urlencode, urlparse
 
 import mercantile
 import requests
@@ -34,12 +35,25 @@ def default_stac_accessor(feature: Dict):
 
 
 class STACBackend(BaseBackend):
-    """STAC Backend Adapter"""
+    """
+    STAC Backend Adapter
+
+    Usage:
+    ------
+    with STACBackend(
+        "https://earth-search.aws.element84.com/v0/search",
+        query,
+        8,
+        15,
+    ) as mosaic:
+        mosaic.tile(0, 0, 0)
+
+    """
 
     _backend_name = "STAC"
 
     def __init__(
-        self, url: str, minzoom: int, maxzoom: int, query: Dict = {}, **kwargs: Any
+        self, url: str, query: Dict, minzoom: int, maxzoom: int, **kwargs: Any
     ):
         """Initialize STACBackend."""
         self.path = url
@@ -71,6 +85,7 @@ class STACBackend(BaseBackend):
         maxzoom: int,
         accessor: Callable = default_stac_accessor,
         max_items: Optional[int] = None,
+        stac_query_limit: int = 500,
         stac_next_link_key: str = "next",
         **kwargs: Any
     ) -> MosaicJSON:
@@ -79,16 +94,18 @@ class STACBackend(BaseBackend):
 
         Attributes
         ----------
-        query : List, required
-            List of GeoJSON features.
+        query : Dict, required
+            STAC API POST request query.
         minzoom: int, required
-            Force mosaic min-zoom.
+            mosaic min-zoom.
         maxzoom: int, required
-            Force mosaic max-zoom.
+            mosaic max-zoom.
         accessor: callable, required
             Function called on each feature to get its identifier.
         max_items: int, optional
             Limit the maximum of items returned by the API
+        stac_query_limit: int, optional
+            Add "limit" option to the POST Query, default is set to 500.
         stac_next_link_key: str, optional (default: "next")
             link's 'next' key.
         kwargs: any
@@ -102,8 +119,9 @@ class STACBackend(BaseBackend):
         """
         features = _fetch(
             self.path,
-            json.dumps(query),
+            json.dumps(query),  # LRU_CACHE won't work with Dict so we use string
             max_items=max_items,
+            limit=stac_query_limit,
             next_link_key=stac_next_link_key,
         )
 
@@ -118,6 +136,7 @@ def _fetch(
     query: str,
     max_items: Optional[int] = None,
     next_link_key: str = "next",
+    limit: int = 500,
 ) -> List[Dict]:
     """Call STAC API."""
     features: List[Dict] = []
@@ -128,24 +147,43 @@ def _fetch(
         "Accept": "application/geo+json",
     }
 
+    querystring = json.loads(query)
+    if "features" not in querystring.keys():
+        querystring.update({"limit": limit})
+
     def _stac_search(url):
-        return requests.post(url, headers=headers, data=query).json()
+        return requests.post(url, headers=headers, json=querystring).json()
 
     next_url = stac_url
+    page = 1
     while True:
+        # HACK: next token is not yet handled in some API
+        parsed_url = urlparse(next_url)
+        qs: Dict[str, Any] = dict(parse_qsl(parsed_url.query))
+        qs.update({"page": page})
+        updated_query = urlencode(qs)
+        next_url = parsed_url._replace(query=updated_query).geturl()
+
         results = _stac_search(next_url)
         if not results.get("features"):
             break
 
         features.extend(results["features"])
         if max_items and len(features) >= max_items:
+            features = features[:max_items]
             break
 
+        # Check if there is more data to fetch
+        if results["context"]["matched"] <= results["context"]["returned"]:
+            break
+
+        # Right now we construct the next URL
         # https://github.com/radiantearth/stac-api-spec/blob/master/api-spec.md#paging-extension
-        link = list(filter(lambda link: link["rel"] == next_link_key, results["links"]))
-        if not link:
-            break
+        # link = list(filter(lambda link: link["rel"] == next_link_key, results["links"]))
+        # if not link:
+        #     break
+        # next_url = link[0]["href"]
 
-        next_url = link[0]["href"]
+        page += 1
 
     return features

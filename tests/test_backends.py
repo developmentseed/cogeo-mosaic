@@ -334,7 +334,7 @@ def test_stac_backend(post):
             STACMockResponse(json.loads(f2.read())),
         ]
 
-    with STACBackend("https://a_stac.api/search", 8, 14, max_items=8) as mosaic:
+    with STACBackend("https://a_stac.api/search", {}, 8, 14, max_items=8) as mosaic:
         assert mosaic._backend_name == "STAC"
         assert isinstance(mosaic, STACBackend)
         assert post.call_count == 1
@@ -364,7 +364,7 @@ def test_stac_backend(post):
             STACMockResponse(json.loads(f2.read())),
         ]
 
-    with STACBackend("https://a_stac.api/search", 8, 14, max_items=15) as mosaic:
+    with STACBackend("https://a_stac.api/search", {}, 8, 14, max_items=15) as mosaic:
         assert mosaic._backend_name == "STAC"
         assert isinstance(mosaic, STACBackend)
         assert post.call_count == 2
@@ -386,7 +386,7 @@ def test_stac_backend(post):
             STACMockResponse(json.loads(f2.read())),
         ]
 
-    with STACBackend("https://a_stac.api/search", 8, 14, max_items=15) as mosaic:
+    with STACBackend("https://a_stac.api/search", {}, 8, 14, max_items=15) as mosaic:
         with pytest.raises(NotImplementedError):
             mosaic.write()
 
@@ -400,7 +400,7 @@ def test_stac_search(post):
     post.side_effect = [
         STACMockResponse({"context": {"returned": 0}}),
     ]
-    assert stac_search("https://a_stac.api/search&limit=10", json.dumps({})) == []
+    assert stac_search("https://a_stac.api/search", json.dumps({}), limit=10) == []
 
     with open(stac_page1, "r") as f1:
         resp = json.loads(f1.read())
@@ -410,8 +410,7 @@ def test_stac_search(post):
         ]
 
     assert (
-        len(stac_search("https://a_stac.api/search", json.dumps({}), max_items=100))
-        == 10
+        len(stac_search("https://a_stac.api/search", json.dumps({}), max_items=7)) == 7
     )
 
 

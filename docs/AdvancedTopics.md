@@ -82,7 +82,6 @@ mosaicjson = MosaicJSON.from_features(
 )
 ```
 
-
 ## Custom mosaic update
 
 Update method is **backend specific** because you don't write a mosaicjson document in the same way in AWS S3 and in AWS DynamoDB.
@@ -147,6 +146,8 @@ Sometime you'll will want to do more advanced filtering/sorting with the newly d
 from cogeo_mosaic.backends.s3 import S3Backend
 
 class CustomS3Backend(S3Backend):
+
+    _backend_name = "Custom AWS S3"
 
     def update(
         self,

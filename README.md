@@ -165,9 +165,15 @@ print(mosaic_definition.tiles)
 Starting in version `3.0.0`, we introduced specific backend storage for:
 
 - **File** (default, `file:///`)
+
 - **HTTP/HTTPS/FTP** (`https://`, `https://`, `ftp://`)
+
 - **AWS S3** (`s3://`)
+
 - **AWS DynamoDB** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
+
+- [WIP] **STAC** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
+
 
 To ease the usage we added a helper function to use the right backend based on the uri schema: `cogeo_mosaic.backends.MosaicBackend`
 
@@ -185,6 +191,9 @@ with MosaicBackend("dynamodb://us-east-1/amosaic") as mosaic:
 
 with MosaicBackend("file:///amosaic.json.gz") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
+
+with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellite"]}) as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.stac.STACBackend)
 
 with MosaicBackend("amosaic.json.gz") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
@@ -248,6 +257,12 @@ mosaicdata = create_mosaic(["1.tif", "2.tif"])
 with MosaicBackend(None, mosaic_def=mosaicdata) as mosaic:
     assets: List = mosaic.tile(1, 2, 3) # get assets for mercantile.Tile(1, 2, 3)
 ```
+
+#### STAC: SpatioTemporal Asset Catalog
+
+The STACBackend is purely dynamic, meaning it's not used to read or write a file. This backend will POST to the input url looking for STAC items which will then be used to create the mosaicJSON.
+
+see [/docs/STAC_backend.md](/docs/STAC_backend.md) for more info.
 
 # Associated Modules
 - [**cogeo-mosaic-tiler**](http://github.com/developmentseed/cogeo-mosaic-tiler): A serverless stack to serve and vizualized tiles from Cloud Optimized GeoTIFF mosaic.
