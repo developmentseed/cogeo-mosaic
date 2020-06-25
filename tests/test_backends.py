@@ -400,7 +400,7 @@ def test_stac_search(post):
     post.side_effect = [
         STACMockResponse({"context": {"returned": 0}}),
     ]
-    assert stac_search("https://a_stac.api/search", json.dumps({}), limit=10) == []
+    assert stac_search("https://a_stac.api/search", {}, limit=10) == []
 
     with open(stac_page1, "r") as f1:
         resp = json.loads(f1.read())
@@ -409,9 +409,7 @@ def test_stac_search(post):
             STACMockResponse(resp),
         ]
 
-    assert (
-        len(stac_search("https://a_stac.api/search", json.dumps({}), max_items=7)) == 7
-    )
+    assert len(stac_search("https://a_stac.api/search", {}, max_items=7)) == 7
 
 
 def test_stac_accessor():
