@@ -1,11 +1,12 @@
 """cogeo-mosaic AWS S3 backend."""
 
-import functools
 import json
 from typing import Any, Dict, List, Optional, Union
 
 import mercantile
 from boto3.session import Session as boto3_session
+from cachetools import TTLCache, cached
+from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
@@ -61,7 +62,10 @@ class S3Backend(BaseBackend):
 
         _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
 
-    @functools.lru_cache(maxsize=512)
+    @cached(
+        TTLCache(maxsize=512, ttl=300),
+        key=lambda self, gzip=None: hashkey(self.key, self.bucket, gzip),
+    )
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         body = _aws_get_data(self.key, self.bucket, client=self.client)

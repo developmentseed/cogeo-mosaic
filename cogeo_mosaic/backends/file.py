@@ -1,10 +1,11 @@
 """cogeo-mosaic File backend."""
 
-import functools
 import json
 from typing import Any, Dict, List, Optional, Union
 
 import mercantile
+from cachetools import TTLCache, cached
+from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
@@ -54,7 +55,10 @@ class FileBackend(BaseBackend):
             else:
                 f.write(json.dumps(body).encode("utf-8"))
 
-    @functools.lru_cache(maxsize=512)
+    @cached(
+        TTLCache(maxsize=512, ttl=300),
+        key=lambda self, gzip=None: hashkey(self.path, gzip),
+    )
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         with open(self.path, "rb") as f:

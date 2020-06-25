@@ -1,7 +1,7 @@
 3.0a4 (TBD)
 ------------------
 - add STACBackend (#82)
-
+- fix backends caching and switch to TTL cache (#83)
 
 3.0a3 (2020-05-01)
 ------------------

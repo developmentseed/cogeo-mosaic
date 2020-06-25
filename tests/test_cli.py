@@ -59,31 +59,31 @@ def test_update_valid():
     """Should work as expected."""
     runner = CliRunner()
     with runner.isolated_filesystem():
-        with open("mosaic.json", "w") as f:
+        with open("mosaic_1.json", "w") as f:
             f.write(json.dumps(MosaicJSON.from_urls([asset1]).dict(exclude_none=True)))
 
         with open("./list.txt", "w") as f:
             f.write("\n".join([asset2]))
 
         result = runner.invoke(
-            cogeo_cli, ["update", "list.txt", "mosaic.json", "--quiet"]
+            cogeo_cli, ["update", "list.txt", "mosaic_1.json", "--quiet"]
         )
         assert not result.exception
         assert result.exit_code == 0
-        with open("mosaic.json", "r") as f:
+        with open("mosaic_1.json", "r") as f:
             updated_mosaic = json.load(f)
             updated_mosaic["version"] == "1.0.1"
             assert not mosaic_content.tiles == updated_mosaic["tiles"]
 
-        with open("mosaic.json", "w") as f:
+        with open("mosaic_2.json", "w") as f:
             f.write(json.dumps(MosaicJSON.from_urls([asset1]).dict(exclude_none=True)))
 
         result = runner.invoke(
-            cogeo_cli, ["update", "list.txt", "mosaic.json", "--add-last", "--quiet"]
+            cogeo_cli, ["update", "list.txt", "mosaic_2.json", "--add-last", "--quiet"]
         )
         assert not result.exception
         assert result.exit_code == 0
-        with open("mosaic.json", "r") as f:
+        with open("mosaic_2.json", "r") as f:
             updated_mosaic = json.load(f)
             updated_mosaic["version"] == "1.0.1"
             assert mosaic_content.tiles == updated_mosaic["tiles"]

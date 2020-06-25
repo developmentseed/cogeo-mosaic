@@ -1,6 +1,5 @@
 """cogeo-mosaic AWS DynamoDB backend."""
 
-import functools
 import itertools
 import json
 import os
@@ -12,6 +11,8 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import boto3
 import click
 import mercantile
+from cachetools import TTLCache, cached
+from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
@@ -165,7 +166,9 @@ class DynamoDBBackend(BaseBackend):
                 for item in progitems:
                     batch.put_item(item)
 
-    @functools.lru_cache(maxsize=512)
+    @cached(
+        TTLCache(maxsize=512, ttl=300), key=lambda self: hashkey(self.path),
+    )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
         meta = self._fetch_dynamodb("-1")
@@ -186,7 +189,10 @@ class DynamoDBBackend(BaseBackend):
         meta["tiles"] = {}
         return MosaicJSON(**meta)
 
-    @functools.lru_cache(maxsize=512)
+    @cached(
+        TTLCache(maxsize=512, ttl=300),
+        key=lambda self, x, y, z: hashkey(self.path, x, y, z),
+    )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
