@@ -1,6 +1,5 @@
 """cogeo-mosaic STAC backend."""
 
-import functools
 import json
 import os
 from typing import Any, Callable, Dict, List, Optional
@@ -8,6 +7,8 @@ from urllib.parse import parse_qsl, urlencode, urlparse
 
 import mercantile
 import requests
+from cachetools import TTLCache, cached
+from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import get_assets_from_json
@@ -119,7 +120,7 @@ class STACBackend(BaseBackend):
         """
         features = _fetch(
             self.path,
-            json.dumps(query),  # LRU_CACHE won't work with Dict so we use string
+            query,
             max_items=max_items,
             limit=stac_query_limit,
             next_link_key=stac_next_link_key,
@@ -130,10 +131,13 @@ class STACBackend(BaseBackend):
         )
 
 
-@functools.lru_cache(maxsize=512)
+@cached(
+    TTLCache(maxsize=512, ttl=300),
+    key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),
+)
 def _fetch(
     stac_url: str,
-    query: str,
+    query: Dict,
     max_items: Optional[int] = None,
     next_link_key: str = "next",
     limit: int = 500,
@@ -147,12 +151,11 @@ def _fetch(
         "Accept": "application/geo+json",
     }
 
-    querystring = json.loads(query)
-    if "features" not in querystring.keys():
-        querystring.update({"limit": limit})
+    if "features" not in query:
+        query.update({"limit": limit})
 
     def _stac_search(url):
-        return requests.post(url, headers=headers, json=querystring).json()
+        return requests.post(url, headers=headers, json=query).json()
 
     next_url = stac_url
     page = 1

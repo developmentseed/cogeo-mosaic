@@ -17,7 +17,7 @@ class BaseBackend(AbstractContextManager):
     path: str
     mosaic_def: MosaicJSON
     _backend_name: str
-    _file_byte_size: Optional[int]
+    _file_byte_size: Optional[int] = 0
 
     @abc.abstractmethod
     def __init__(self, *args, **kwargs):
