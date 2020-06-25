@@ -64,7 +64,7 @@ class S3Backend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=512, ttl=300),
-        key=lambda self, gzip=None: hashkey(self.key, self.bucket, gzip),
+        key=lambda self, gzip=None: hashkey(self.path, gzip),
     )
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
