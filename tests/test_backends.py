@@ -20,6 +20,7 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.stac import _fetch as stac_search
 from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
+from cogeo_mosaic.errors import MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
@@ -451,3 +452,19 @@ def test_stac_accessor():
         "links": [],
     }
     assert stac_accessor(feat) == "S2A_11XNM_20200621_0_L2A"
+
+
+@pytest.mark.parametrize(
+    "mosaic_path",
+    [
+        "file:///path/to/mosaic.json",
+        "dynamodb://us-east-1/amosaic",
+        "s3://mybucket/amosaic.json",
+        "https://mosaic.com/amosaic.json.gz",
+        "https://mybucket.s3.amazonaws.com/mosaic.json",
+    ],
+)
+def test_mosaic_crud_error(mosaic_path):
+    with pytest.raises(MosaicError):
+        with MosaicBackend(mosaic_path):
+            ...
