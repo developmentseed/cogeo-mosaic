@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
+from requests.exceptions import HTTPError, RequestException
 
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
@@ -106,6 +107,9 @@ class MockResponse:
     def __init__(self, data):
         self.data = data
 
+    def raise_for_status(self):
+        pass
+
     @property
     def content(self):
         return self.data
@@ -116,6 +120,8 @@ def test_http_backend(requests):
     """Test HTTP backend."""
     with open(mosaic_json, "r") as f:
         requests.get.return_value = MockResponse(f.read())
+        requests.exceptions.HTTPError = HTTPError
+        requests.exceptions.RequestException = RequestException
 
     with MosaicBackend("https://mymosaic.json") as mosaic:
         assert mosaic._backend_name == "HTTP"
@@ -318,7 +324,7 @@ def test_dynamoDB_backend(client):
         mosaic._create_table()
 
 
-class STACMockResponse:
+class STACMockResponse(MockResponse):
     def __init__(self, data):
         self.data = data
 
