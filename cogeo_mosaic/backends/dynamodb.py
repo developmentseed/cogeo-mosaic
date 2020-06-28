@@ -11,11 +11,13 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import boto3
 import click
 import mercantile
+from botocore.exceptions import ClientError
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -208,4 +210,9 @@ class DynamoDBBackend(BaseBackend):
         return assets
 
     def _fetch_dynamodb(self, quadkey: str) -> Dict:
-        return self.table.get_item(Key={"quadkey": quadkey}).get("Item", {})
+        try:
+            return self.table.get_item(Key={"quadkey": quadkey}).get("Item", {})
+        except ClientError as e:
+            status_code = e.response["ResponseMetadata"]["HTTPStatusCode"]
+            exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
+            raise exc(e.response["Error"]["Message"]) from e

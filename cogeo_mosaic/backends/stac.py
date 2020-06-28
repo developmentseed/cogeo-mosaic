@@ -12,6 +12,7 @@ from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import get_assets_from_json
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -155,7 +156,14 @@ def _fetch(
         query.update({"limit": limit})
 
     def _stac_search(url):
-        return requests.post(url, headers=headers, json=query).json()
+        try:
+            r = requests.post(url, headers=headers, json=query).json()
+            r.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            status_code = e.response.status_code
+            exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
+            raise exc(e.response.content) from e
+        return r.json()
 
     next_url = stac_url
     page = 1

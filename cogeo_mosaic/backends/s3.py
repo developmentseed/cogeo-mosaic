@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import mercantile
 from boto3.session import Session as boto3_session
+from botocore.exceptions import ClientError
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
@@ -14,6 +15,7 @@ from cogeo_mosaic.backends.utils import (
     _decompress_gz,
     get_assets_from_json,
 )
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -82,21 +84,27 @@ def _aws_get_data(key, bucket, client: boto3_session.client = None) -> bytes:
     if not client:
         session = boto3_session()
         client = session.client("s3")
+    try:
+        response = client.get_object(Bucket=bucket, Key=key)
+    except ClientError as e:
+        status_code = e.response["ResponseMetadata"]["HTTPStatusCode"]
+        exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
+        raise exc(e.response["Error"]["Message"]) from e
 
-    response = client.get_object(Bucket=bucket, Key=key)
     return response["Body"].read()
 
 
 def _aws_put_data(
-    key: str,
-    bucket: str,
-    body: bytes,
-    options: Dict = {},
-    client: boto3_session.client = None,
+    key: str, bucket: str, body: bytes, client: boto3_session.client = None, **kwargs
 ) -> str:
     if not client:
         session = boto3_session()
         client = session.client("s3")
+    try:
+        client.put_object(Bucket=bucket, Key=key, Body=body, **kwargs)
+    except ClientError as e:
+        status_code = e.response["ResponseMetadata"]["HTTPStatusCode"]
+        exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
+        raise exc(e.response["Error"]["Message"]) from e
 
-    client.put_object(Bucket=bucket, Key=key, Body=body, **options)
     return key
