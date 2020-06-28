@@ -470,7 +470,9 @@ def test_stac_accessor():
         "https://mybucket.s3.amazonaws.com/mosaic.json",
     ],
 )
-def test_mosaic_crud_error(mosaic_path):
+def test_mosaic_crud_error(mosaic_path, monkeypatch):
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "")
     with pytest.raises(MosaicError):
         with MosaicBackend(mosaic_path):
             ...
