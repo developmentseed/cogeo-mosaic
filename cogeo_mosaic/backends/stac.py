@@ -157,12 +157,16 @@ def _fetch(
 
     def _stac_search(url):
         try:
-            r = requests.post(url, headers=headers, json=query).json()
+            r = requests.post(url, headers=headers, json=query)
             r.raise_for_status()
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.HTTPError as e:
+            # post-flight errors
             status_code = e.response.status_code
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
             raise exc(e.response.content) from e
+        except requests.exceptions.RequestException as e:
+            # pre-flight errors
+            raise MosaicError(e.args[0].reason) from e
         return r.json()
 
     next_url = stac_url

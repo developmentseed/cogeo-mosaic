@@ -61,10 +61,14 @@ class HttpBackend(BaseBackend):
         try:
             r = requests.get(self.path)
             r.raise_for_status()
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.HTTPError as e:
+            # post-flight errors
             status_code = e.response.status_code
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
             raise exc(e.response.content) from e
+        except requests.exceptions.RequestException as e:
+            # pre-flight errors
+            raise MosaicError(e.args[0].reason) from e
 
         body = r.content
 
