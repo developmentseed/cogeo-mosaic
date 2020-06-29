@@ -13,6 +13,7 @@ from cogeo_mosaic.backends.utils import (
     _decompress_gz,
     get_assets_from_json,
 )
+from cogeo_mosaic.errors import _FILE_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -50,10 +51,14 @@ class FileBackend(BaseBackend):
         """Write mosaicjson document to a file."""
         body = self.mosaic_def.dict(exclude_none=True)
         with open(self.path, "wb") as f:
-            if gzip or (gzip is None and self.path.endswith(".gz")):
-                f.write(_compress_gz_json(body))
-            else:
-                f.write(json.dumps(body).encode("utf-8"))
+            try:
+                if gzip or (gzip is None and self.path.endswith(".gz")):
+                    f.write(_compress_gz_json(body))
+                else:
+                    f.write(json.dumps(body).encode("utf-8"))
+            except Exception as e:
+                exc = _FILE_EXCEPTIONS.get(e, MosaicError)  # type: ignore
+                raise exc(str(e)) from e
 
     @cached(
         TTLCache(maxsize=512, ttl=300),
@@ -61,8 +66,12 @@ class FileBackend(BaseBackend):
     )
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
-        with open(self.path, "rb") as f:
-            body = f.read()
+        try:
+            with open(self.path, "rb") as f:
+                body = f.read()
+        except Exception as e:
+            exc = _FILE_EXCEPTIONS.get(e, MosaicError)  # type: ignore
+            raise exc(str(e)) from e
 
         self._file_byte_size = len(body)
 

@@ -10,6 +10,7 @@ from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import _decompress_gz, get_assets_from_json
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -57,7 +58,19 @@ class HttpBackend(BaseBackend):
     )
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
-        body = requests.get(self.path).content
+        try:
+            r = requests.get(self.path)
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            # post-flight errors
+            status_code = e.response.status_code
+            exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
+            raise exc(e.response.content) from e
+        except requests.exceptions.RequestException as e:
+            # pre-flight errors
+            raise MosaicError(e.args[0].reason) from e
+
+        body = r.content
 
         self._file_byte_size = len(body)
 
