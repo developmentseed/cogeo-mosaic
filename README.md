@@ -166,7 +166,7 @@ Starting in version `3.0.0`, we introduced specific backend storage for:
 
 - **File** (default, `file:///`)
 
-- **HTTP/HTTPS/FTP** (`https://`, `https://`)
+- **HTTP/HTTPS/FTP** (`https://`, `http://`)
 
 - **AWS S3** (`s3://`)
 
