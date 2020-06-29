@@ -1,3 +1,8 @@
+3.0a5 (2020-06-29)
+------------------
+- remove FTP from supported backend (#87, author @geospatial-jeff)
+- add backend CRUD exceptions (#86, author @geospatial-jeff)
+
 3.0a4 (2020-06-25)
 ------------------
 - add STACBackend (#82)
