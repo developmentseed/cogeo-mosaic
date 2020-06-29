@@ -25,7 +25,7 @@ def MosaicBackend(url: str, **kwargs) -> BaseBackend:
             kwargs.update(dict(region=region))
         return DynamoDBBackend(table_name, **kwargs)
 
-    if parsed.scheme in ["https", "http", "ftp"]:
+    if parsed.scheme in ["https", "http"]:
         return HttpBackend(url, **kwargs)
 
     if parsed.scheme == "file":
