@@ -171,7 +171,7 @@ def create_low_level_cogs(
                                 length=len(future_work),
                                 show_percent=True,
                             ) as future:
-                                for res in future:
+                                for result in future:
                                     pass
 
                         for f in _filter_futures(future_work):
