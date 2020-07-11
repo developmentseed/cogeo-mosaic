@@ -61,6 +61,19 @@ def _get_blocks(extrema):
             yield (j, i), Window(col_off=col, row_off=row, width=256, height=256)
 
 
+def rasterio_open(in_memory=False, path=None, **kwargs):
+    """Open rasterio object for writing overview image
+    """
+    if in_memory:
+        with MemoryFile() as memfile:
+            return memfile.open(**kwargs)
+
+    if not path:
+        raise ValueError("path must be provided when in_memory is False")
+
+    return rasterio.open(path, "w", **kwargs)
+
+
 def create_low_level_cogs(
     mosaic_path: str,
     output_profile: Dict,
@@ -69,6 +82,7 @@ def create_low_level_cogs(
     config: Dict = None,
     threads=1,
     tilesize=256,
+    in_memory=False,
 ) -> None:
     """
     Create WebOptimized Overview COG from a mosaic definition file.
@@ -125,68 +139,66 @@ def create_low_level_cogs(
                 blockysize=256,
             )
 
+            out_path = f"{prefix}_{ix}.tif"
             config = config or {}
             with rasterio.Env(**config):
-                with MemoryFile() as memfile:
-                    with memfile.open(**params) as mem:
+                with rasterio_open(in_memory, out_path, **params) as mem:
 
-                        def _get_tile(wind):
-                            idx, window = wind
-                            x = extrema["x"]["min"] + idx[1]
-                            y = extrema["y"]["min"] + idx[0]
-                            t = mercantile.Tile(x, y, base_zoom)
+                    def _get_tile(wind):
+                        idx, window = wind
+                        x = extrema["x"]["min"] + idx[1]
+                        y = extrema["y"]["min"] + idx[0]
+                        t = mercantile.Tile(x, y, base_zoom)
 
-                            kds = set(find_quadkeys(t, mosaic.quadkey_zoom))
-                            if not mosaic_quadkeys.intersection(kds):
-                                return window, None, None
+                        kds = set(find_quadkeys(t, mosaic.quadkey_zoom))
+                        if not mosaic_quadkeys.intersection(kds):
+                            return window, None, None
 
-                            assets = mosaic.tile(*t)
-                            if not assets:
-                                raise Exception(
-                                    f"No asset for tile {x}-{y}-{base_zoom}"
-                                )
+                        assets = mosaic.tile(*t)
+                        if not assets:
+                            raise Exception(f"No asset for tile {x}-{y}-{base_zoom}")
 
-                            if assets:
-                                tile, mask = mosaic_tiler(
-                                    assets,
-                                    x,
-                                    y,
-                                    base_zoom,
-                                    cogeo.tile,
-                                    indexes=info["indexes"],
-                                    tilesize=tilesize,
-                                    pixel_selection=defaults.FirstMethod(),
-                                )
+                        if assets:
+                            tile, mask = mosaic_tiler(
+                                assets,
+                                x,
+                                y,
+                                base_zoom,
+                                cogeo.tile,
+                                indexes=info["indexes"],
+                                tilesize=tilesize,
+                                pixel_selection=defaults.FirstMethod(),
+                            )
 
-                            return window, tile, mask
+                        return window, tile, mask
 
-                        with futures.ThreadPoolExecutor(
-                            max_workers=threads
-                        ) as executor:
-                            future_work = [
-                                executor.submit(_get_tile, item) for item in blocks
-                            ]
-                            with click.progressbar(
-                                futures.as_completed(future_work),
-                                length=len(future_work),
-                                show_percent=True,
-                            ) as future:
-                                for result in future:
-                                    pass
+                    with futures.ThreadPoolExecutor(max_workers=threads) as executor:
+                        future_work = [
+                            executor.submit(_get_tile, item) for item in blocks
+                        ]
+                        with click.progressbar(
+                            futures.as_completed(future_work),
+                            length=len(future_work),
+                            show_percent=True,
+                        ) as future:
+                            for result in future:
+                                pass
 
-                        for f in _filter_futures(future_work):
-                            window, tile, mask = f
-                            if tile is None:
-                                continue
+                    for f in _filter_futures(future_work):
+                        window, tile, mask = f
+                        if tile is None:
+                            continue
 
-                            mem.write(tile, window=window)
-                            if info["mask"]:
-                                mem.write_mask(mask.astype("uint8"), window=window)
+                        mem.write(tile, window=window)
+                        if info["mask"]:
+                            mem.write_mask(mask.astype("uint8"), window=window)
 
+                    # Not already written to a file
+                    if in_memory:
                         cog_translate(
                             mem,
-                            f"{prefix}_{ix}.tif",
+                            out_path,
                             output_profile,
                             config=config,
-                            in_memory=True,
+                            in_memory=in_memory,
                         )
