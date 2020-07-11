@@ -268,8 +268,8 @@ def footprint(input_files, output, threads, quiet):
 @click.option(
     "--threads",
     type=int,
-    default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
-    help="threads",
+    default=1,
+    help="# of Python threads. 1 thread is recommended, as GDAL can have issues when multiple threads read the same file.",
 )
 @click.option(
     "--overview-level",
