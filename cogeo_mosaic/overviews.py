@@ -31,13 +31,13 @@ def _get_info(asset: str) -> Tuple:
         indexes = non_alpha_indexes(src_dst)
         mask = has_mask_band(src_dst)
         return {
-            'n_bands': src_dst.count,
-            'dtype': src_dst.dtypes[0],
-            'band_desc': description,
-            'tags': src_dst.tags(),
-            'nodata': src_dst.nodata,
-            'mask': mask,
-            'indexes': indexes,
+            "n_bands": src_dst.count,
+            "dtype": src_dst.dtypes[0],
+            "band_desc": description,
+            "tags": src_dst.tags(),
+            "nodata": src_dst.nodata,
+            "mask": mask,
+            "indexes": indexes,
         }
 
 
@@ -124,13 +124,13 @@ def create_low_level_cogs(
 
             params = dict(
                 driver="GTiff",
-                dtype=info['dtype'],
-                count=len(info['indexes']),
+                dtype=info["dtype"],
+                count=len(info["indexes"]),
                 width=width,
                 height=height,
                 crs="epsg:3857",
                 transform=Affine(res, 0, w, 0, -res, n),
-                nodata=info['nodata'],
+                nodata=info["nodata"],
                 tiled=True,
                 blockxsize=256,
                 blockysize=256,
@@ -164,7 +164,7 @@ def create_low_level_cogs(
                                     y,
                                     base_zoom,
                                     cogeo.tile,
-                                    indexes=info['indexes'],
+                                    indexes=info["indexes"],
                                     tilesize=tilesize,
                                     pixel_selection=defaults.FirstMethod(),
                                 )
@@ -191,7 +191,7 @@ def create_low_level_cogs(
                                 continue
 
                             mem.write(tile, window=window)
-                            if info['mask']:
+                            if info["mask"]:
                                 mem.write_mask(mask.astype("uint8"), window=window)
 
                         cog_translate(
