@@ -21,6 +21,7 @@ from supermercado.burntiles import tile_extrema
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.utils import _filter_futures
+from tqdm import tqdm
 
 
 def _get_info(asset: str) -> Tuple:
@@ -142,7 +143,8 @@ def create_low_level_cogs(
             out_path = f"{prefix}_{ix}.tif"
             config = config or {}
             with rasterio.Env(**config):
-                with rasterio_open(in_memory, out_path, **params) as mem:
+                # with rasterio_open(in_memory, out_path, **params) as mem:
+                with rasterio.open(out_path, "w", **params) as dst:
 
                     def _get_tile(wind):
                         idx, window = wind
@@ -156,47 +158,35 @@ def create_low_level_cogs(
 
                         assets = mosaic.tile(*t)
                         if not assets:
-                            raise Exception(f"No asset for tile {x}-{y}-{base_zoom}")
+                            return window, None, None
 
-                        if assets:
-                            tile, mask = mosaic_tiler(
-                                assets,
-                                x,
-                                y,
-                                base_zoom,
-                                cogeo.tile,
-                                indexes=info["indexes"],
-                                tilesize=tilesize,
-                                pixel_selection=defaults.FirstMethod(),
-                            )
-
+                        tile, mask = mosaic_tiler(
+                            assets,
+                            x,
+                            y,
+                            base_zoom,
+                            cogeo.tile,
+                            indexes=info["indexes"],
+                            tilesize=tilesize,
+                            pixel_selection=defaults.FirstMethod(),
+                        )
                         return window, tile, mask
 
                     with futures.ThreadPoolExecutor(max_workers=threads) as executor:
-                        future_work = [
-                            executor.submit(_get_tile, item) for item in blocks
-                        ]
-                        with click.progressbar(
-                            futures.as_completed(future_work),
-                            length=len(future_work),
-                            show_percent=True,
-                        ) as future:
-                            for result in future:
-                                pass
+                        future_work = executor.map(_get_tile, blocks)
+                        for result in tqdm(future_work, total=len(blocks)):
+                            window, tile, mask = result
+                            if tile is None:
+                                continue
 
-                    for f in _filter_futures(future_work):
-                        window, tile, mask = f
-                        if tile is None:
-                            continue
-
-                        mem.write(tile, window=window)
-                        if info["mask"]:
-                            mem.write_mask(mask.astype("uint8"), window=window)
+                            dst.write(tile, window=window)
+                            if info["mask"]:
+                                dst.write_mask(mask.astype("uint8"), window=window)
 
                     # Not already written to a file
                     if in_memory:
                         cog_translate(
-                            mem,
+                            dst,
                             out_path,
                             output_profile,
                             config=config,
