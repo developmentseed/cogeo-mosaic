@@ -68,6 +68,7 @@ def create_low_level_cogs(
     max_overview_level: int = 6,
     config: Dict = None,
     threads=1,
+    tilesize=256,
 ) -> None:
     """
     Create WebOptimized Overview COG from a mosaic definition file.
@@ -85,7 +86,6 @@ def create_low_level_cogs(
     """
     with MosaicBackend(mosaic_path) as mosaic:
         base_zoom = mosaic.metadata["minzoom"] - 1
-        mosaic_quadkey_zoom = mosaic.quadkey_zoom
         bounds = mosaic.metadata["bounds"]
         mosaic_quadkeys = set(mosaic._quadkeys)
 
@@ -95,7 +95,6 @@ def create_low_level_cogs(
         info = _get_info(assets[0])
 
         extrema = tile_extrema(bounds, base_zoom)
-        tilesize = 256
         res = _meters_per_pixel(base_zoom, 0, tilesize=tilesize)
 
         # Create multiples files if coverage is too big
@@ -137,7 +136,7 @@ def create_low_level_cogs(
                             y = extrema["y"]["min"] + idx[0]
                             t = mercantile.Tile(x, y, base_zoom)
 
-                            kds = set(find_quadkeys(t, mosaic_quadkey_zoom))
+                            kds = set(find_quadkeys(t, mosaic.quadkey_zoom))
                             if not mosaic_quadkeys.intersection(kds):
                                 return window, None, None
 
