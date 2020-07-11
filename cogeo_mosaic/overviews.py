@@ -45,10 +45,8 @@ def _split_extrema(extrema: Dict, max_ovr: int = 6, tilesize: int = 256):
     """Create multiple extremas."""
     nb_ovrtile = 2 ** max_ovr
     extr = []
-    for _, x in enumerate(range(extrema["x"]["min"], extrema["x"]["max"], nb_ovrtile)):
-        for _, y in enumerate(
-            range(extrema["y"]["min"], extrema["y"]["max"], nb_ovrtile)
-        ):
+    for x in range(extrema["x"]["min"], extrema["x"]["max"], nb_ovrtile):
+        for y in range(extrema["y"]["min"], extrema["y"]["max"], nb_ovrtile):
             maxx = (
                 x + nb_ovrtile
                 if x + nb_ovrtile < extrema["x"]["max"]
@@ -65,8 +63,8 @@ def _split_extrema(extrema: Dict, max_ovr: int = 6, tilesize: int = 256):
 
 def _get_blocks(extrema):
     for j in range(extrema["y"]["max"] - extrema["y"]["min"]):
-        row = j * 256
         for i in range(extrema["x"]["max"] - extrema["x"]["min"]):
+            row = j * 256
             col = i * 256
             yield (j, i), Window(col_off=col, row_off=row, width=256, height=256)
 
