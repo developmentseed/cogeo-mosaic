@@ -47,16 +47,8 @@ def _split_extrema(extrema: Dict, max_ovr: int = 6, tilesize: int = 256):
     extr = []
     for x in range(extrema["x"]["min"], extrema["x"]["max"], nb_ovrtile):
         for y in range(extrema["y"]["min"], extrema["y"]["max"], nb_ovrtile):
-            maxx = (
-                x + nb_ovrtile
-                if x + nb_ovrtile < extrema["x"]["max"]
-                else extrema["x"]["max"]
-            )
-            maxy = (
-                y + nb_ovrtile
-                if y + nb_ovrtile < extrema["y"]["max"]
-                else extrema["y"]["max"]
-            )
+            maxx = min(x + nb_ovrtile, extrema["x"]["max"])
+            maxy = min(y + nb_ovrtile, extrema["y"]["max"])
             extr.append({"x": {"min": x, "max": maxx}, "y": {"min": y, "max": maxy}})
     return extr
 
