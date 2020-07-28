@@ -5,11 +5,11 @@ from typing import Any, Dict, List, Optional, Union
 
 import mercantile
 import requests
-from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import _decompress_gz, get_assets_from_json
+from cogeo_mosaic.cache import lru_cache
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
@@ -52,10 +52,7 @@ class HttpBackend(BaseBackend):
         """Update the mosaicjson document."""
         raise NotImplementedError
 
-    @cached(
-        TTLCache(maxsize=512, ttl=300),
-        key=lambda self, gzip=None: hashkey(self.path, gzip),
-    )
+    @lru_cache(key=lambda self, gzip=None: hashkey(self.path, gzip),)
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         try:
