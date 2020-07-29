@@ -227,6 +227,8 @@ def test_overview_valid():
         with rasterio.open("ovr_0.tif") as src_dst:
             assert src_dst.width == 512
             assert src_dst.height == 512
+            assert src_dst.profile["blockxsize"] == 128
+            assert src_dst.profile["blockysize"] == 128
             assert src_dst.overviews(1) == [2, 4]
             assert not src_dst.compression
 

@@ -1,3 +1,10 @@
+3.0a6 (TBD)
+------------------
+- Use environement variable to set/disable cache (#93, autho @geospatial-jeff)
+- Allow Threads configuration for overview command (author @kylebarron)
+- add --in-memory/--no-in-memory to control temporary files creation for `overview` function. 
+- allow pixel_selection method options for `overview` function. 
+
 3.0a5 (2020-06-29)
 ------------------
 - remove FTP from supported backend (#87, author @geospatial-jeff)

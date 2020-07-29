@@ -42,8 +42,10 @@ Commands:
   create                Create mosaic definition from list of files
   create-from-features  Create mosaic definition from GeoJSON features or features collection
   footprint             Create geojson from list of files
-  overview              [EXPERIMENTAL] Create a low resolution version of a mosaic
+  info                  Return info about the mosaic
+  overview              [EXPERIMENTAL] Create a low resolution mosaic image from a MosaicJSON.
   update                Update a mosaic definition from list of files
+  upload                Upload mosaic definition to backend
 ```
 
 ### Create Mosaic definition
@@ -142,7 +144,6 @@ $ cogeo-mosaic overview s3://bucket/mymosaic.json
 ```
 
 ![](https://user-images.githubusercontent.com/10407788/80844578-fa7c5000-8bd4-11ea-9eb8-5d1f84461dad.png)
-
 
 # Image Order
 
