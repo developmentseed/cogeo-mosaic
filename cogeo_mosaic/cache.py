@@ -6,13 +6,13 @@ from typing import Callable
 from cachetools import TTLCache, cached
 
 # TTL of the cache in seconds
-CACHE_TTL = int(os.getenv("CACHE_TTL", 300))
+COGEO_MOSAIC_CACHE_TTL = int(os.getenv("CACHE_TTL", 300))
 
 # Maximum size of the LRU cache in MB
-CACHE_MAXSIZE = int(os.getenv("CACHE_MAXSIZE", 512))
+COGEO_MOSAIC_CACHE_MAXSIZE = int(os.getenv("CACHE_MAXSIZE", 512))
 
 # Whether or not caching is enabled
-CACHE_ENABLED = os.getenv("CACHE_ENABLED", "TRUE")
+COGEO_MOSAIC_CACHE_ENABLED = os.getenv("CACHE_ENABLED", "TRUE")
 
 
 def lru_cache(key: Callable) -> Callable:
@@ -21,11 +21,14 @@ def lru_cache(key: Callable) -> Callable:
     """
 
     def decorator(func: Callable) -> Callable:
-        if CACHE_ENABLED == "TRUE":
+        if COGEO_MOSAIC_CACHE_ENABLED == "TRUE":
 
             def wrapper(*args, **kwargs):
                 cache_deco = cached(
-                    TTLCache(maxsize=CACHE_MAXSIZE, ttl=CACHE_TTL), key=key
+                    TTLCache(
+                        maxsize=COGEO_MOSAIC_CACHE_MAXSIZE, ttl=COGEO_MOSAIC_CACHE_TTL
+                    ),
+                    key=key,
                 )
                 return cache_deco(func)(*args, **kwargs)
 
