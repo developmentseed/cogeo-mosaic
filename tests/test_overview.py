@@ -5,6 +5,7 @@ import os
 
 import rasterio
 from click.testing import CliRunner
+from rio_cogeo.cogeo import cog_validate
 from rio_cogeo.profiles import cog_profiles
 
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -30,6 +31,9 @@ def test_overview_valid(monkeypatch):
         with open("mosaic.json", "w") as f:
             f.write(json.dumps(mosaic_content))
         create_low_level_cogs("mosaic.json", deflate_profile)
+
+        assert cog_validate("mosaic_ovr_0.tif")
+
         with rasterio.open("mosaic_ovr_0.tif") as src:
             assert src.height == 512
             assert src.width == 512
@@ -40,7 +44,6 @@ def test_overview_valid(monkeypatch):
             assert src.compression.value == "DEFLATE"
             assert src.interleaving.value == "PIXEL"
             assert src.overviews(1) == [2]
-            assert src.tags()["OVR_RESAMPLING_ALG"] == "NEAREST"
 
         with rasterio.open("mosaic_ovr_0.tif", OVERVIEW_LEVEL=0) as src:
             assert src.block_shapes[0] == (128, 128)

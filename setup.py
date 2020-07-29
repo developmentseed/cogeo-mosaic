@@ -14,20 +14,20 @@ inst_reqs = [
     "rasterio[s3]",
     "requests",
     "rio-cogeo>=1.1.0",
-    "rio-tiler>=2.0a4",
+    "rio-tiler~=2.0b2",
     "rio-tiler-mosaic>=0.0.1dev4",
     "cachetools",
     "supermercado",
 ]
 
 extra_reqs = {
-    "test": ["pytest", "pytest-cov", "mock"],
-    "dev": ["pytest", "pytest-cov", "pre-commit", "mock"],
+    "test": ["pytest", "pytest-cov"],
+    "dev": ["pytest", "pytest-cov", "pre-commit"],
 }
 
 setup(
     name="cogeo-mosaic",
-    version="3.0a5",
+    version="3.0a6",
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",

@@ -14,7 +14,11 @@ from rio_cogeo.profiles import cog_profiles
 from cogeo_mosaic import version as cogeo_mosaic_version
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
-from cogeo_mosaic.overviews import create_low_level_cogs
+from cogeo_mosaic.overviews import (
+    PIXSEL_METHODS,
+    create_high_level_cogs,
+    create_low_level_cogs,
+)
 from cogeo_mosaic.utils import get_footprints
 
 
@@ -253,7 +257,7 @@ def footprint(input_files, output, threads, quiet):
 
 
 @cogeo_cli.command(
-    short_help="[EXPERIMENTAL] Create a low resolution version of a mosaic"
+    short_help="[EXPERIMENTAL] Create a low resolution image from a MosaicJSON."
 )
 @click.argument("input_mosaic", type=click.Path())
 @click.option(
@@ -263,6 +267,9 @@ def footprint(input_files, output, threads, quiet):
     type=click.Choice(cog_profiles.keys()),
     default="deflate",
     help="CloudOptimized GeoTIFF profile (default: deflate).",
+)
+@click.option(
+    "--method", type=click.Choice(PIXSEL_METHODS.keys()), default="first",
 )
 @click.option("--prefix", type=str, help="Output files prefix")
 @click.option(
@@ -278,6 +285,11 @@ def footprint(input_files, output, threads, quiet):
     help="Max internal overivew level for the COG. "
     f"Will be used to get the size of each COG. Default is {256 * 2 **6}",
 )
+@click.option(
+    "--in-memory/--no-in-memory",
+    default=True,
+    help="Force processing raster in memory / not in memory (default: process in memory)",
+)
 @options.creation_options
 @click.option(
     "--yes",
@@ -286,7 +298,15 @@ def footprint(input_files, output, threads, quiet):
     help="Force overview creation for DynamoDB without asking for confirmation",
 )
 def overview(
-    input_mosaic, cogeo_profile, prefix, threads, overview_level, creation_options, yes
+    input_mosaic,
+    cogeo_profile,
+    method,
+    prefix,
+    threads,
+    overview_level,
+    in_memory,
+    creation_options,
+    yes,
 ):
     """Create a low resolution version of a mosaic."""
     if input_mosaic.startswith("dynamodb://") and not yes:
@@ -321,8 +341,69 @@ def overview(
         output_profile,
         prefix,
         max_overview_level=overview_level,
+        method=method,
         config=config,
         threads=threads,
+        in_memory=in_memory,
+    )
+
+
+@cogeo_cli.command(
+    short_help="[EXPERIMENTAL] Create a high resolution image from a MosaicJSON."
+)
+@click.argument("input_mosaic", type=click.Path())
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(exists=False),
+    help="Output file name",
+    required=True,
+)
+@click.option(
+    "--cog-profile",
+    "-p",
+    "cogeo_profile",
+    type=click.Choice(cog_profiles.keys()),
+    default="deflate",
+    help="CloudOptimized GeoTIFF profile (default: deflate).",
+)
+@click.option(
+    "--method", type=click.Choice(PIXSEL_METHODS.keys()), default="first",
+)
+@click.option(
+    "--threads",
+    type=int,
+    default=lambda: os.environ.get("MAX_THREADS", 1),
+    help="threads",
+)
+@click.option(
+    "--in-memory/--no-in-memory",
+    default=True,
+    help="Force processing raster in memory / not in memory (default: process in memory)",
+)
+@options.creation_options
+def merge(
+    input_mosaic, output, cogeo_profile, method, threads, in_memory, creation_options
+):
+    """Create a high resolution image from a MosaicJSON."""
+    output_profile = cog_profiles.get(cogeo_profile)
+    output_profile.update(dict(BIGTIFF=os.environ.get("BIGTIFF", "IF_SAFER")))
+    if creation_options:
+        output_profile.update(creation_options)
+
+    config = dict(
+        GDAL_NUM_THREADS="ALL_CPU",
+        GDAL_TIFF_INTERNAL_MASK=os.environ.get("GDAL_TIFF_INTERNAL_MASK", True),
+        GDAL_TIFF_OVR_BLOCKSIZE="128",
+    )
+    create_high_level_cogs(
+        input_mosaic,
+        output,
+        output_profile,
+        method=method,
+        config=config,
+        threads=threads,
+        in_memory=in_memory,
     )
 
 
