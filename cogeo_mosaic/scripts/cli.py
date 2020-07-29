@@ -14,10 +14,10 @@ from rio_cogeo.profiles import cog_profiles
 from cogeo_mosaic import version as cogeo_mosaic_version
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
-from cogeo_mosaic.overviews import (
+from cogeo_mosaic.translate import (
     PIXSEL_METHODS,
-    create_high_level_cogs,
-    create_low_level_cogs,
+    create_highres_cogs,
+    create_overview_cogs,
 )
 from cogeo_mosaic.utils import get_footprints
 
@@ -336,7 +336,7 @@ def overview(
     if not prefix:
         prefix = os.path.basename(input_mosaic).split(".")[0]
 
-    create_low_level_cogs(
+    create_overview_cogs(
         input_mosaic,
         output_profile,
         prefix,
@@ -396,7 +396,7 @@ def mosaic_to_cog(
         GDAL_TIFF_INTERNAL_MASK=os.environ.get("GDAL_TIFF_INTERNAL_MASK", True),
         GDAL_TIFF_OVR_BLOCKSIZE="128",
     )
-    create_high_level_cogs(
+    create_highres_cogs(
         input_mosaic,
         output,
         output_profile,

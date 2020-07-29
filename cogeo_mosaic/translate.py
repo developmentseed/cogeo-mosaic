@@ -75,7 +75,7 @@ def _get_blocks(extrema: Dict, tilesize: int = 256):
             )
 
 
-def create_low_level_cogs(
+def create_overview_cogs(
     mosaic_path: str,
     output_profile: Dict,
     prefix: str = "mosaic_ovr",
@@ -223,7 +223,7 @@ def create_low_level_cogs(
                     copy(tmp_dst, output_path, copy_src_overviews=True, **params)
 
 
-def create_high_level_cogs(
+def create_highres_cogs(
     mosaic_path: str,
     output_path: str,
     output_profile: Dict,
