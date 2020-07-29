@@ -1,3 +1,10 @@
+3.0a6 (TBD)
+------------------
+- Use environement variable to set/disable cache (#93, autho @geospatial-jeff)
+- Allow Threads configuration for overview command (author @kylebarron)
+- Add mosaic-to-cog CLI to create high resolution mosaic image from a MosaicJSON
+- add --in-memory/--no-in-memory to control temporary files creation for `overview` and `mosaic-to-cog` functions. 
+
 3.0a5 (2020-06-29)
 ------------------
 - remove FTP from supported backend (#87, author @geospatial-jeff)

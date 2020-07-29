@@ -257,7 +257,7 @@ def footprint(input_files, output, threads, quiet):
 
 
 @cogeo_cli.command(
-    short_help="[EXPERIMENTAL] Create a low resolution image from a MosaicJSON."
+    short_help="[EXPERIMENTAL] Create a low resolution mosaic image from a MosaicJSON."
 )
 @click.argument("input_mosaic", type=click.Path())
 @click.option(
@@ -308,7 +308,7 @@ def overview(
     creation_options,
     yes,
 ):
-    """Create a low resolution version of a mosaic."""
+    """Create a low resolution mosaic image from a MosaicJSON."""
     if input_mosaic.startswith("dynamodb://") and not yes:
         value = click.prompt(
             click.style(
@@ -349,7 +349,7 @@ def overview(
 
 
 @cogeo_cli.command(
-    short_help="[EXPERIMENTAL] Create a high resolution image from a MosaicJSON."
+    short_help="[EXPERIMENTAL] Create a high resolution mosaic image from a MosaicJSON."
 )
 @click.argument("input_mosaic", type=click.Path())
 @click.option(
@@ -382,10 +382,10 @@ def overview(
     help="Force processing raster in memory / not in memory (default: process in memory)",
 )
 @options.creation_options
-def merge(
+def mosaic_to_cog(
     input_mosaic, output, cogeo_profile, method, threads, in_memory, creation_options
 ):
-    """Create a high resolution image from a MosaicJSON."""
+    """Create a high resolution mosaic image from a MosaicJSON."""
     output_profile = cog_profiles.get(cogeo_profile)
     output_profile.update(dict(BIGTIFF=os.environ.get("BIGTIFF", "IF_SAFER")))
     if creation_options:
