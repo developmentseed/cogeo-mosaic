@@ -43,8 +43,8 @@ Commands:
   create-from-features  Create mosaic definition from GeoJSON features or features collection
   footprint             Create geojson from list of files
   info                  Return info about the mosaic
-  merge                 [EXPERIMENTAL] Create a high resolution image from a MosaicJSON.
-  overview              [EXPERIMENTAL] Create a low resolution image from a MosaicJSON.
+  mosaic-to-cog         [EXPERIMENTAL] Create a high resolution mosaic image from a MosaicJSON.
+  overview              [EXPERIMENTAL] Create a low resolution mosaic image from a MosaicJSON.
   update                Update a mosaic definition from list of files
   upload                Upload mosaic definition to backend
 ```
@@ -149,13 +149,13 @@ $ cogeo-mosaic overview s3://bucket/mymosaic.json
 
 ### Create High resolution image from Mosaic [experimental]
 
-The CLI provides an `merge` command to create a high-resolution COG from a mosaic.
-This is hightly experimental and might incure some cost if you are hosting mosaic on DynamoDB or COG files on S3.
+The CLI provides an `mosaic-to-cog` command to create a high-resolution COG from a mosaic.
+This might incure some cost if you are hosting mosaic on DynamoDB or COG files on S3.
 
-Note: This is highly experimental and a combination of VRT + gdal_translate commands might give a better result.
+Note: This is highly experimental and a combination of VRT + `rio cogeo` commands might give a better result.
 
 ```
-$ cogeo-mosaic merge s3://bucket/mymosaic.json -o mymosaic_fullres.tif
+$ cogeo-mosaic mosaic-to-cog s3://bucket/mymosaic.json -o mymosaic_fullres.tif
 ```
 
 ![](https://user-images.githubusercontent.com/10407788/88325083-9f995700-ccf2-11ea-9446-dc7f09bf23ae.png)
