@@ -7,11 +7,11 @@ from urllib.parse import parse_qsl, urlencode, urlparse
 
 import mercantile
 import requests
-from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import get_assets_from_json
+from cogeo_mosaic.cache import lru_cache
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
@@ -132,10 +132,7 @@ class STACBackend(BaseBackend):
         )
 
 
-@cached(
-    TTLCache(maxsize=512, ttl=300),
-    key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),
-)
+@lru_cache(key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),)
 def _fetch(
     stac_url: str,
     query: Dict,
