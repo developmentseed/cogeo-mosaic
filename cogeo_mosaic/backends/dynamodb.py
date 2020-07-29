@@ -12,11 +12,11 @@ import boto3
 import click
 import mercantile
 from botocore.exceptions import ClientError
-from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
+from cogeo_mosaic.cache import lru_cache
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
@@ -168,9 +168,7 @@ class DynamoDBBackend(BaseBackend):
                 for item in progitems:
                     batch.put_item(item)
 
-    @cached(
-        TTLCache(maxsize=512, ttl=300), key=lambda self: hashkey(self.path),
-    )
+    @lru_cache(key=lambda self: hashkey(self.path),)
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
         meta = self._fetch_dynamodb("-1")
@@ -191,10 +189,7 @@ class DynamoDBBackend(BaseBackend):
         meta["tiles"] = {}
         return MosaicJSON(**meta)
 
-    @cached(
-        TTLCache(maxsize=512, ttl=300),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z),
-    )
+    @lru_cache(key=lambda self, x, y, z: hashkey(self.path, x, y, z),)
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
