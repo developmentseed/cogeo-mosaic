@@ -13,6 +13,7 @@ import click
 import mercantile
 from botocore.exceptions import ClientError
 from cachetools.keys import hashkey
+from rio_tiler.io import BaseReader, COGReader
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
@@ -31,6 +32,7 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
+        reader: BaseReader = COGReader,
         region: str = os.getenv("AWS_REGION", "us-east-1"),
         client: Optional[Any] = None,
     ):
@@ -38,17 +40,18 @@ class DynamoDBBackend(BaseBackend):
         self.client = client or boto3.resource("dynamodb", region_name=region)
         self.table = self.client.Table(table_name)
         self.path = f"dynamodb://{region}/{table_name}"
+        self.reader = reader
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
             self.mosaic_def = self._read()
 
-    def tile(self, x: int, y: int, z: int) -> List[str]:
+    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
         return self.get_assets(x, y, z)
 
-    def point(self, lng: float, lat: float) -> List[str]:
+    def assets_for_point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
@@ -101,7 +104,7 @@ class DynamoDBBackend(BaseBackend):
         ) as items:
             for quadkey, new_assets in items:
                 tile = mercantile.quadkey_to_tile(quadkey)
-                assets = self.tile(*tile)
+                assets = self.assets_for_tile(*tile)
                 assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
                 # add custom sorting algorithm (e.g based on path name)

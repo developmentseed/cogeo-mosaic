@@ -17,12 +17,12 @@ from rasterio.windows import Window
 from rio_cogeo.cogeo import TemporaryRasterFile
 from rio_cogeo.utils import _meters_per_pixel
 from rio_tiler.io import COGReader
-from rio_tiler_mosaic.methods import defaults
-from rio_tiler_mosaic.mosaic import mosaic_tiler
+from rio_tiler.mosaic.methods import defaults
 from supermercado.burntiles import tile_extrema
 
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
+from cogeo_mosaic.errors import NoAssetFoundError
 from cogeo_mosaic.utils import _filter_futures
 
 PIXSEL_METHODS = {
@@ -118,7 +118,7 @@ def create_overview_cogs(
 
         # Select a random quakey/asset and get dataset info
         tile = mercantile.quadkey_to_tile(random.sample(mosaic_quadkeys, 1)[0])
-        assets = mosaic.tile(*tile)
+        assets = mosaic.assets_for_tile(*tile)
         info = _get_info(assets[0])
 
         extrema = tile_extrema(bounds, base_zoom)
@@ -174,19 +174,16 @@ def create_overview_cogs(
                         if not mosaic_quadkeys.intersection(kds):
                             return window, None, None
 
-                        assets = mosaic.tile(*t)
-                        if not assets:
+                        try:
+                            tile, mask = mosaic.tile(
+                                t.x,
+                                t.y,
+                                t.z,
+                                tilesize=tilesize,
+                                pixel_selection=pixel_method(),
+                            )
+                        except NoAssetFoundError:
                             return window, None, None
-
-                        tile, mask = mosaic_tiler(
-                            assets,
-                            x,
-                            y,
-                            base_zoom,
-                            _tile,
-                            tilesize=tilesize,
-                            pixel_selection=pixel_method(),
-                        )
 
                         return window, tile, mask
 

@@ -54,8 +54,8 @@ def test_file_backend():
             "bounds",
             "center",
         ]
-        assert mosaic.tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
-        assert mosaic.point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
     with MosaicBackend(mosaic_bin, gzip=True) as mosaic:
         assert isinstance(mosaic, FileBackend)
@@ -140,8 +140,8 @@ def test_http_backend(requests):
             "bounds",
             "center",
         ]
-        assert mosaic.tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
-        assert mosaic.point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
     requests.get.assert_called_once()
     requests.mock_reset()
 
@@ -199,8 +199,8 @@ def test_s3_backend(session):
             "bounds",
             "center",
         ]
-        assert mosaic.tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
-        assert mosaic.point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
         session.return_value.client.return_value.get_object.assert_called_once_with(
             Bucket="mybucket", Key="mymosaic.json.gz"
         )
@@ -311,8 +311,8 @@ def test_dynamoDB_backend(client):
             "bounds",
             "center",
         ]
-        assert mosaic.tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
-        assert mosaic.point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
     with MosaicBackend(
         "dynamodb:///thiswaskylebarronidea", mosaic_def=mosaic_content
@@ -355,11 +355,11 @@ def test_stac_backend(post):
             "bounds",
             "center",
         ]
-        assert mosaic.tile(210, 90, 10) == [
+        assert mosaic.assets_for_tile(210, 90, 10) == [
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
         ]
-        assert mosaic.point(-106.050, 81.43) == [
+        assert mosaic.assets_for_point(-106.050, 81.43) == [
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
         ]
