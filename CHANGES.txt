@@ -1,4 +1,4 @@
-3.0a6 (TBD)
+3.0a6 (2020-07-31)
 ------------------
 - Use environement variable to set/disable cache (#93, autho @geospatial-jeff)
 - Allow Threads configuration for overview command (author @kylebarron)
