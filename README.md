@@ -173,8 +173,7 @@ Starting in version `3.0.0`, we introduced specific backend storage for:
 
 - **AWS DynamoDB** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
 
-- [WIP] **STAC** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
-
+- **STAC** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
 
 To ease the usage we added a helper function to use the right backend based on the uri schema: `cogeo_mosaic.backends.MosaicBackend`
 
@@ -206,25 +205,38 @@ from cogeo_mosaic.backends import MosaicBackend
 
 # Read
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
-    mosaic.mosaic_def         # property - MosaicJSON document, wrapped in a Pydantic Model
-    mosaic.metadata           # property - Return mosaic metadata
-    mosaic.mosaicid           # property - Return sha224 id from the mosaicjson doc
-    mosaic.quadkey_zoom       # property - Return Quadkey zoom of the mosaic
+    mosaic.mosaic_def                  # property - MosaicJSON document, wrapped in a Pydantic Model
+    mosaic.metadata                    # property - Return mosaic metadata
+    mosaic.mosaicid                    # property - Return sha224 id from the mosaicjson doc
+    mosaic.quadkey_zoom                # property - Return Quadkey zoom of the mosaic
 
-    mosaic.tile(1,2,3)        # method - Find assets for a specific mercator tile
-    mosaic.point(lng, lat)    # method - Find assets for a specific point
-    mosaic.write()            # method - Write the mosaicjson to the given location
-    mosaic.update([features]) # method - Update the mosaicjson data with a list of features
+    mosaic.assets_for_tile(1,2,3)      # method - Find assets for a specific mercator tile
+    mosaic.assets_for_point(lng, lat)  # method - Find assets for a specific point
+
+    mosaic.tile(1,2,3)                 # method - Create mosaic tile
+    mosaic.point(lng, lat)             # method - Read point value from multiple assets
+    mosaic.write()                     # method - Write the mosaicjson to the given location
+    mosaic.update([features])          # method - Update the mosaicjson data with a list of features
 ```
 
-##### Read and Get assets
+##### Read and Get assets list
 ```python
 # MosaicBackend is the top level backend and will distribute to the
 # correct backend by checking the path/url schema.
 from cogeo_mosaic.backends import MosaicBackend
 
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
-    assets: List = mosaic.tile(1, 2, 3) # get assets for mercantile.Tile(1, 2, 3)
+    assets: List = mosaic.assets_for_tile(1, 2, 3) # get assets for mercantile.Tile(1, 2, 3)
+```
+
+##### Read Tile Data (mosaic tile)
+```python
+# MosaicBackend is the top level backend and will distribute to the
+# correct backend by checking the path/url schema.
+from cogeo_mosaic.backends import MosaicBackend
+
+with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
+    tile, mask = mosaic.tile(1, 2, 3)
 ```
 
 ##### Write
@@ -256,7 +268,7 @@ from cogeo_mosaic.backends import MosaicBackend
 mosaicdata = create_mosaic(["1.tif", "2.tif"])
 
 with MosaicBackend(None, mosaic_def=mosaicdata) as mosaic:
-    assets: List = mosaic.tile(1, 2, 3) # get assets for mercantile.Tile(1, 2, 3)
+    tile, mask = mosaic.tile(1, 2, 3)
 ```
 
 #### STAC: SpatioTemporal Asset Catalog
@@ -264,6 +276,49 @@ with MosaicBackend(None, mosaic_def=mosaicdata) as mosaic:
 The STACBackend is purely dynamic, meaning it's not used to read or write a file. This backend will POST to the input url looking for STAC items which will then be used to create the mosaicJSON.
 
 see [/docs/STAC_backend.md](/docs/STAC_backend.md) for more info.
+
+## COGReader / STACReader
+
+The mosaic object has `.tile` and `.point` methods to access the data for a specific mercator tile or point.
+
+Because a MosaicJSON can host different assets type, a `reader` option is available.
+Set by default to `rio_tiler.io.COGReader`, or to `rio_tiler.io.STACReader` for the STACBackend, the reader should know how to read the assets to either create mosaic tile or read points value.
+
+```python
+from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.backends import MosaicBackend
+
+dataset = ["1.tif", "2.tif"]
+mosaic_definition = MosaicJSON.from_urls(dataset)
+
+# Create a mosaic object in memory
+with MosaicBackend(None, mosaid_def=mosaic_definition, reader=COGReader) as mosaic:
+    tile, mask = mosaic.tile(1, 1, 1)
+
+# By default the STACbackend will store the Item url as assets, but STACReader (default reader) will know how to read them.
+with MosaicBackend(
+  "stac+https://my-stac.api/search",
+  {"collections": ["satellite"]}
+) as mosaic:
+    tile, mask = mosaic.tile(1, 1, 1, assets="red")
+```
+
+Let's use a custom accessor to save some specific assets url in the mosaic
+
+```python
+# accessor to return the url for the `visual` asset (COG)
+def accessor(item):
+    return feature["assets"]["visual"]["href"]
+
+# The accessor will set the mosaic assets as a list of COG url so we can use the COGReader instead of the STACReader
+with MosaicBackend(
+  "stac+https://my-stac.api/search",
+  {"collections": ["satellite"]},
+  reader=COGReader,
+  accessor=accessor,
+) as mosaic:
+    tile, mask = mosaic.tile(1, 1, 1)
+```
 
 # Associated Modules
 - [**cogeo-mosaic-tiler**](http://github.com/developmentseed/cogeo-mosaic-tiler): A serverless stack to serve and vizualized tiles from Cloud Optimized GeoTIFF mosaic.

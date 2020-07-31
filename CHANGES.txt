@@ -4,6 +4,13 @@
 - Allow Threads configuration for overview command (author @kylebarron)
 - add --in-memory/--no-in-memory to control temporary files creation for `overview` function. 
 - allow pixel_selection method options for `overview` function. 
+- update to rio-tiler 2.0b4
+- use new COGReader and STACReader to add .tile and .point methods directly in the backends
+
+**API breacking changes**
+- backend.tile -> backend.assets_for_tile
+- backend.point -> backend.assets_for_point
+
 
 3.0a5 (2020-06-29)
 ------------------

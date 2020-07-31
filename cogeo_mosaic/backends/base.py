@@ -1,12 +1,19 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
 import abc
+from concurrent import futures
 from contextlib import AbstractContextManager
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import mercantile
+import numpy
+from rio_tiler.constants import MAX_THREADS
+from rio_tiler.io import BaseReader, COGReader
+from rio_tiler.mosaic import _filter_tasks, mosaic_reader
+from rio_tiler.mosaic.reader import TaskType
 
 from cogeo_mosaic.backends.utils import get_hash
+from cogeo_mosaic.errors import NoAssetFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -16,6 +23,7 @@ class BaseBackend(AbstractContextManager):
 
     path: str
     mosaic_def: MosaicJSON
+    reader: BaseReader = COGReader
     _backend_name: str
     _file_byte_size: Optional[int] = 0
 
@@ -41,12 +49,52 @@ class BaseBackend(AbstractContextManager):
         return self.mosaic_def.dict(exclude={"tiles"}, exclude_none=True)
 
     @abc.abstractmethod
-    def tile(self, x: int, y: int, z: int) -> List[str]:
+    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
 
     @abc.abstractmethod
-    def point(self, lng: float, lat: float) -> List[str]:
+    def assets_for_point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
+
+    def tile(
+        self, x: int, y: int, z: int, **kwargs: Any,
+    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+        """Get Tile from multiple observation."""
+
+        assets = self.assets_for_tile(x, y, z)
+        if not assets:
+            raise NoAssetFoundError(f"No assets found for tile {z}-{x}-{y}")
+
+        def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any):
+            with self.reader(asset) as src_dst:
+                return src_dst.tile(x, y, z, **kwargs)
+
+        return mosaic_reader(assets, _reader, x, y, z, **kwargs)
+
+    def point(
+        self, lon: float, lat: float, threads=MAX_THREADS, **kwargs: Any
+    ) -> List[Dict]:
+        """Get Point value from multiple observation."""
+        assets = self.assets_for_point(lon, lat)
+        if not assets:
+            raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
+
+        def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
+            with self.reader(asset) as src_dst:
+                return {"asset": asset, "value": src_dst.point(lon, lat, **kwargs)}
+
+        tasks: TaskType
+
+        if threads:
+            with futures.ThreadPoolExecutor(max_workers=threads) as executor:
+                tasks = [
+                    executor.submit(_reader, asset, lon, lat, **kwargs)
+                    for asset in assets
+                ]
+        else:
+            tasks = (_reader(asset, lon, lat, **kwargs) for asset in assets)
+
+        return list(_filter_tasks(tasks))
 
     @abc.abstractmethod
     def _read(self) -> MosaicJSON:
@@ -90,7 +138,7 @@ class BaseBackend(AbstractContextManager):
 
         for quadkey, new_assets in new_mosaic.tiles.items():
             tile = mercantile.quadkey_to_tile(quadkey)
-            assets = self.tile(*tile)
+            assets = self.assets_for_tile(*tile)
             assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
             # add custom sorting algorithm (e.g based on path name)

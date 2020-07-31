@@ -7,6 +7,7 @@ import mercantile
 from boto3.session import Session as boto3_session
 from botocore.exceptions import ClientError
 from cachetools.keys import hashkey
+from rio_tiler.io import BaseReader, COGReader
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
@@ -29,6 +30,7 @@ class S3Backend(BaseBackend):
         bucket: str,
         key: str,
         mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
+        reader: BaseReader = COGReader,
         client: Optional[boto3_session.client] = None,
         **kwargs: Any,
     ):
@@ -37,17 +39,18 @@ class S3Backend(BaseBackend):
         self.key = key
         self.bucket = bucket
         self.path = f"s3://{bucket}/{key}"
+        self.reader = reader
 
         if mosaic_def is not None:
             self.mosaic_def = MosaicJSON(**dict(mosaic_def))
         else:
             self.mosaic_def = self._read(**kwargs)
 
-    def tile(self, x: int, y: int, z: int) -> List[str]:
+    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
         return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
 
-    def point(self, lng: float, lat: float) -> List[str]:
+    def assets_for_point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return get_assets_from_json(

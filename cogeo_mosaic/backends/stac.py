@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse
 import mercantile
 import requests
 from cachetools.keys import hashkey
+from rio_tiler.io import BaseReader, STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import get_assets_from_json
@@ -55,17 +56,24 @@ class STACBackend(BaseBackend):
     _backend_name = "STAC"
 
     def __init__(
-        self, url: str, query: Dict, minzoom: int, maxzoom: int, **kwargs: Any
+        self,
+        url: str,
+        query: Dict,
+        minzoom: int,
+        maxzoom: int,
+        reader: BaseReader = STACReader,
+        **kwargs: Any,
     ):
         """Initialize STACBackend."""
         self.path = url
+        self.reader = reader
         self.mosaic_def = self._read(query, minzoom, maxzoom, **kwargs)
 
-    def tile(self, x: int, y: int, z: int) -> List[str]:
+    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
         return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
 
-    def point(self, lng: float, lat: float) -> List[str]:
+    def assets_for_point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return get_assets_from_json(
@@ -89,7 +97,7 @@ class STACBackend(BaseBackend):
         max_items: Optional[int] = None,
         stac_query_limit: int = 500,
         stac_next_link_key: str = "next",
-        **kwargs: Any
+        **kwargs: Any,
     ) -> MosaicJSON:
         """
         Fetch STAC API and construct the mosaicjson.
