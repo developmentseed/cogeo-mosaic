@@ -30,6 +30,8 @@ mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
 mosaic_jsonV1 = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic_0.0.1.json")
 stac_page1 = os.path.join(os.path.dirname(__file__), "fixtures", "stac_p1.geojson")
 stac_page2 = os.path.join(os.path.dirname(__file__), "fixtures", "stac_p2.geojson")
+asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
+asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
 
 with open(mosaic_json, "r") as f:
     mosaic_content = json.loads(f.read())
@@ -475,3 +477,18 @@ def test_mosaic_crud_error(mosaic_path):
     with pytest.raises(MosaicError):
         with MosaicBackend(mosaic_path):
             ...
+
+
+def test_tile_point():
+    """Test Tile and Point read."""
+    assets = [asset1, asset2]
+    mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
+
+    with MosaicBackend(None, mosaic_def=mosaicdef) as mosaic:
+        (t, m), _ = mosaic.tile(150, 182, 9)
+        assert t.shape
+
+        pts = mosaic.point(-73, 45)
+        assert len(pts) == 2
+        assert pts[0]["asset"]
+        assert pts[1]["values"]
