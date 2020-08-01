@@ -15,7 +15,7 @@ def MosaicBackend(url: str, *args: Any, **kwargs: Any) -> BaseBackend:
     """Select mosaic backend for url."""
     parsed = urlparse(url)
 
-    if parsed.scheme.startswith("stac+"):
+    if parsed.scheme and parsed.scheme.startswith("stac+"):
         url = url.replace("stac+", "")
         return STACBackend(url, *args, **kwargs)
 

@@ -1,7 +1,6 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
 import abc
-from concurrent import futures
 from contextlib import AbstractContextManager
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -10,7 +9,7 @@ import numpy
 from rio_tiler.constants import MAX_THREADS
 from rio_tiler.io import BaseReader, COGReader
 from rio_tiler.mosaic import _filter_tasks, mosaic_reader
-from rio_tiler.mosaic.reader import TaskType
+from rio_tiler.mosaic.reader import _create_tasks
 
 from cogeo_mosaic.backends.utils import get_hash
 from cogeo_mosaic.errors import NoAssetFoundError
@@ -81,20 +80,10 @@ class BaseBackend(AbstractContextManager):
 
         def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
             with self.reader(asset) as src_dst:
-                return {"asset": asset, "value": src_dst.point(lon, lat, **kwargs)}
+                return src_dst.point(lon, lat, **kwargs)
 
-        tasks: TaskType
-
-        if threads:
-            with futures.ThreadPoolExecutor(max_workers=threads) as executor:
-                tasks = [
-                    executor.submit(_reader, asset, lon, lat, **kwargs)
-                    for asset in assets
-                ]
-        else:
-            tasks = (_reader(asset, lon, lat, **kwargs) for asset in assets)
-
-        return list(_filter_tasks(tasks))
+        tasks = _create_tasks(_reader, assets, threads, lon, lat, **kwargs)
+        return [{"asset": asset, "values": pt} for pt, asset in _filter_tasks(tasks)]
 
     @abc.abstractmethod
     def _read(self) -> MosaicJSON:

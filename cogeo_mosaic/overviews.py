@@ -44,7 +44,7 @@ def _tile(
 
 def _get_info(src_path: str) -> Dict:
     with COGReader(src_path) as cog:
-        info = cog.info.copy()
+        info = cog.info()
         info["nodata_value"] = cog.dataset.nodata
 
     return info
@@ -175,7 +175,7 @@ def create_overview_cogs(
                             return window, None, None
 
                         try:
-                            tile, mask = mosaic.tile(
+                            (tile, mask), _ = mosaic.tile(
                                 t.x,
                                 t.y,
                                 t.z,
