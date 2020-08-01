@@ -1,3 +1,10 @@
+3.0a7 (2020-07-31)
+------------------
+- update to rio-tiler 2.0b5
+
+**API breaking changes**
+- 'value' -> 'values' in MosaicBackend.point output (#98)
+
 3.0a6 (2020-07-31)
 ------------------
 - Use environement variable to set/disable cache (#93, autho @geospatial-jeff)
@@ -7,7 +14,7 @@
 - update to rio-tiler 2.0b4
 - use new COGReader and STACReader to add .tile and .point methods directly in the backends
 
-**API breacking changes**
+**API breaking changes**
 - backend.tile -> backend.assets_for_tile
 - backend.point -> backend.assets_for_point
 
@@ -33,12 +40,12 @@
 
 3.0a1 (2020-05-01)
 ------------------
-This is a major version, meaning a lot of refactoring was done and may lead to breacking changes.
+This is a major version, meaning a lot of refactoring was done and may lead to breaking changes.
 
 - add quadkey_zoom option in CLI (#41, author @kylebarron)
 - use R-tree from pygeos for testing intersections (#43, author @kylebarron)
 
-**API breacking changes**
+**API breaking changes**
 - added BackendStorage for dynamodb, s3, file and http (with @kylebarron)
 - added MosaicJSON pydantic model for internal mosaicjson representation (with @kylebarron and @geospatial-jeff)
 
@@ -69,7 +76,7 @@ This is a major version, meaning a lot of refactoring was done and may lead to b
 - add custom pixel methods
 - add custom color maps
 
-**API breacking change**
+**API breaking change**
 - rename `/mosaic/info/<mosaicid>` to `/mosaic/<mosaicid>/info`
 
 0.2.0 (2019-09-30)
