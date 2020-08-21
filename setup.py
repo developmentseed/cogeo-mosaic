@@ -7,6 +7,7 @@ with open("README.md") as f:
 
 # Runtime requirements.
 inst_reqs = [
+    "attrs",
     "mercantile",
     "pygeos>=0.7",
     "pydantic",
@@ -14,7 +15,7 @@ inst_reqs = [
     "rasterio[s3]",
     "requests",
     "rio-cogeo>=1.1.0",
-    "rio-tiler~=2.0b5",
+    "rio-tiler>=2.0b7",
     "cachetools",
     "supermercado",
 ]
@@ -26,7 +27,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="3.0a7",
+    version="3.0a8",
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",
