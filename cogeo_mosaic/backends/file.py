@@ -1,11 +1,11 @@
 """cogeo-mosaic File backend."""
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import List
 
+import attr
 import mercantile
 from cachetools.keys import hashkey
-from rio_tiler.io import BaseReader, COGReader
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
@@ -18,26 +18,11 @@ from cogeo_mosaic.errors import _FILE_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
+@attr.s
 class FileBackend(BaseBackend):
     """Local File Backend Adapter"""
 
     _backend_name = "File"
-
-    def __init__(
-        self,
-        path: str,
-        mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
-        reader: BaseReader = COGReader,
-        **kwargs: Any,
-    ):
-        """Initialize FileBackend."""
-        self.path = path
-        self.reader = reader
-
-        if mosaic_def is not None:
-            self.mosaic_def = MosaicJSON(**dict(mosaic_def))
-        else:
-            self.mosaic_def = self._read(**kwargs)
 
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""

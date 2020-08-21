@@ -1,15 +1,15 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
 import abc
-from contextlib import AbstractContextManager
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+import attr
 import mercantile
 import numpy
 from rio_tiler.constants import MAX_THREADS
 from rio_tiler.io import BaseReader, COGReader
-from rio_tiler.mosaic import _filter_tasks, mosaic_reader
-from rio_tiler.mosaic.reader import _create_tasks
+from rio_tiler.mosaic import mosaic_reader
+from rio_tiler.tasks import create_tasks, filter_tasks
 
 from cogeo_mosaic.backends.utils import get_hash
 from cogeo_mosaic.errors import NoAssetFoundError
@@ -17,25 +17,61 @@ from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
 
-class BaseBackend(AbstractContextManager):
+@attr.s
+class BaseBackend(BaseReader):
     """Base Class for cogeo-mosaic backend storage."""
 
-    path: str
-    mosaic_def: MosaicJSON
-    reader: BaseReader = COGReader
+    path: str = attr.ib()
+    mosaic_def: MosaicJSON = attr.ib(default=None)
+    reader: BaseReader = attr.ib(default=COGReader)
+    reader_options: Dict = attr.ib(factory=dict)
+    backend_options: Dict = attr.ib(factory=dict)
+    minzoom: int = attr.ib(init=False)
+    maxzoom: int = attr.ib(init=False)
+
     _backend_name: str
     _file_byte_size: Optional[int] = 0
 
-    @abc.abstractmethod
-    def __init__(self, *args, **kwargs):
-        """Connect to backend"""
+    @mosaic_def.validator
+    def _check_mosaic_def(self, attribute, value):
+        if value is not None:
+            self.mosaic_def = MosaicJSON(**dict(self.mosaic_def))
+
+    def __attrs_post_init__(self):
+        """Post Init: if not passed in init, try to read from self.path."""
+        self.mosaic_def = self.mosaic_def or self._read(**self.backend_options)
+        self.minzoom = self.mosaic_def.minzoom
+        self.maxzoom = self.mosaic_def.maxzoom
 
     def __enter__(self):
-        """Support using with Context Managers"""
+        """Support using with Context Managers."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Support using with Context Managers"""
+        """Support using with Context Managers."""
+        pass
+
+    @property
+    def bounds(self):
+        """Mosaic Bounds."""
+        return self.mosaic_def.bounds
+
+    def info(self):
+        """Mosaic info."""
+        return {
+            "bounds": self.mosaic_def.bounds,
+            "center": self.mosaic_def.center,
+            "maxzoom": self.mosaic_def.maxzoom,
+            "minzoom": self.mosaic_def.minzoom,
+            "name": self.mosaic_def.name if self.mosaic_def.name else "mosaic",
+            "quadkeys": list(self.mosaic_def.tiles)
+            if self._backend_name != "AWS DynamoDB"
+            else [],
+        }
+
+    def stats(self):
+        """PlaceHolder for BaseReader.stats."""
+        raise NotImplementedError
 
     @property
     def metadata(self) -> Dict:
@@ -65,7 +101,7 @@ class BaseBackend(AbstractContextManager):
             raise NoAssetFoundError(f"No assets found for tile {z}-{x}-{y}")
 
         def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any):
-            with self.reader(asset) as src_dst:
+            with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.tile(x, y, z, **kwargs)
 
         return mosaic_reader(assets, _reader, x, y, z, **kwargs)
@@ -79,11 +115,19 @@ class BaseBackend(AbstractContextManager):
             raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
 
         def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
-            with self.reader(asset) as src_dst:
+            with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.point(lon, lat, **kwargs)
 
-        tasks = _create_tasks(_reader, assets, threads, lon, lat, **kwargs)
-        return [{"asset": asset, "values": pt} for pt, asset in _filter_tasks(tasks)]
+        tasks = create_tasks(_reader, assets, threads, lon, lat, **kwargs)
+        return [{"asset": asset, "values": pt} for pt, asset in filter_tasks(tasks)]
+
+    def preview(self):
+        """PlaceHolder for BaseReader.preview."""
+        raise NotImplementedError
+
+    def part(self):
+        """PlaceHolder for BaseReader.part."""
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _read(self) -> MosaicJSON:

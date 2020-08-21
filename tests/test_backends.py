@@ -21,7 +21,7 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.stac import _fetch as stac_search
 from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
-from cogeo_mosaic.errors import MosaicError
+from cogeo_mosaic.errors import MosaicError, NoAssetFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
@@ -59,7 +59,7 @@ def test_file_backend():
         assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
-    with MosaicBackend(mosaic_bin, gzip=True) as mosaic:
+    with MosaicBackend(mosaic_bin, backend_options={"gzip": True}) as mosaic:
         assert isinstance(mosaic, FileBackend)
         assert (
             mosaic.mosaicid
@@ -343,7 +343,9 @@ def test_stac_backend(post):
             STACMockResponse(json.loads(f2.read())),
         ]
 
-    with STACBackend("https://a_stac.api/search", {}, 8, 14, max_items=8) as mosaic:
+    with STACBackend(
+        "https://a_stac.api/search", {}, 8, 14, backend_options={"max_items": 8}
+    ) as mosaic:
         assert mosaic._backend_name == "STAC"
         assert isinstance(mosaic, STACBackend)
         assert post.call_count == 1
@@ -373,7 +375,9 @@ def test_stac_backend(post):
             STACMockResponse(json.loads(f2.read())),
         ]
 
-    with STACBackend("https://a_stac.api/search", {}, 8, 14, max_items=15) as mosaic:
+    with STACBackend(
+        "https://a_stac.api/search", {}, 8, 14, backend_options={"max_items": 15}
+    ) as mosaic:
         assert mosaic._backend_name == "STAC"
         assert isinstance(mosaic, STACBackend)
         assert post.call_count == 2
@@ -395,7 +399,9 @@ def test_stac_backend(post):
             STACMockResponse(json.loads(f2.read())),
         ]
 
-    with STACBackend("https://a_stac.api/search", {}, 8, 14, max_items=15) as mosaic:
+    with STACBackend(
+        "https://a_stac.api/search", {}, 8, 14, backend_options={"max_items": 15}
+    ) as mosaic:
         with pytest.raises(NotImplementedError):
             mosaic.write()
 
@@ -479,8 +485,8 @@ def test_mosaic_crud_error(mosaic_path):
             ...
 
 
-def test_tile_point():
-    """Test Tile and Point read."""
+def test_BaseReader():
+    """Test BaseReader heritance methods."""
     assets = [asset1, asset2]
     mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
 
@@ -488,7 +494,38 @@ def test_tile_point():
         (t, m), _ = mosaic.tile(150, 182, 9)
         assert t.shape
 
+        with pytest.raises(NoAssetFoundError):
+            mosaic.tile(200, 182, 9)
+
         pts = mosaic.point(-73, 45)
         assert len(pts) == 2
         assert pts[0]["asset"]
         assert pts[1]["values"]
+
+        with pytest.raises(NoAssetFoundError):
+            mosaic.point(-60, 45)
+
+        assert mosaic.minzoom
+        assert mosaic.maxzoom
+        assert mosaic.bounds
+
+        with pytest.raises(NotImplementedError):
+            mosaic.stats()
+
+        with pytest.raises(NotImplementedError):
+            mosaic.preview()
+
+        with pytest.raises(NotImplementedError):
+            mosaic.part()
+
+        info = mosaic.info()
+        assert list(info) == [
+            "bounds",
+            "center",
+            "maxzoom",
+            "minzoom",
+            "name",
+            "quadkeys",
+        ]
+
+        assert mosaic.spatial_info

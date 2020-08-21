@@ -1,13 +1,14 @@
 """cogeo-mosaic AWS S3 backend."""
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List
+from urllib.parse import urlparse
 
+import attr
 import mercantile
 from boto3.session import Session as boto3_session
 from botocore.exceptions import ClientError
 from cachetools.keys import hashkey
-from rio_tiler.io import BaseReader, COGReader
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import (
@@ -20,31 +21,23 @@ from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
+@attr.s
 class S3Backend(BaseBackend):
     """S3 Backend Adapter"""
 
+    client: Any = attr.ib(default=None)
+    bucket: str = attr.ib(init=False)
+    key: str = attr.ib(init=False)
+
     _backend_name = "AWS S3"
 
-    def __init__(
-        self,
-        bucket: str,
-        key: str,
-        mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
-        reader: BaseReader = COGReader,
-        client: Optional[boto3_session.client] = None,
-        **kwargs: Any,
-    ):
-        """Initialize S3Backend."""
-        self.client = client or boto3_session().client("s3")
-        self.key = key
-        self.bucket = bucket
-        self.path = f"s3://{bucket}/{key}"
-        self.reader = reader
-
-        if mosaic_def is not None:
-            self.mosaic_def = MosaicJSON(**dict(mosaic_def))
-        else:
-            self.mosaic_def = self._read(**kwargs)
+    def __attrs_post_init__(self):
+        """Post Init: parse path and create client."""
+        parsed = urlparse(self.path)
+        self.bucket = parsed.netloc
+        self.key = parsed.path.strip("/")
+        self.client = self.client or boto3_session().client("s3")
+        super().__attrs_post_init__()
 
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
