@@ -64,9 +64,7 @@ class BaseBackend(BaseReader):
             "maxzoom": self.mosaic_def.maxzoom,
             "minzoom": self.mosaic_def.minzoom,
             "name": self.mosaic_def.name if self.mosaic_def.name else "mosaic",
-            "quadkeys": list(self.mosaic_def.tiles)
-            if self._backend_name != "AWS DynamoDB"
-            else [],
+            "quadkeys": list(self.mosaic_def.tiles),
         }
 
     def stats(self):

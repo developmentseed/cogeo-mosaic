@@ -218,7 +218,7 @@ with MosaicBackend("amosaic.json.gz") as mosaic:
 
 ##### Properties and Methods
 
-Each MosaicBackends (file, http, s3, dynamodb and stac) extend rio-tiler [BaseReader](https://github.com/cogeotiff/rio-tiler/blob/master/rio_tiler/io/base.py#L16) and thus derive the same minimal methods/properties
+Each MosaicBackends (file, http, s3, dynamodb and stac) extend rio-tiler [BaseReader](https://github.com/cogeotiff/rio-tiler/blob/master/rio_tiler/io/base.py#L16) and thus derives the same minimal methods/properties
 
 
 ```python

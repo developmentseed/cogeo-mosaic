@@ -299,6 +299,15 @@ class MockTable(object):
             return {}
         return {"Item": {"assets": items}}
 
+    def scan(self, *args, **kwargs):
+        """Mock Scan."""
+        mosaic = MosaicJSON(**mosaic_content)
+        return {
+            "Items": [
+                {"quadkey": qk, "assets": assets} for qk, assets in mosaic.tiles.items()
+            ]
+        }
+
 
 @patch("cogeo_mosaic.backends.dynamodb.boto3.resource")
 def test_dynamoDB_backend(client):
@@ -320,6 +329,24 @@ def test_dynamoDB_backend(client):
         ]
         assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
+
+        # Warns in backend.info()
+        with pytest.warns(UserWarning):
+            info = mosaic.info()
+            assert not info["quadkeys"]
+            assert list(info) == [
+                "bounds",
+                "center",
+                "maxzoom",
+                "minzoom",
+                "name",
+                "quadkeys",
+            ]
+
+        # Warns in backend._quadkeys
+        with pytest.warns(UserWarning):
+            info = mosaic.info(add_quadkeys=True)
+            assert info["quadkeys"]
 
     with MosaicBackend(
         "dynamodb:///thiswaskylebarronidea", mosaic_def=mosaic_content
