@@ -70,7 +70,7 @@ class MosaicJSON(BaseModel):
 
         validate_assignment = True
 
-    @root_validator(pre=True)
+    @root_validator
     def compute_center(cls, values):
         """Compute center if it does not exist."""
         bounds = values["bounds"]

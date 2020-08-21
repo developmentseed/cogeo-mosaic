@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
+from pydantic import ValidationError
 from requests.exceptions import HTTPError, RequestException
 
 from cogeo_mosaic.backends import MosaicBackend
@@ -82,6 +83,10 @@ def test_file_backend():
             "bounds",
             "center",
         ]
+
+    with pytest.raises(ValidationError):
+        with MosaicBackend("afile.json", mosaic_def={}):
+            pass
 
     runner = CliRunner()
     with runner.isolated_filesystem():

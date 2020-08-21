@@ -35,7 +35,7 @@ class BaseBackend(BaseReader):
     @mosaic_def.validator
     def _check_mosaic_def(self, attribute, value):
         if value is not None:
-            self.mosaic_def = MosaicJSON(**dict(self.mosaic_def))
+            self.mosaic_def = MosaicJSON(**dict(value))
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
