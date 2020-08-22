@@ -345,7 +345,7 @@ def test_dynamoDB_backend(client):
 
         # Warns in backend._quadkeys
         with pytest.warns(UserWarning):
-            info = mosaic.info(add_quadkeys=True)
+            info = mosaic.info(fetch_quadkeys=True)
             assert info["quadkeys"]
 
     with MosaicBackend(

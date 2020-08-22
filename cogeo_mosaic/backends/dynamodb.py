@@ -53,12 +53,12 @@ class DynamoDBBackend(BaseBackend):
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
-    def info(self, add_quadkeys: bool = False):
+    def info(self, fetch_quadkeys: bool = False):
         """Mosaic info."""
-        if not add_quadkeys:
+        if not fetch_quadkeys:
             warnings.warn(
                 "Returning empty quadkey list, performing full scan operation might be slow and expensive on large database."
-                "You can retrieve the list of quadkey by setting `add_quadkeys=True`"
+                "You can retrieve the list of quadkey by setting `fetch_quadkeys=True`"
             )
 
         return {
@@ -67,7 +67,7 @@ class DynamoDBBackend(BaseBackend):
             "maxzoom": self.mosaic_def.maxzoom,
             "minzoom": self.mosaic_def.minzoom,
             "name": self.mosaic_def.name if self.mosaic_def.name else "mosaic",
-            "quadkeys": [] if not add_quadkeys else self._quadkeys,
+            "quadkeys": [] if not fetch_quadkeys else self._quadkeys,
         }
 
     @property
