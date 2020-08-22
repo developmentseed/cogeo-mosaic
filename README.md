@@ -1,13 +1,30 @@
 # cogeo-mosaic
 
-Create mosaics of Cloud Optimized GeoTIFF based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec) specification.
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/10407788/73185274-c41dc900-40eb-11ea-8b67-f79c0682c3b0.jpg" style="max-width: 800px;" alt="rio-tiler"></a>
+</p>
+<p align="center">
+  <em>Create mosaics of Cloud Optimized GeoTIFF based on <a href='https://github.com/developmentseed/mosaicjson-spec'>mosaicJSON</a> specification.</em>
+</p>
+<p align="center">
+  <a href="https://circleci.com/gh/developmentseed/cogeo-mosaic" target="_blank">
+      <img src="https://circleci.com/gh/developmentseed/cogeo-mosaic.svg?style=svg" alt="Test">
+  </a>
+  <a href="https://codecov.io/gh/developmentseed/cogeo-mosaic" target="_blank">
+      <img src="https://codecov.io/gh/developmentseed/cogeo-mosaic/branch/master/graph/badge.svg" alt="Coverage">
+  </a>
+  <a href="https://pypi.org/project/cogeo-mosaic" target="_blank">
+      <img src="https://img.shields.io/pypi/v/cogeo-mosaic?color=%2334D058&label=pypi%20package" alt="Package version">
+  </a>
 
-[![PyPI pyversions](https://img.shields.io/pypi/pyversions/cogeo-mosaic.svg)](https://pypi.python.org/pypi/ansicolortags/)
-[![Packaging status](https://badge.fury.io/py/cogeo-mosaic.svg)](https://badge.fury.io/py/cogeo-mosaic)
-[![CircleCI](https://circleci.com/gh/developmentseed/cogeo-mosaic.svg?style=svg)](https://circleci.com/gh/developmentseed/cogeo-mosaic)
-[![codecov](https://codecov.io/gh/developmentseed/cogeo-mosaic/branch/master/graph/badge.svg)](https://codecov.io/gh/developmentseed/cogeo-mosaic)
+  <a href="https://pypistats.org/packages/cogeo-mosaic" target="_blank">
+      <img src="https://img.shields.io/pypi/dm/cogeo-mosaic.svg" alt="Downloads">
+  </a>
+  <a href="https://github.com/developmentseed/cogeo-mosaic/blob/master/LICENSE" target="_blank">
+      <img src="https://img.shields.io/github/license/developmentseed/cogeo-mosaic.svg" alt="Downloads">
+  </a>
+</p>
 
-![cogeo-mosaic](https://user-images.githubusercontent.com/10407788/73185274-c41dc900-40eb-11ea-8b67-f79c0682c3b0.jpg)
 
 **Read the official announcement https://medium.com/devseed/cog-talk-part-2-mosaics-bbbf474e66df**
 
@@ -200,6 +217,10 @@ with MosaicBackend("amosaic.json.gz") as mosaic:
 ```
 
 ##### Properties and Methods
+
+Each MosaicBackends (file, http, s3, dynamodb and stac) extend rio-tiler [BaseReader](https://github.com/cogeotiff/rio-tiler/blob/master/rio_tiler/io/base.py#L16) and thus derives the same minimal methods/properties
+
+
 ```python
 from cogeo_mosaic.backends import MosaicBackend
 
@@ -209,6 +230,13 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
     mosaic.metadata                    # property - Return mosaic metadata
     mosaic.mosaicid                    # property - Return sha224 id from the mosaicjson doc
     mosaic.quadkey_zoom                # property - Return Quadkey zoom of the mosaic
+
+    mosaic.minzoom                     # property - Mosaic minzoom
+    mosaic.maxzoom                     # property - Mosaic maxzoom
+    mosaic.bounds                      # property - Mosaic bounds
+    mosaic.spatial_info                # property - zooms and bounds info
+
+    mosaic.info                        # method -  spatial_info, list of quadkeys and mosaic name
 
     mosaic.assets_for_tile(1,2,3)      # method - Find assets for a specific mercator tile
     mosaic.assets_for_point(lng, lat)  # method - Find assets for a specific point
@@ -298,7 +326,9 @@ with MosaicBackend(None, mosaid_def=mosaic_definition, reader=COGReader) as mosa
 # By default the STACbackend will store the Item url as assets, but STACReader (default reader) will know how to read them.
 with MosaicBackend(
   "stac+https://my-stac.api/search",
-  {"collections": ["satellite"]}
+  {"collections": ["satellite"]},
+  7,  # minzoom
+  12, # maxzoom
 ) as mosaic:
     tile, mask = mosaic.tile(1, 1, 1, assets="red")
 ```
@@ -314,8 +344,10 @@ def accessor(item):
 with MosaicBackend(
   "stac+https://my-stac.api/search",
   {"collections": ["satellite"]},
+  7,  # minzoom
+  12, # maxzoom
   reader=COGReader,
-  accessor=accessor,
+  backend_options={"accessor": accessor},
 ) as mosaic:
     tile, mask = mosaic.tile(1, 1, 1)
 ```

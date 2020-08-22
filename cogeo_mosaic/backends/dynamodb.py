@@ -6,14 +6,15 @@ import os
 import sys
 import warnings
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Sequence
+from urllib.parse import urlparse
 
+import attr
 import boto3
 import click
 import mercantile
 from botocore.exceptions import ClientError
 from cachetools.keys import hashkey
-from rio_tiler.io import BaseReader, COGReader
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
@@ -23,29 +24,25 @@ from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
 
+@attr.s
 class DynamoDBBackend(BaseBackend):
     """DynamoDB Backend Adapter."""
 
+    client: Any = attr.ib(default=None)
+    region: str = attr.ib(default=os.getenv("AWS_REGION", "us-east-1"))
+    table_name: str = attr.ib(init=False)
+    table: Any = attr.ib(init=False)
+
     _backend_name = "AWS DynamoDB"
 
-    def __init__(
-        self,
-        table_name: str,
-        mosaic_def: Optional[Union[MosaicJSON, Dict]] = None,
-        reader: BaseReader = COGReader,
-        region: str = os.getenv("AWS_REGION", "us-east-1"),
-        client: Optional[Any] = None,
-    ):
-        """Initialize DynamoDBBackend."""
-        self.client = client or boto3.resource("dynamodb", region_name=region)
-        self.table = self.client.Table(table_name)
-        self.path = f"dynamodb://{region}/{table_name}"
-        self.reader = reader
-
-        if mosaic_def is not None:
-            self.mosaic_def = MosaicJSON(**dict(mosaic_def))
-        else:
-            self.mosaic_def = self._read()
+    def __attrs_post_init__(self):
+        """Post Init: parse path, create client and connect to Table."""
+        parsed = urlparse(self.path)
+        self.table_name = parsed.path.strip("/")
+        self.region = parsed.netloc or self.region
+        self.client = self.client or boto3.resource("dynamodb", region_name=self.region)
+        self.table = self.client.Table(self.table_name)
+        super().__attrs_post_init__()
 
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
@@ -55,6 +52,23 @@ class DynamoDBBackend(BaseBackend):
         """Retrieve assets for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
+
+    def info(self, fetch_quadkeys: bool = False):
+        """Mosaic info."""
+        if not fetch_quadkeys:
+            warnings.warn(
+                "Returning empty quadkey list, performing full scan operation might be slow and expensive on large database."
+                "You can retrieve the list of quadkey by setting `fetch_quadkeys=True`"
+            )
+
+        return {
+            "bounds": self.mosaic_def.bounds,
+            "center": self.mosaic_def.center,
+            "maxzoom": self.mosaic_def.maxzoom,
+            "minzoom": self.mosaic_def.minzoom,
+            "name": self.mosaic_def.name if self.mosaic_def.name else "mosaic",
+            "quadkeys": [] if not fetch_quadkeys else self._quadkeys,
+        }
 
     @property
     def _quadkeys(self) -> List[str]:

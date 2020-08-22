@@ -5,6 +5,7 @@ import os
 from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urlparse
 
+import attr
 import mercantile
 import requests
 from cachetools.keys import hashkey
@@ -37,6 +38,7 @@ def default_stac_accessor(feature: Dict):
     return feature["id"]
 
 
+@attr.s
 class STACBackend(BaseBackend):
     """
     STAC Backend Adapter
@@ -53,21 +55,22 @@ class STACBackend(BaseBackend):
 
     """
 
+    path: str = attr.ib()
+    query: Dict = attr.ib()
+    minzoom: int = attr.ib()
+    maxzoom: int = attr.ib()
+    mosaic_def: MosaicJSON = attr.ib(default=None)
+    reader: BaseReader = attr.ib(default=STACReader)
+    reader_options: Dict = attr.ib(factory=dict)
+    backend_options: Dict = attr.ib(factory=dict)
+
     _backend_name = "STAC"
 
-    def __init__(
-        self,
-        url: str,
-        query: Dict,
-        minzoom: int,
-        maxzoom: int,
-        reader: BaseReader = STACReader,
-        **kwargs: Any,
-    ):
-        """Initialize STACBackend."""
-        self.path = url
-        self.reader = reader
-        self.mosaic_def = self._read(query, minzoom, maxzoom, **kwargs)
+    def __attrs_post_init__(self):
+        """Post Init: if not passed in init, try to read from self.path."""
+        self.mosaic_def = self.mosaic_def or self._read(
+            self.query, self.minzoom, self.maxzoom, **self.backend_options
+        )
 
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""

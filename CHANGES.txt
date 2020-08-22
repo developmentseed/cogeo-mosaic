@@ -1,3 +1,11 @@
+3.0a8 (2020-08-21)
+------------------
+- BaseBackend is now a subclass of rio-tiler.io.base.BaseReader (add minzoom, maxzoom, bounds properties and info method)
+- use `attr` to define backend classes
+
+**API breaking changes**
+- `backend_options` is now used to pass options (*kwargs) to the `_read` method
+
 3.0a7 (2020-07-31)
 ------------------
 - update to rio-tiler 2.0b5
