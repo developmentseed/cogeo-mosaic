@@ -56,6 +56,11 @@ class BaseBackend(BaseReader):
         """Mosaic Bounds."""
         return self.mosaic_def.bounds
 
+    @property
+    def center(self):
+        """Mosaic center."""
+        return self.mosaic_def.center
+
     def info(self):
         """Mosaic info."""
         return {
