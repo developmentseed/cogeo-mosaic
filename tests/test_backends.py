@@ -522,6 +522,10 @@ def test_BaseReader():
     assets = [asset1, asset2]
     mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
 
+    # add some offset to the center to make
+    # sure BaseBackend forward center from the mosaic definition
+    mosaicdef.center = [x + 1 for x in mosaicdef.center]
+
     with MosaicBackend(None, mosaic_def=mosaicdef) as mosaic:
         (t, m), _ = mosaic.tile(150, 182, 9)
         assert t.shape
@@ -540,6 +544,7 @@ def test_BaseReader():
         assert mosaic.minzoom
         assert mosaic.maxzoom
         assert mosaic.bounds
+        assert mosaic.center == mosaicdef.center
 
         with pytest.raises(NotImplementedError):
             mosaic.stats()

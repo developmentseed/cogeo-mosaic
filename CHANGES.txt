@@ -1,3 +1,7 @@
+3.0a9 (2020-08-24)
+------------------
+- BaseBackend.center returns value from the mosaic definition (#105)
+
 3.0a8 (2020-08-21)
 ------------------
 - BaseBackend is now a subclass of rio-tiler.io.base.BaseReader (add minzoom, maxzoom, bounds properties and info method)
