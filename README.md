@@ -7,8 +7,8 @@
   <em>Create mosaics of Cloud Optimized GeoTIFF based on <a href='https://github.com/developmentseed/mosaicjson-spec'>mosaicJSON</a> specification.</em>
 </p>
 <p align="center">
-  <a href="https://circleci.com/gh/developmentseed/cogeo-mosaic" target="_blank">
-      <img src="https://circleci.com/gh/developmentseed/cogeo-mosaic.svg?style=svg" alt="Test">
+  <a href="https://github.com/developmentseed/cogeo-mosaic/actions?query=workflow%3ACI" target="_blank">
+      <img src="https://github.com/developmentseed/cogeo-mosaic/workflows/CI/badge.svg" alt="Test">
   </a>
   <a href="https://codecov.io/gh/developmentseed/cogeo-mosaic" target="_blank">
       <img src="https://codecov.io/gh/developmentseed/cogeo-mosaic/branch/master/graph/badge.svg" alt="Coverage">
