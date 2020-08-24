@@ -17,7 +17,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install libgeos
-        run: apt-get install libgeos-dev -y
+        run: sudo apt-get install libgeos-dev -y
 
       - name: Install dependencies
         run: |
