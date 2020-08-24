@@ -538,6 +538,9 @@ def test_BaseReader():
         assert pts[0]["asset"]
         assert pts[1]["values"]
 
+        pts = mosaic.point(-72.5, 46)
+        assert len(pts) == 1
+
         with pytest.raises(NoAssetFoundError):
             mosaic.point(-60, 45)
 

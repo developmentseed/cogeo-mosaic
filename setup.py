@@ -15,7 +15,7 @@ inst_reqs = [
     "rasterio[s3]",
     "requests",
     "rio-cogeo>=1.1.0",
-    "rio-tiler>=2.0b7",
+    "rio-tiler>=2.0b8",
     "cachetools",
     "supermercado",
 ]
@@ -27,7 +27,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="3.0a9",
+    version="3.0a10",
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",
