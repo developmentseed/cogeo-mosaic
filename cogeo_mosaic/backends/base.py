@@ -7,6 +7,7 @@ import attr
 import mercantile
 import numpy
 from rio_tiler.constants import MAX_THREADS
+from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, COGReader
 from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.tasks import create_tasks, filter_tasks
@@ -122,7 +123,12 @@ class BaseBackend(BaseReader):
                 return src_dst.point(lon, lat, **kwargs)
 
         tasks = create_tasks(_reader, assets, threads, lon, lat, **kwargs)
-        return [{"asset": asset, "values": pt} for pt, asset in filter_tasks(tasks)]
+        return [
+            {"asset": asset, "values": pt}
+            for pt, asset in filter_tasks(
+                tasks, allowed_exceptions=(PointOutsideBounds,)
+            )
+        ]
 
     def preview(self):
         """PlaceHolder for BaseReader.preview."""
