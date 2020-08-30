@@ -11,10 +11,10 @@ from rio_cogeo.profiles import cog_profiles
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.overviews import create_overview_cogs
 
-asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
-asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
-assets = [asset1, asset2]
-mosaic_content = MosaicJSON.from_urls(assets).dict(exclude_none=True)
+item1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
+item2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
+items = [item1, item2]
+mosaic_content = MosaicJSON.from_urls(items).dict(exclude_none=True)
 
 deflate_profile = cog_profiles.get("deflate")
 deflate_profile.update({"blockxsize": 256, "blockysize": 256})

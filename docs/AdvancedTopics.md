@@ -14,7 +14,7 @@ def _create_mosaic(
     maxzoom: int,
     quadkey_zoom: Optional[int] = None,
     accessor: Callable[[Dict], str] = default_accessor,
-    asset_filter: Callable = default_filter,
+    item_filter: Callable = default_filter,
     version: str = "0.0.2",
     quiet: bool = True,
     **kwargs,
@@ -23,7 +23,7 @@ def _create_mosaic(
 
 #### Custom Accessor
 
-MosaicJSON `create` method takes a list of GeoJSON features has input, those can be the output of [cogeo_mosaic.utils.get_footprints](https://github.com/developmentseed/cogeo-mosaic/blob/9e8cfd0d65706faaac3e3d785974f890f3b6b180/cogeo_mosaic/utils.py#L80-L111) or can be provided by the user (e.g STAC items). MosaicJSON defines it's tile assets as a `MUST be arrays of strings (url or sceneid) pointing to a COG`. To access those values, `_create_mosaic` needs to know which **property** to read from the GeoJSON feature.
+MosaicJSON `create` method takes a list of GeoJSON features has input, those can be the output of [cogeo_mosaic.utils.get_footprints](https://github.com/developmentseed/cogeo-mosaic/blob/9e8cfd0d65706faaac3e3d785974f890f3b6b180/cogeo_mosaic/utils.py#L80-L111) or can be provided by the user (e.g STAC items). MosaicJSON defines it's tile items as a `MUST be arrays of strings (url or sceneid) pointing to a COG`. To access those values, `_create_mosaic` needs to know which **property** to read from the GeoJSON feature.
 
 The **accessor** option is here to enable user to pass their own accessor model. By default, `_create_mosaic` expect features from `get_footprints` and thus COG path stored in `feature["properties"]["path"]`.
 
@@ -47,11 +47,11 @@ mosaicjson = MosaicJSON.from_features(
 )
 ```
 
-#### Custom asset filtering
+#### Custom item filtering
 
-On **mosaicjson** creation ones would want to perform more advanced assets filtering or sorting. To enable this, users can define their own `filter` method and pass it using the `asset_filter` options.
+On **mosaicjson** creation ones would want to perform more advanced items filtering or sorting. To enable this, users can define their own `filter` method and pass it using the `item_filter` options.
 
-**!!!** In the current implementation, `asset_filter` method **have to** allow at least 3 arguments: 
+**!!!** In the current implementation, `item_filter` method **have to** allow at least 3 arguments: 
 - **tile** - mercantile.Tile: Mercantile tile
 - **dataset** - Sequence[Dict]: GeoJSON Feature list intersecting with the `tile`
 - **geoms** - Sequence[polygons]: Geos Polygon list for the features
@@ -78,7 +78,7 @@ mosaicjson = MosaicJSON.from_features(
     features,
     minzoom,
     maxzoom,
-    asset_filter=custom_filter,
+    item_filter=custom_filter,
 )
 ```
 
@@ -90,7 +90,7 @@ The **main** method is defined in [cogeo_mosaic.backends.base.BaseBackend](https
 
 On update, here is what is happening: 
 1. create mosaic with the new dataset
-2. loop through the new `quadkeys` and edit `old` mosaic assets
+2. loop through the new `quadkeys` and edit `old` mosaic items
 3. update bounds, center and version of the updated mosaic
 4. write the mosaic
 
@@ -114,14 +114,14 @@ def update(
         **kwargs,
     )
 
-    # Loop through the new `quadkeys` and edit `old` mosaic assets
-    for quadkey, new_assets in new_mosaic.tiles.items():
+    # Loop through the new `quadkeys` and edit `old` mosaic items
+    for quadkey, new_items in new_mosaic.tiles.items():
         tile = mercantile.quadkey_to_tile(quadkey)
-        assets = self.tile(*tile)
-        assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+        items = self.tile(*tile)
+        items = [*new_items, *items] if add_first else [*items, *new_items]
 
         # [PLACEHOLDER] add custom sorting algorithm (e.g based on path name)
-        self.mosaic_def.tiles[quadkey] = assets
+        self.mosaic_def.tiles[quadkey] = items
 
     # Update bounds, center and version of the updated mosaic
     bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
@@ -166,12 +166,12 @@ class CustomS3Backend(S3Backend):
             **kwargs,
         )
 
-        for quadkey, new_assets in new_mosaic.tiles.items():
+        for quadkey, new_items in new_mosaic.tiles.items():
             tile = mercantile.quadkey_to_tile(quadkey)
-            assets = self.tile(*tile)
-            assets = [*new_assets, *assets]
+            items = self.tile(*tile)
+            items = [*new_items, *items]
 
-            self.mosaic_def.tiles[quadkey] = assets[:maximum_items_per_tile]
+            self.mosaic_def.tiles[quadkey] = items[:maximum_items_per_tile]
 
         bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
         self.mosaic_def._increase_version() # Increate mosaicjson document version

@@ -97,7 +97,7 @@ class MosaicJSON(BaseModel):
         maxzoom: int,
         quadkey_zoom: Optional[int] = None,
         accessor: Callable[[Dict], str] = default_accessor,
-        asset_filter: Callable = default_filter,
+        item_filter: Callable = default_filter,
         version: str = "0.0.2",
         quiet: bool = True,
         **kwargs,
@@ -117,14 +117,14 @@ class MosaicJSON(BaseModel):
             Force mosaic quadkey zoom.
         accessor: callable, required
             Function called on each feature to get its identifier (default is feature["properties"]["path"]).
-        asset_filter: callable, required
+        item_filter: callable, required
             Function to filter features.
         version: str, optional
             mosaicJSON definition version (default: 0.0.2).
         quiet: bool, optional (default: True)
             Mask processing steps.
         kwargs: any
-            Options forwarded to `asset_filter`
+            Options forwarded to `item_filter`
 
         Returns
         -------
@@ -167,7 +167,7 @@ class MosaicJSON(BaseModel):
         if not quiet:
             click.echo("Feed Quadkey index", err=True)
 
-        # Create tree and find assets that overlap each tile
+        # Create tree and find items that overlap each tile
         tree = STRtree(dataset_geoms)
 
         for tile in tiles:
@@ -183,7 +183,7 @@ class MosaicJSON(BaseModel):
                 *[(features[idx], dataset_geoms[idx]) for idx in intersections_idx]
             )
 
-            dataset = asset_filter(tile, intersect_dataset, intersect_geoms, **kwargs)
+            dataset = item_filter(tile, intersect_dataset, intersect_geoms, **kwargs)
 
             if dataset:
                 mosaic_definition["tiles"][quadkey] = [accessor(f) for f in dataset]
@@ -230,7 +230,7 @@ class MosaicJSON(BaseModel):
             data_minzoom = {feat["properties"]["minzoom"] for feat in features}
             if len(data_minzoom) > 1:
                 warnings.warn(
-                    "Multiple MinZoom, Assets different minzoom values", UserWarning
+                    "Multiple MinZoom, Items have different minzoom values", UserWarning
                 )
 
             minzoom = max(data_minzoom)
@@ -239,7 +239,7 @@ class MosaicJSON(BaseModel):
             data_maxzoom = {feat["properties"]["maxzoom"] for feat in features}
             if len(data_maxzoom) > 1:
                 warnings.warn(
-                    "Multiple MaxZoom, Assets have multiple resolution values",
+                    "Multiple MaxZoom, Items have multiple resolution values",
                     UserWarning,
                 )
 

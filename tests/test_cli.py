@@ -9,10 +9,10 @@ from click.testing import CliRunner
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.scripts.cli import cogeo_cli
 
-asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
-asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
-assets = [asset1, asset2]
-mosaic_content = MosaicJSON.from_urls(assets)
+item1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
+item2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
+items = [item1, item2]
+mosaic_content = MosaicJSON.from_urls(items)
 
 
 def test_create_valid():
@@ -20,7 +20,7 @@ def test_create_valid():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with open("./list.txt", "w") as f:
-            f.write("\n".join(assets))
+            f.write("\n".join(items))
 
         result = runner.invoke(cogeo_cli, ["create", "list.txt", "--quiet"])
         assert not result.exception
@@ -60,10 +60,10 @@ def test_update_valid():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with open("mosaic_1.json", "w") as f:
-            f.write(json.dumps(MosaicJSON.from_urls([asset1]).dict(exclude_none=True)))
+            f.write(json.dumps(MosaicJSON.from_urls([item1]).dict(exclude_none=True)))
 
         with open("./list.txt", "w") as f:
-            f.write("\n".join([asset2]))
+            f.write("\n".join([item2]))
 
         result = runner.invoke(
             cogeo_cli, ["update", "list.txt", "mosaic_1.json", "--quiet"]
@@ -76,7 +76,7 @@ def test_update_valid():
             assert not mosaic_content.tiles == updated_mosaic["tiles"]
 
         with open("mosaic_2.json", "w") as f:
-            f.write(json.dumps(MosaicJSON.from_urls([asset1]).dict(exclude_none=True)))
+            f.write(json.dumps(MosaicJSON.from_urls([item1]).dict(exclude_none=True)))
 
         result = runner.invoke(
             cogeo_cli, ["update", "list.txt", "mosaic_2.json", "--add-last", "--quiet"]
@@ -94,7 +94,7 @@ def test_footprint_valid():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with open("./list.txt", "w") as f:
-            f.write("\n".join([asset1, asset2]))
+            f.write("\n".join([item1, item2]))
 
         result = runner.invoke(cogeo_cli, ["footprint", "list.txt"])
         assert not result.exception
@@ -117,7 +117,7 @@ def test_from_features():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with open("./list.txt", "w") as f:
-            f.write("\n".join([asset1, asset2]))
+            f.write("\n".join([item1, item2]))
 
         result = runner.invoke(
             cogeo_cli, ["footprint", "list.txt", "-o", "mosaic.geojson"]

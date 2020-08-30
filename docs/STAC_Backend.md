@@ -116,9 +116,9 @@ with STACBackend(
 Warnings: trying to run the previous example will results in fetching the whole collection.
 
 
-## Tile's asset
+## Tile's item
 
-MosaicJSON tile asset is defined using `accessor` option. By default the backend will try to construct or retrieve the Item url
+MosaicJSON tile item is defined using `accessor` option. By default the backend will try to construct or retrieve the Item url
 
 ```python
 def default_stac_accessor(feature: Dict):
@@ -158,7 +158,7 @@ with STACBackend(
     8,
     15,
     stac_query_limit=500,
-    accessor=lambda x: x["assets"]["B01"]["href"],
+    accessor=lambda x: x["items"]["B01"]["href"],
 ) as mosaic:
     print(mosaic.metadata)
 ```

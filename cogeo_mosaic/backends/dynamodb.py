@@ -44,14 +44,14 @@ class DynamoDBBackend(BaseBackend):
         self.table = self.client.Table(self.table_name)
         super().__attrs_post_init__()
 
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
-        return self.get_assets(x, y, z)
+    def items_for_tile(self, x: int, y: int, z: int) -> List[str]:
+        """Retrieve items for tile."""
+        return self.get_items(x, y, z)
 
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
-        """Retrieve assets for point."""
+    def items_for_point(self, lng: float, lat: float) -> List[str]:
+        """Retrieve items for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
-        return self.get_assets(tile.x, tile.y, tile.z)
+        return self.get_items(tile.x, tile.y, tile.z)
 
     def info(self, fetch_quadkeys: bool = False):
         """Mosaic info."""
@@ -116,13 +116,13 @@ class DynamoDBBackend(BaseBackend):
         with click.progressbar(  # type: ignore
             new_mosaic.tiles.items(), file=fout, show_percent=True
         ) as items:
-            for quadkey, new_assets in items:
+            for quadkey, new_items in items:
                 tile = mercantile.quadkey_to_tile(quadkey)
-                assets = self.assets_for_tile(*tile)
-                assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+                items = self.items_for_tile(*tile)
+                items = [*new_items, *items] if add_first else [*items, *new_items]
 
                 # add custom sorting algorithm (e.g based on path name)
-                self._update_quadkey(quadkey, assets)
+                self._update_quadkey(quadkey, items)
 
         bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
 
@@ -207,19 +207,19 @@ class DynamoDBBackend(BaseBackend):
         return MosaicJSON(**meta)
 
     @lru_cache(key=lambda self, x, y, z: hashkey(self.path, x, y, z),)
-    def get_assets(self, x: int, y: int, z: int) -> List[str]:
-        """Find assets."""
+    def get_items(self, x: int, y: int, z: int) -> List[str]:
+        """Find items."""
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
 
-        assets = list(
+        items = list(
             itertools.chain.from_iterable(
                 [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
             )
         )
 
         # Find mosaics recursively?
-        return assets
+        return items
 
     def _fetch_dynamodb(self, quadkey: str) -> Dict:
         try:

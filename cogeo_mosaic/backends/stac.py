@@ -12,7 +12,7 @@ from cachetools.keys import hashkey
 from rio_tiler.io import BaseReader, STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
-from cogeo_mosaic.backends.utils import get_assets_from_json
+from cogeo_mosaic.backends.utils import get_items_from_json
 from cogeo_mosaic.cache import lru_cache
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -72,14 +72,14 @@ class STACBackend(BaseBackend):
             self.query, self.minzoom, self.maxzoom, **self.backend_options
         )
 
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
-        return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
+    def items_for_tile(self, x: int, y: int, z: int) -> List[str]:
+        """Retrieve items for tile."""
+        return get_items_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
 
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
-        """Retrieve assets for point."""
+    def items_for_point(self, lng: float, lat: float) -> List[str]:
+        """Retrieve items for point."""
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
-        return get_assets_from_json(
+        return get_items_from_json(
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 

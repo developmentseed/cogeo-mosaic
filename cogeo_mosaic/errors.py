@@ -13,8 +13,8 @@ class MosaicNotFoundError(MosaicError):
     """Mosaic not found error"""
 
 
-class NoAssetFoundError(MosaicError):
-    """No Asset found"""
+class NoItemFoundError(MosaicError):
+    """No item found"""
 
 
 _HTTP_EXCEPTIONS = {

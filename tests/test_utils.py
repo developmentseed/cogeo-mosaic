@@ -8,8 +8,8 @@ import pytest
 
 from cogeo_mosaic import utils
 
-asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
-asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
+item1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
+item2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
 
 
 def test_filtering_futurestask():
@@ -32,7 +32,7 @@ def test_filtering_futurestask():
 
 def test_dataset_info():
     """Read raster metadata and return spatial info."""
-    info = utils.get_dataset_info(asset1)
+    info = utils.get_dataset_info(item1)
     assert info["geometry"]
     assert info["properties"]["path"]
     assert info["properties"]["bounds"]
@@ -42,9 +42,9 @@ def test_dataset_info():
 
 
 def test_footprint():
-    """Fetch footprints from asset list."""
-    assets = [asset1, asset2]
-    foot = utils.get_footprints(assets)
+    """Fetch footprints from item list."""
+    items = [item1, item2]
+    foot = utils.get_footprints(items)
     assert len(foot) == 2
 
 

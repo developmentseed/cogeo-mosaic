@@ -22,7 +22,7 @@ from supermercado.burntiles import tile_extrema
 
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
-from cogeo_mosaic.errors import NoAssetFoundError
+from cogeo_mosaic.errors import NoItemFoundError
 from cogeo_mosaic.utils import _filter_futures
 
 PIXSEL_METHODS = {
@@ -116,10 +116,10 @@ def create_overview_cogs(
         bounds = mosaic.metadata["bounds"]
         mosaic_quadkeys = set(mosaic._quadkeys)
 
-        # Select a random quakey/asset and get dataset info
+        # Select a random quadkey/item and get dataset info
         tile = mercantile.quadkey_to_tile(random.sample(mosaic_quadkeys, 1)[0])
-        assets = mosaic.assets_for_tile(*tile)
-        info = _get_info(assets[0])
+        items = mosaic.items_for_tile(*tile)
+        info = _get_info(items[0])
 
         extrema = tile_extrema(bounds, base_zoom)
         tilesize = 256
@@ -182,7 +182,7 @@ def create_overview_cogs(
                                 tilesize=tilesize,
                                 pixel_selection=pixel_method(),
                             )
-                        except NoAssetFoundError:
+                        except NoItemFoundError:
                             return window, None, None
 
                         return window, tile, mask

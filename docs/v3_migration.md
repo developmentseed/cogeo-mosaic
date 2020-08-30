@@ -127,8 +127,8 @@ from cogeo_mosaic.backends import MosaicBackend
 
 with MosaicBackend(url) as mosaic:
     mosaic_definition = mosaic.mosaic_def
-    assets = mosaic.tile(x, y, z)    # LRU cache
-    assets = mosaic.point(lng, lat)  # LRU cache
+    items = mosaic.tile(x, y, z)    # LRU cache
+    items = mosaic.point(lng, lat)  # LRU cache
 ```
 
 #### Write

@@ -13,7 +13,7 @@ from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.tasks import create_tasks, filter_tasks
 
 from cogeo_mosaic.backends.utils import get_hash
-from cogeo_mosaic.errors import NoAssetFoundError
+from cogeo_mosaic.errors import NoItemFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -88,44 +88,44 @@ class BaseBackend(BaseReader):
         return self.mosaic_def.dict(exclude={"tiles"}, exclude_none=True)
 
     @abc.abstractmethod
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
+    def items_for_tile(self, x: int, y: int, z: int) -> List[str]:
+        """Retrieve items for tile."""
 
     @abc.abstractmethod
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
-        """Retrieve assets for point."""
+    def items_for_point(self, lng: float, lat: float) -> List[str]:
+        """Retrieve items for point."""
 
     def tile(
         self, x: int, y: int, z: int, **kwargs: Any,
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
         """Get Tile from multiple observation."""
 
-        assets = self.assets_for_tile(x, y, z)
-        if not assets:
-            raise NoAssetFoundError(f"No assets found for tile {z}-{x}-{y}")
+        items = self.items_for_tile(x, y, z)
+        if not items:
+            raise NoItemFoundError(f"No items found for tile {z}-{x}-{y}")
 
-        def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any):
-            with self.reader(asset, **self.reader_options) as src_dst:
+        def _reader(item: str, x: int, y: int, z: int, **kwargs: Any):
+            with self.reader(item, **self.reader_options) as src_dst:
                 return src_dst.tile(x, y, z, **kwargs)
 
-        return mosaic_reader(assets, _reader, x, y, z, **kwargs)
+        return mosaic_reader(items, _reader, x, y, z, **kwargs)
 
     def point(
         self, lon: float, lat: float, threads=MAX_THREADS, **kwargs: Any
     ) -> List[Dict]:
         """Get Point value from multiple observation."""
-        assets = self.assets_for_point(lon, lat)
-        if not assets:
-            raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
+        items = self.items_for_point(lon, lat)
+        if not items:
+            raise NoItemFoundError(f"No items found for point ({lon},{lat})")
 
-        def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
-            with self.reader(asset, **self.reader_options) as src_dst:
+        def _reader(item: str, lon: float, lat: float, **kwargs) -> Dict:
+            with self.reader(item, **self.reader_options) as src_dst:
                 return src_dst.point(lon, lat, **kwargs)
 
-        tasks = create_tasks(_reader, assets, threads, lon, lat, **kwargs)
+        tasks = create_tasks(_reader, items, threads, lon, lat, **kwargs)
         return [
-            {"asset": asset, "values": pt}
-            for pt, asset in filter_tasks(
+            {"item": item, "values": pt}
+            for pt, item in filter_tasks(
                 tasks, allowed_exceptions=(PointOutsideBounds,)
             )
         ]
@@ -178,13 +178,13 @@ class BaseBackend(BaseReader):
             **kwargs,
         )
 
-        for quadkey, new_assets in new_mosaic.tiles.items():
+        for quadkey, new_items in new_mosaic.tiles.items():
             tile = mercantile.quadkey_to_tile(quadkey)
-            assets = self.assets_for_tile(*tile)
-            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+            items = self.items_for_tile(*tile)
+            items = [*new_items, *items] if add_first else [*items, *new_items]
 
             # add custom sorting algorithm (e.g based on path name)
-            self.mosaic_def.tiles[quadkey] = assets
+            self.mosaic_def.tiles[quadkey] = items
 
         bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
 

@@ -154,7 +154,7 @@ curl https://earth-search.aws.element84.com/collections/landsat-8-l1/items | cog
 ### Create Mosaic Overview [experimental]
 
 The CLI provides an `overview` command to create low-resolution version of a mosaic.
-This is hightly experimental and might incure some cost if you are hosting mosaic on DynamoDB or COG files on S3. To create the overview, the `overview` method will fetch all the asset's overviews (COG internal overview) and construct one or multiple COG .
+This is hightly experimental and might incure some cost if you are hosting mosaic on DynamoDB or COG files on S3. To create the overview, the `overview` method will fetch all the item's overviews (COG internal overview) and construct one or multiple COG .
 
 ```
 $ cogeo-mosaic overview s3://bucket/mymosaic.json
@@ -164,7 +164,7 @@ $ cogeo-mosaic overview s3://bucket/mymosaic.json
 
 # Image Order
 
-**By default the order of the dataset, either passed via the CLI or in the API, defines the order of the quadkey's assets.**
+**By default the order of the dataset, either passed via the CLI or in the API, defines the order of the quadkey's items.**
 
 ```python
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -238,23 +238,23 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
 
     mosaic.info                        # method -  spatial_info, list of quadkeys and mosaic name
 
-    mosaic.assets_for_tile(1,2,3)      # method - Find assets for a specific mercator tile
-    mosaic.assets_for_point(lng, lat)  # method - Find assets for a specific point
+    mosaic.items_for_tile(1,2,3)      # method - Find items for a specific mercator tile
+    mosaic.items_for_point(lng, lat)  # method - Find items for a specific point
 
     mosaic.tile(1,2,3)                 # method - Create mosaic tile
-    mosaic.point(lng, lat)             # method - Read point value from multiple assets
+    mosaic.point(lng, lat)             # method - Read point value from multiple items
     mosaic.write()                     # method - Write the mosaicjson to the given location
     mosaic.update([features])          # method - Update the mosaicjson data with a list of features
 ```
 
-##### Read and Get assets list
+##### Read and Get items list
 ```python
 # MosaicBackend is the top level backend and will distribute to the
 # correct backend by checking the path/url schema.
 from cogeo_mosaic.backends import MosaicBackend
 
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
-    assets: List = mosaic.assets_for_tile(1, 2, 3) # get assets for mercantile.Tile(1, 2, 3)
+    items: List = mosaic.items_for_tile(1, 2, 3) # get items for mercantile.Tile(1, 2, 3)
 ```
 
 ##### Read Tile Data (mosaic tile)
@@ -309,8 +309,8 @@ see [/docs/STAC_backend.md](/docs/STAC_backend.md) for more info.
 
 The mosaic object has `.tile` and `.point` methods to access the data for a specific mercator tile or point.
 
-Because a MosaicJSON can host different assets type, a `reader` option is available.
-Set by default to `rio_tiler.io.COGReader`, or to `rio_tiler.io.STACReader` for the STACBackend, the reader should know how to read the assets to either create mosaic tile or read points value.
+Because a MosaicJSON can host different items type, a `reader` option is available.
+Set by default to `rio_tiler.io.COGReader`, or to `rio_tiler.io.STACReader` for the STACBackend, the reader should know how to read the items to either create mosaic tile or read points value.
 
 ```python
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -333,14 +333,14 @@ with MosaicBackend(
     tile, mask = mosaic.tile(1, 1, 1, assets="red")
 ```
 
-Let's use a custom accessor to save some specific assets url in the mosaic
+Let's use a custom accessor to save some specific items url in the mosaic
 
 ```python
-# accessor to return the url for the `visual` asset (COG)
+# accessor to return the url for the `visual` item (COG)
 def accessor(item):
-    return feature["assets"]["visual"]["href"]
+    return feature["items"]["visual"]["href"]
 
-# The accessor will set the mosaic assets as a list of COG url so we can use the COGReader instead of the STACReader
+# The accessor will set the mosaic items as a list of COG url so we can use the COGReader instead of the STACReader
 with MosaicBackend(
   "stac+https://my-stac.api/search",
   {"collections": ["satellite"]},

@@ -61,15 +61,15 @@ def test_find_quadkeys():
     ]
 
 
-def test_get_assets_from_json():
-    """Get assets list."""
+def test_get_items_from_json():
+    """Get items list."""
     qkz = mosaic_content.get("quadkey_zoom") or mosaic_content.get("minzoom")
     assert (
-        len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 150, 182, 9)) == 2
+        len(utils.get_items_from_json(mosaic_content["tiles"], qkz, 150, 182, 9)) == 2
     )
     assert (
-        len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 9)) == 1
+        len(utils.get_items_from_json(mosaic_content["tiles"], qkz, 147, 182, 9)) == 1
     )
     assert (
-        len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 12)) == 0
+        len(utils.get_items_from_json(mosaic_content["tiles"], qkz, 147, 182, 12)) == 0
     )

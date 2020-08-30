@@ -47,23 +47,23 @@ def find_quadkeys(mercator_tile: mercantile.Tile, quadkey_zoom: int) -> List[str
         return [mercantile.quadkey(*mercator_tile)]
 
 
-def get_assets_from_json(
+def get_items_from_json(
     tiles: Dict, quadkey_zoom: int, x: int, y: int, z: int
 ) -> List[str]:
-    """Find assets."""
+    """Find items."""
     mercator_tile = mercantile.Tile(x=x, y=y, z=z)
     quadkeys = find_quadkeys(mercator_tile, quadkey_zoom)
 
-    assets = list(itertools.chain.from_iterable([tiles.get(qk, []) for qk in quadkeys]))
+    items = list(itertools.chain.from_iterable([tiles.get(qk, []) for qk in quadkeys]))
 
     # check if we have a mosaic in the url (.json/.gz)
     return list(
         itertools.chain.from_iterable(
             [
-                get_assets_from_json(tiles, quadkey_zoom, x, y, z)
-                if os.path.splitext(asset)[1] in [".json", ".gz"]
-                else [asset]
-                for asset in assets
+                get_items_from_json(tiles, quadkey_zoom, x, y, z)
+                if os.path.splitext(item)[1] in [".json", ".gz"]
+                else [item]
+                for item in items
             ]
         )
     )

@@ -22,7 +22,7 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.stac import _fetch as stac_search
 from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
-from cogeo_mosaic.errors import MosaicError, NoAssetFoundError
+from cogeo_mosaic.errors import MosaicError, NoItemFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
@@ -31,8 +31,8 @@ mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
 mosaic_jsonV1 = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic_0.0.1.json")
 stac_page1 = os.path.join(os.path.dirname(__file__), "fixtures", "stac_p1.geojson")
 stac_page2 = os.path.join(os.path.dirname(__file__), "fixtures", "stac_p2.geojson")
-asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
-asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
+item1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
+item2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
 
 with open(mosaic_json, "r") as f:
     mosaic_content = json.loads(f.read())
@@ -57,8 +57,8 @@ def test_file_backend():
             "bounds",
             "center",
         ]
-        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
-        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.items_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.items_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
     with MosaicBackend(mosaic_bin, backend_options={"gzip": True}) as mosaic:
         assert isinstance(mosaic, FileBackend)
@@ -147,8 +147,8 @@ def test_http_backend(requests):
             "bounds",
             "center",
         ]
-        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
-        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.items_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.items_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
     requests.get.assert_called_once()
     requests.mock_reset()
 
@@ -206,8 +206,8 @@ def test_s3_backend(session):
             "bounds",
             "center",
         ]
-        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
-        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.items_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.items_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
         session.return_value.client.return_value.get_object.assert_called_once_with(
             Bucket="mybucket", Key="mymosaic.json.gz"
         )
@@ -327,8 +327,8 @@ def test_dynamoDB_backend(client):
             "bounds",
             "center",
         ]
-        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
-        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.items_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.items_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
         # Warns in backend.info()
         with pytest.warns(UserWarning):
@@ -354,7 +354,7 @@ def test_dynamoDB_backend(client):
         assert isinstance(mosaic, DynamoDBBackend)
         items = mosaic._create_items()
         assert len(items) == 10
-        assert items[-1] == {"quadkey": "0302330", "assets": ["cog1.tif", "cog2.tif"]}
+        assert items[-1] == {"quadkey": "0302330", "items": ["cog1.tif", "cog2.tif"]}
         mosaic._create_table()
 
 
@@ -391,11 +391,11 @@ def test_stac_backend(post):
             "bounds",
             "center",
         ]
-        assert mosaic.assets_for_tile(210, 90, 10) == [
+        assert mosaic.items_for_tile(210, 90, 10) == [
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
         ]
-        assert mosaic.assets_for_point(-106.050, 81.43) == [
+        assert mosaic.items_for_point(-106.050, 81.43) == [
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
         ]
@@ -519,8 +519,8 @@ def test_mosaic_crud_error(mosaic_path):
 
 def test_BaseReader():
     """Test BaseReader heritance methods."""
-    assets = [asset1, asset2]
-    mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
+    items = [item1, item2]
+    mosaicdef = MosaicJSON.from_urls(items, quiet=False)
 
     # add some offset to the center to make
     # sure BaseBackend forward center from the mosaic definition
@@ -530,18 +530,18 @@ def test_BaseReader():
         (t, m), _ = mosaic.tile(150, 182, 9)
         assert t.shape
 
-        with pytest.raises(NoAssetFoundError):
+        with pytest.raises(NoItemFoundError):
             mosaic.tile(200, 182, 9)
 
         pts = mosaic.point(-73, 45)
         assert len(pts) == 2
-        assert pts[0]["asset"]
+        assert pts[0]["item"]
         assert pts[1]["values"]
 
         pts = mosaic.point(-72.5, 46)
         assert len(pts) == 1
 
-        with pytest.raises(NoAssetFoundError):
+        with pytest.raises(NoItemFoundError):
             mosaic.point(-60, 45)
 
         assert mosaic.minzoom
