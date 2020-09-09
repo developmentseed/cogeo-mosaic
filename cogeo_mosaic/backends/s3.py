@@ -17,7 +17,7 @@ from cogeo_mosaic.backends.utils import (
     get_assets_from_json,
 )
 from cogeo_mosaic.cache import lru_cache
-from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExists
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -50,13 +50,16 @@ class S3Backend(BaseBackend):
             self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
-    def write(self, gzip: bool = None, **kwargs: Any):
+    def write(self, overwrite: bool = False, gzip: bool = None, **kwargs: Any):
         """Write mosaicjson document to AWS S3."""
         mosaic_doc = self.mosaic_def.dict(exclude_none=True)
         if gzip or (gzip is None and self.key.endswith(".gz")):
             body = _compress_gz_json(mosaic_doc)
         else:
             body = json.dumps(mosaic_doc).encode("utf-8")
+
+        if not overwrite and _aws_head_object(self.key, self.bucket):
+            raise MosaicExists("Mosaic file already exist, use `overwrite=True`.")
 
         _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
 
@@ -101,3 +104,13 @@ def _aws_put_data(
         raise exc(e.response["Error"]["Message"]) from e
 
     return key
+
+
+def _aws_head_object(key, bucket, client: boto3_session.client = None) -> bool:
+    if not client:
+        session = boto3_session()
+        client = session.client("s3")
+    try:
+        return client.head_object(Bucket=bucket, Key=key)
+    except ClientError:
+        return False

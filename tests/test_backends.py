@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Dict, List
 from unittest.mock import patch
 
+import boto3
 import pytest
 from click.testing import CliRunner
 from pydantic import ValidationError
@@ -22,7 +23,7 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.stac import _fetch as stac_search
 from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
-from cogeo_mosaic.errors import MosaicError, NoAssetFoundError
+from cogeo_mosaic.errors import MosaicError, MosaicExists, NoAssetFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
@@ -94,8 +95,10 @@ def test_file_backend():
             mosaic.write()
             with open("mosaic.json") as f:
                 m = json.loads(f.read())
-                print
                 assert m["quadkey_zoom"] == 7
+            with pytest.raises(MosaicExists):
+                mosaic.write()
+            mosaic.write(overwrite=True)
 
         with MosaicBackend("mosaic.json.gz", mosaic_def=mosaic_content) as mosaic:
             mosaic.write()
@@ -188,6 +191,7 @@ def test_s3_backend(session):
             "Body": BytesIO(f.read())
         }
     session.return_value.client.return_value.put_object.return_value = True
+    session.return_value.client.return_value.head_object.return_value = False
 
     with MosaicBackend("s3://mybucket/mymosaic.json.gz") as mosaic:
         assert mosaic._backend_name == "AWS S3"
@@ -212,6 +216,7 @@ def test_s3_backend(session):
             Bucket="mybucket", Key="mymosaic.json.gz"
         )
         session.return_value.client.return_value.put_object.assert_not_called()
+        session.return_value.client.return_value.head_object.assert_not_called()
         session.reset_mock()
 
     with open(mosaic_gz, "rb") as f:
@@ -219,6 +224,7 @@ def test_s3_backend(session):
             "Body": BytesIO(f.read())
         }
     session.return_value.client.return_value.put_object.return_value = True
+    session.return_value.client.return_value.head_object.return_value = False
 
     with MosaicBackend(
         "s3://mybucket/mymosaic.json.gz", mosaic_def=mosaic_content
@@ -226,31 +232,66 @@ def test_s3_backend(session):
         assert isinstance(mosaic, S3Backend)
         mosaic.write()
     session.return_value.client.return_value.get_object.assert_not_called()
+    session.return_value.client.return_value.head_object.assert_called_once()
     kwargs = session.return_value.client.return_value.put_object.call_args[1]
     assert kwargs["Bucket"] == "mybucket"
     assert kwargs["Key"] == "mymosaic.json.gz"
     assert MosaicJSON(**json.loads(_decompress_gz(kwargs["Body"])))
     session.reset_mock()
 
+    session.return_value.client.return_value.head_object.return_value = False
     with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
         assert isinstance(mosaic, S3Backend)
         mosaic.write(gzip=True)
     session.return_value.client.return_value.get_object.assert_not_called()
+    session.return_value.client.return_value.head_object.assert_called_once()
     kwargs = session.return_value.client.return_value.put_object.call_args[1]
     assert kwargs["Bucket"] == "mybucket"
     assert kwargs["Key"] == "00000"
     assert MosaicJSON(**json.loads(_decompress_gz(kwargs["Body"])))
     session.reset_mock()
 
+    session.return_value.client.return_value.head_object.return_value = False
     with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
         assert isinstance(mosaic, S3Backend)
         mosaic.write()
     session.return_value.client.return_value.get_object.assert_not_called()
+    session.return_value.client.return_value.head_object.assert_called_once()
     kwargs = session.return_value.client.return_value.put_object.call_args[1]
     assert kwargs["Bucket"] == "mybucket"
     assert kwargs["Key"] == "00000"
     assert MosaicJSON(**json.loads(kwargs["Body"]))
     session.reset_mock()
+
+    session.return_value.client.return_value.head_object.return_value = True
+    with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
+        assert isinstance(mosaic, S3Backend)
+        with pytest.raises(MosaicExists):
+            mosaic.write()
+    session.return_value.client.return_value.get_object.assert_not_called()
+    session.return_value.client.return_value.head_object.assert_called_once()
+    kwargs = session.return_value.client.return_value.put_object.assert_not_called()
+    session.reset_mock()
+
+    session.return_value.client.return_value.head_object.return_value = True
+    with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
+        assert isinstance(mosaic, S3Backend)
+        mosaic.write(overwrite=True)
+    session.return_value.client.return_value.get_object.assert_not_called()
+    session.return_value.client.return_value.head_object.assert_not_called()
+    kwargs = session.return_value.client.return_value.put_object.assert_called_once()
+    session.reset_mock()
+
+
+class MockMeta(object):
+    """Mock Meta."""
+
+    def __init__(self):
+        pass
+
+    @property
+    def client(self):
+        return boto3.client("dynamodb")
 
 
 class MockTable(object):
@@ -272,6 +313,23 @@ class MockTable(object):
     def wait_until_exists(self):
         time.sleep(1)
         return True
+
+    def wait_until_not_exists(self):
+        time.sleep(1)
+        return True
+
+    def delete(self):
+        pass
+
+    @property
+    def meta(self):
+        return MockMeta()
+
+    @property
+    def table_status(self):
+        raise self.meta.client.exceptions.ResourceNotFoundException(
+            error_response={}, operation_name="table_status"
+        )
 
     def get_item(self, Key: Dict = {}) -> Dict:
         """Mock Get Item."""

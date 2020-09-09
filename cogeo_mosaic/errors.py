@@ -17,6 +17,10 @@ class NoAssetFoundError(MosaicError):
     """No Asset found"""
 
 
+class MosaicExists(MosaicError):
+    """MosaicJSON already exists."""
+
+
 _HTTP_EXCEPTIONS = {
     401: MosaicAuthError,
     403: MosaicAuthError,

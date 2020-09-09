@@ -19,7 +19,7 @@ from cachetools.keys import hashkey
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import lru_cache
-from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExists
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -79,9 +79,9 @@ class DynamoDBBackend(BaseBackend):
         resp = self.table.scan(ProjectionExpression="quadkey")  # TODO: Add pagination
         return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
 
-    def write(self):
+    def write(self, overwrite: bool = False, **kwargs: Any):
         """Write mosaicjson document to AWS DynamoDB."""
-        self._create_table()
+        self._create_table(overwrite=overwrite, **kwargs)
         items = self._create_items()
         self._write_items(items)
 
@@ -138,7 +138,15 @@ class DynamoDBBackend(BaseBackend):
 
         return
 
-    def _create_table(self, billing_mode: str = "PAY_PER_REQUEST"):
+    def _create_table(
+        self, overwrite: bool = False, billing_mode: str = "PAY_PER_REQUEST"
+    ):
+        if self._table_exist():
+            if not overwrite:
+                raise MosaicExists("Table already exist, use `overwrite=True`.")
+            self.table.delete()
+            self.table.wait_until_not_exists()
+
         # Define schema for primary key
         # Non-keys don't need a schema
         attr_defs = [{"AttributeName": "quadkey", "AttributeType": "S"}]
@@ -156,8 +164,8 @@ class DynamoDBBackend(BaseBackend):
             # If outside try/except block, could wait forever if unable to
             # create table
             self.table.wait_until_exists()
-        except boto3.client("dynamodb").exceptions.ResourceInUseException:
-            warnings.warn("Unable to create table, may already exist")
+        except self.table.meta.client.exceptions.ResourceNotFoundException:
+            warnings.warn("Unable to create table.")
             return
 
     def _create_items(self) -> List[Dict]:
@@ -228,3 +236,11 @@ class DynamoDBBackend(BaseBackend):
             status_code = e.response["ResponseMetadata"]["HTTPStatusCode"]
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
             raise exc(e.response["Error"]["Message"]) from e
+
+    def _table_exist(self) -> bool:
+        """Check if the Table already exists."""
+        try:
+            _ = self.table.table_status
+            return True
+        except self.table.meta.client.exceptions.ResourceNotFoundException:
+            return False

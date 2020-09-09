@@ -1,3 +1,7 @@
+3.0a11 (TBD)
+------------------
+- Raise Exception when trying to overwrite a mosaic (#112)
+
 3.0a10 (2020-08-24)
 ------------------
 - Allow PointOutsideBounds exception for `point` method (#108)
