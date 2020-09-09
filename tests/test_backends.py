@@ -291,7 +291,7 @@ class MockMeta(object):
 
     @property
     def client(self):
-        return boto3.client("dynamodb")
+        return boto3.client("dynamodb", region_name="us-east-1")
 
 
 class MockTable(object):
