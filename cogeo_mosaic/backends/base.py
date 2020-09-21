@@ -158,7 +158,7 @@ class BaseBackend(BaseReader):
         return list(self.mosaic_def.tiles.keys())
 
     @abc.abstractmethod
-    def write(self):
+    def write(self, overwrite: bool = True):
         """Upload new MosaicJSON to backend."""
 
     def update(
@@ -198,6 +198,6 @@ class BaseBackend(BaseReader):
 
         # We only write if path is set
         if self.path:
-            self.write()
+            self.write(overwrite=True)
 
         return
