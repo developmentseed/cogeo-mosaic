@@ -40,18 +40,16 @@ def default_stac_accessor(feature: Dict):
 
 @attr.s
 class STACBackend(BaseBackend):
-    """
-    STAC Backend Adapter
+    """STAC Backend Adapter
 
-    Usage:
-    ------
-    with STACBackend(
-        "https://earth-search.aws.element84.com/v0/search",
-        query,
-        8,
-        15,
-    ) as mosaic:
-        mosaic.tile(0, 0, 0)
+    Examples:
+        >>> with STACBackend(
+                "https://earth-search.aws.element84.com/v0/search",
+                query,
+                8,
+                15,
+            ) as mosaic:
+                mosaic.tile(0, 0, 0)
 
     """
 

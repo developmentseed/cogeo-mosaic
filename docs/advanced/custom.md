@@ -1,5 +1,3 @@
-# Advanced Topics
-
 ## Custom mosaic creation
 
 `MosaicJSON._create_mosaic()` method is the low level method that creates mosaicjson document. It has multiple required arguments and options with default values which more advanced users would change.
@@ -51,7 +49,7 @@ mosaicjson = MosaicJSON.from_features(
 
 On **mosaicjson** creation ones would want to perform more advanced assets filtering or sorting. To enable this, users can define their own `filter` method and pass it using the `asset_filter` options.
 
-**!!!** In the current implementation, `asset_filter` method **have to** allow at least 3 arguments: 
+**!!!** In the current implementation, `asset_filter` method **have to** allow at least 3 arguments:
 - **tile** - mercantile.Tile: Mercantile tile
 - **dataset** - Sequence[Dict]: GeoJSON Feature list intersecting with the `tile`
 - **geoms** - Sequence[polygons]: Geos Polygon list for the features
@@ -88,7 +86,7 @@ Update method is **backend specific** because you don't write a mosaicjson docum
 
 The **main** method is defined in [cogeo_mosaic.backends.base.BaseBackend](https://github.com/developmentseed/cogeo-mosaic/blob/master/cogeo_mosaic/backends/base.py).
 
-On update, here is what is happening: 
+On update, here is what is happening:
 1. create mosaic with the new dataset
 2. loop through the new `quadkeys` and edit `old` mosaic assets
 3. update bounds, center and version of the updated mosaic
