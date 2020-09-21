@@ -1,4 +1,42 @@
-# STAC Backend
+
+
+Starting in version `3.0.0`, we introduced specific backend storage for:
+
+- **File** (default, `file:///`)
+
+- **HTTP/HTTPS** (`http://`, `https://`)
+
+- **AWS S3** (`s3://`)
+
+- **AWS DynamoDB** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
+
+- **STAC** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
+
+To ease the usage we added a helper function to use the right backend based on the uri schema: `cogeo_mosaic.backends.MosaicBackend`
+
+```python
+from cogeo_mosaic.backends import MosaicBackend
+
+with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.s3.S3Backend)
+
+with MosaicBackend("https://mosaic.com/amosaic.json.gz") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.http.HttpBackend)
+
+with MosaicBackend("dynamodb://us-east-1/amosaic") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.dynamodb.DynamoDBBackend)
+
+with MosaicBackend("file:///amosaic.json.gz") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
+
+with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellite"]}) as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.stac.STACBackend)
+
+with MosaicBackend("amosaic.json.gz") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
+```
+
+## STAC Backend
 
 The STACBackend is purely dynamic, meaning it's not used to read or write a file. This backend will POST to the input url looking for STAC items which will then be used to create the mosaicJSON.
 
@@ -84,7 +122,7 @@ The STACBackend rely on Spec version 1.0.0alpha.
 ### Paggination
 
 The returned object from the POST requests might not represent the whole results and thus
-we need to use the paggination. 
+we need to use the paggination.
 
 You can limit the pagination by using `max_items` or `stac_query_limit` options.
 
@@ -147,7 +185,7 @@ It's let to the user to built a Mosaic Tiler which will understand the asset.
 
 #### Custom accessor
 
-Accessor HAVE to be a callable which take a GeoJSON feature as input. 
+Accessor HAVE to be a callable which take a GeoJSON feature as input.
 
 Here is an example of an accessor that will return the ulr for asset `B01`
 

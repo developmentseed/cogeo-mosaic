@@ -46,8 +46,7 @@ def default_filter(
 
 
 class MosaicJSON(BaseModel):
-    """
-    MosaicJSON model.
+    """MosaicJSON model.
 
     Based on https://github.com/developmentseed/mosaicjson-spec
 
@@ -102,34 +101,24 @@ class MosaicJSON(BaseModel):
         quiet: bool = True,
         **kwargs,
     ):
-        """
-        Create mosaic definition content.
+        """Create mosaic definition content.
 
-        Attributes
-        ----------
-        features : List, required
-            List of GeoJSON features.
-        minzoom: int, required
-            Force mosaic min-zoom.
-        maxzoom: int, required
-            Force mosaic max-zoom.
-        quadkey_zoom: int, optional
-            Force mosaic quadkey zoom.
-        accessor: callable, required
-            Function called on each feature to get its identifier (default is feature["properties"]["path"]).
-        asset_filter: callable, required
-            Function to filter features.
-        version: str, optional
-            mosaicJSON definition version (default: 0.0.2).
-        quiet: bool, optional (default: True)
-            Mask processing steps.
-        kwargs: any
-            Options forwarded to `asset_filter`
+        Attributes:
+            features (list): List of GeoJSON features.
+            minzoom (int): Force mosaic min-zoom.
+            maxzoom (int): Force mosaic max-zoom.
+            quadkey_zoom (int): Force mosaic quadkey zoom (optional).
+            accessor (callable): Function called on each feature to get its identifier (default is feature["properties"]["path"]).
+            asset_filter (callable):  Function to filter features.
+            version (str): mosaicJSON definition version (default: 0.0.2).
+            quiet (bool): Mask processing steps (default is True).
+            kwargs (any): Options forwarded to `asset_filter`
 
-        Returns
-        -------
-        mosaic_definition : MosaicJSON
-            Mosaic definition.
+        Returns:
+            mosaic_definition (MosaicJSON): Mosaic definition.
+
+        Examples:
+            >>> MosaicJSON._create_mosaic([], 12, 14)
 
         """
         quadkey_zoom = quadkey_zoom or minzoom
@@ -200,30 +189,28 @@ class MosaicJSON(BaseModel):
         quiet: bool = True,
         **kwargs,
     ):
-        """
-        Create mosaicjson from COG urls.
+        """Create mosaicjson from COG urls.
 
-        Attributes
-        ----------
-        urls : List, required
-            List of COG urls.
-        minzoom: int, optional
-            Force mosaic min-zoom.
-        maxzoom: int, optional
-            Force mosaic max-zoom.
-        max_threads : int
-            Max threads to use (default: 20).
-        quiet: bool, optional (default: True)
-            Mask processing steps.
-        kwargs: any
-            Options forwarded to MosaicJSON.from_features
+        Attributes:
+            urls (list): List of COGs.
+            minzoom (int): Force mosaic min-zoom.
+            maxzoom (int): Force mosaic max-zoom.
+            max_threads (int): Max threads to use (default: 20).
+            quiet (bool): Mask processing steps (default is True).
+            kwargs (any): Options forwarded to `MosaicJSON._create_mosaic`
 
-        Returns
-        -------
-        mosaic_definition : MosaicJSON
-            Mosaic definition.
+        Returns:
+            mosaic_definition (MosaicJSON): Mosaic definition.
+
+
+        Raises:
+            Exception: If COGs don't have the same datatype
+
+        Examples:
+            >>> MosaicJSON.from_urls(["1.tif", "2.tif"])
 
         """
+
         features = get_footprints(urls, max_threads=max_threads, quiet=quiet)
 
         if minzoom is None:
@@ -257,24 +244,20 @@ class MosaicJSON(BaseModel):
     def from_features(
         cls, features: Sequence[Dict], minzoom: int, maxzoom: int, **kwargs
     ):
-        """
-        Create mosaicjson from a set of GeoJSON Features.
+        """Create mosaicjson from a set of GeoJSON Features.
 
-        Attributes
-        ----------
-        features: list, required
-            List of GeoJSON features.
-        minzoom: int, required
-            Force mosaic min-zoom.
-        maxzoom: int, required
-            Force mosaic max-zoom.
-        kwargs: any
-            Options forwarded to MosaicJSON._create_mosaic
+        Attributes:
+            features (list): List of GeoJSON features.
+            minzoom (int): Force mosaic min-zoom.
+            maxzoom (int): Force mosaic max-zoom.
+            kwargs (any): Options forwarded to `MosaicJSON._create_mosaic`
 
-        Returns
-        -------
-        mosaic_definition : MosaicJSON
-            Mosaic definition.
+        Returns:
+            mosaic_definition (MosaicJSON): Mosaic definition.
+
+        Examples:
+            >>> MosaicJSON.from_features([{}, {}], 12, 14)
 
         """
+
         return cls._create_mosaic(features, minzoom, maxzoom, **kwargs)

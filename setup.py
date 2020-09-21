@@ -23,11 +23,12 @@ inst_reqs = [
 extra_reqs = {
     "test": ["pytest", "pytest-cov"],
     "dev": ["pytest", "pytest-cov", "pre-commit"],
+    "docs": ["mkdocs", "mkdocs-material", "pygments", "mkapi"],
 }
 
 setup(
     name="cogeo-mosaic",
-    version="3.0a10",
+    version="3.0a11",
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",

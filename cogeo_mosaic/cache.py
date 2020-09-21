@@ -16,9 +16,7 @@ COGEO_MOSAIC_CACHE_ENABLED = os.getenv("CACHE_ENABLED", "TRUE")
 
 
 def lru_cache(key: Callable) -> Callable:
-    """
-    Decorator to optionally cache the result of an instance method
-    """
+    """Decorator to optionally cache the result of an instance method"""
 
     def decorator(func: Callable) -> Callable:
         if COGEO_MOSAIC_CACHE_ENABLED == "TRUE":

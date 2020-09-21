@@ -1,0 +1,78 @@
+site_name: cogeo-mosaic
+site_description: Create and use mosaics of Cloud Optimized GeoTIFF based on mosaicJSON specification.
+
+docs_dir: 'docs'
+site_dir: 'build'
+
+repo_name: "developmentseed/cogeo-mosaic"
+repo_url: "https://github.com/developmentseed/cogeo-mosaic"
+
+extra:
+  social:
+    - icon: "fontawesome/brands/github"
+      link: "https://github.com/developmentseed"
+    - icon: "fontawesome/brands/twitter"
+      link: "https://twitter.com/developmentseed"
+    - icon: "fontawesome/brands/medium"
+      link: "https://medium.com/devseed"
+
+nav:
+  - Home: "index.md"
+  - User Guide:
+    - Intro: "intro.md"
+    - CLI: "cli.md"
+  - Backends: "backends.md"
+  - Advanced User Guide:
+    - Reader: "advanced/readers.md"
+    - Customization: "advanced/custom.md"
+  - API:
+    - MosaicJSON: "API/mosaic.md"
+    - Cache: "API/cache.md"
+    - Backends:
+      - BaseClass: "API/backends/base.md"
+      - File: "API/backends/File.md"
+      - HTTP: "API/backends/HTTP.md"
+      - s3: "API/backends/S3.md"
+      - DynamoDB: "API/backends/DynamoDB.md"
+      - STAC: "API/backends/STAC.md"
+  - Migration to v3.0: "v3_migration.md"
+  - Development - Contributing: "contributing.md"
+  - Release Notes: "release-notes.md"
+
+plugins:
+  - search
+  - mkapi:
+      src_dirs: [cogeo-mosaic]
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    scheme: default
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - codehilite:
+      guess_lang: false
+  - def_list
+  - footnotes
+  - pymdownx.arithmatex
+  - pymdownx.betterem
+  - pymdownx.caret:
+      insert: false
+  - pymdownx.details
+  - pymdownx.emoji
+  - pymdownx.escapeall:
+      hardbreak: true
+      nbsp: true
+  - pymdownx.magiclink:
+      hide_protocol: true
+      repo_url_shortener: true
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - toc:
+      permalink: true
