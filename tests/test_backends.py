@@ -9,6 +9,7 @@ from typing import Dict, List
 from unittest.mock import patch
 
 import boto3
+import numpy
 import pytest
 from click.testing import CliRunner
 from pydantic import ValidationError
@@ -585,8 +586,14 @@ def test_BaseReader():
     mosaicdef.center = [x + 1 for x in mosaicdef.center]
 
     with MosaicBackend(None, mosaic_def=mosaicdef) as mosaic:
-        (t, m), _ = mosaic.tile(150, 182, 9)
+        (t, _), assets_used = mosaic.tile(150, 182, 9)
         assert t.shape
+
+        (tR, _), assets_usedR = mosaic.tile(150, 182, 9, reverse=True)
+        assert tR.shape
+        assert not numpy.array_equal(t, tR)
+
+        assert assets_used[0] == assets_usedR[-1]
 
         with pytest.raises(NoAssetFoundError):
             mosaic.tile(200, 182, 9)
@@ -595,6 +602,10 @@ def test_BaseReader():
         assert len(pts) == 2
         assert pts[0]["asset"]
         assert pts[1]["values"]
+
+        ptsR = mosaic.point(-73, 45, reverse=True)
+        assert len(ptsR) == 2
+        assert ptsR[0]["asset"] == pts[-1]["asset"]
 
         pts = mosaic.point(-72.5, 46)
         assert len(pts) == 1

@@ -1,8 +1,9 @@
 # Release Notes
 
-## 3.0a11 (TBD) - Master
+## 3.0a11 (2020-09-21) - Master
 
 * Raise Exception when trying to overwrite a mosaic (#112)
+* Add `reverse` option in `.tile` and `.point` to get values from assets in reversed order.
 
 ## 3.0a10 (2020-08-24)
 
