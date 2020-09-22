@@ -96,13 +96,16 @@ class BaseBackend(BaseReader):
         """Retrieve assets for point."""
 
     def tile(
-        self, x: int, y: int, z: int, **kwargs: Any,
+        self, x: int, y: int, z: int, reverse: bool = False, **kwargs: Any,
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
         """Get Tile from multiple observation."""
 
         assets = self.assets_for_tile(x, y, z)
         if not assets:
             raise NoAssetFoundError(f"No assets found for tile {z}-{x}-{y}")
+
+        if reverse:
+            assets = list(reversed(assets))
 
         def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any):
             with self.reader(asset, **self.reader_options) as src_dst:
@@ -111,12 +114,20 @@ class BaseBackend(BaseReader):
         return mosaic_reader(assets, _reader, x, y, z, **kwargs)
 
     def point(
-        self, lon: float, lat: float, threads=MAX_THREADS, **kwargs: Any
+        self,
+        lon: float,
+        lat: float,
+        threads=MAX_THREADS,
+        reverse: bool = False,
+        **kwargs: Any,
     ) -> List[Dict]:
         """Get Point value from multiple observation."""
         assets = self.assets_for_point(lon, lat)
         if not assets:
             raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
+
+        if reverse:
+            assets = list(reversed(assets))
 
         def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
             with self.reader(asset, **self.reader_options) as src_dst:
