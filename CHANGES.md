@@ -1,5 +1,13 @@
 # Release Notes
 
+## 3.0.0-alpha.12 (2020-10-07)
+
+* remove pkg_resources (https://github.com/pypa/setuptools/issues/510)
+* raise error when `minimum_tile_cover` is > 1 (https://github.com/developmentseed/cogeo-mosaic/issues/117)
+* fix wrong indices sorting in default_filter (https://github.com/developmentseed/cogeo-mosaic/issues/118)
+
+Note: We changed the versioning scheme to {major}.{minor}.{path}-{pre}{prenum}
+
 ## 3.0a11 (2020-09-21)
 
 * Raise Exception when trying to overwrite a mosaic (#112)

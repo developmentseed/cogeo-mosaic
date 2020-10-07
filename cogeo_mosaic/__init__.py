@@ -1,5 +1,3 @@
 """Cogeo_mosaic."""
 
-import pkg_resources
-
-version = pkg_resources.get_distribution(__package__).version
+__version__ = "3.0.0-alpha11"
