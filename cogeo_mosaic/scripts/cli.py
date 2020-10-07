@@ -11,7 +11,7 @@ from pkg_resources import iter_entry_points
 from rasterio.rio import options
 from rio_cogeo.profiles import cog_profiles
 
-from cogeo_mosaic import version as cogeo_mosaic_version
+from cogeo_mosaic import __version__ as cogeo_mosaic_version
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.overviews import PIXSEL_METHODS, create_overview_cogs

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, root_validator
 from pygeos import STRtree, polygons, total_bounds
 from supermercado import burntiles
 
+from cogeo_mosaic.errors import MosaicError
 from cogeo_mosaic.utils import _intersect_percent, get_footprints
 
 
@@ -21,8 +22,8 @@ def default_filter(
     tile: mercantile.Tile,
     dataset: Sequence[Dict],
     geoms: Sequence[polygons],
-    minimum_tile_cover=None,
-    tile_cover_sort=False,
+    minimum_tile_cover: float = None,
+    tile_cover_sort: bool = False,
     maximum_items_per_tile: Optional[int] = None,
 ) -> List:
     """Filter and/or sort dataset per intersection coverage."""
@@ -33,11 +34,14 @@ def default_filter(
         int_pcts = _intersect_percent(tile_geom, geoms)
 
         if minimum_tile_cover:
+            if minimum_tile_cover > 1.0:
+                raise MosaicError("`minimum_tile_cover` HAS TO be between 0 and 1.")
+
             indices = [ind for ind in indices if int_pcts[ind] > minimum_tile_cover]
 
         if tile_cover_sort:
             # https://stackoverflow.com/a/9764364
-            indices, _ = zip(*sorted(zip(indices, int_pcts), reverse=True))
+            _, indices = zip(*sorted(zip(int_pcts, indices), reverse=True))
 
     if maximum_items_per_tile:
         indices = indices[:maximum_items_per_tile]
