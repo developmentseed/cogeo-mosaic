@@ -6,7 +6,8 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import attr
 import mercantile
 import numpy
-from rio_tiler.constants import MAX_THREADS
+from morecantile import TileMatrixSet
+from rio_tiler.constants import MAX_THREADS, WEB_MERCATOR_TMS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, COGReader
 from rio_tiler.mosaic import mosaic_reader
@@ -29,6 +30,9 @@ class BaseBackend(BaseReader):
     backend_options: Dict = attr.ib(factory=dict)
     minzoom: int = attr.ib(init=False)
     maxzoom: int = attr.ib(init=False)
+    # TMS is outside the init because mosaicJSON and cogeo-mosaic only
+    # works with WebMercator (mercantile) for now.
+    tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
 
     _backend_name: str
     _file_byte_size: Optional[int] = 0
@@ -99,7 +103,6 @@ class BaseBackend(BaseReader):
         self, x: int, y: int, z: int, reverse: bool = False, **kwargs: Any,
     ) -> Tuple[numpy.ndarray, numpy.ndarray]:
         """Get Tile from multiple observation."""
-
         assets = self.assets_for_tile(x, y, z)
         if not assets:
             raise NoAssetFoundError(f"No assets found for tile {z}-{x}-{y}")
