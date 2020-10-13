@@ -1,5 +1,9 @@
 # Release Notes
 
+## 3.0.0-alpha.13 (2020-10-13)
+
+* add TMS in BaseBackend to align with rio-tiler BaseBackend.
+
 ## 3.0.0-alpha.12 (2020-10-07)
 
 * remove pkg_resources (https://github.com/pypa/setuptools/issues/510)

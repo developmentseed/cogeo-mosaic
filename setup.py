@@ -16,7 +16,7 @@ inst_reqs = [
     "rasterio",
     "requests",
     "rio-cogeo>=2.0",
-    "rio-tiler>=2.0b8",
+    "rio-tiler>=2.0.0b17",
     "cachetools",
     "supermercado",
 ]
