@@ -1,16 +1,16 @@
 # Release Notes
 
-## 3.0.0-alpha.13 (2020-10-13)
+## 3.0.0a13 (2020-10-13)
 
 * add TMS in BaseBackend to align with rio-tiler BaseBackend.
 
-## 3.0.0-alpha.12 (2020-10-07)
+## 3.0.0a12 (2020-10-07)
 
 * remove pkg_resources (https://github.com/pypa/setuptools/issues/510)
 * raise error when `minimum_tile_cover` is > 1 (https://github.com/developmentseed/cogeo-mosaic/issues/117)
 * fix wrong indices sorting in default_filter (https://github.com/developmentseed/cogeo-mosaic/issues/118)
 
-Note: We changed the versioning scheme to {major}.{minor}.{path}-{pre}{prenum}
+Note: We changed the versioning scheme to {major}.{minor}.{path}{pre}{prenum}
 
 ## 3.0a11 (2020-09-21)
 
