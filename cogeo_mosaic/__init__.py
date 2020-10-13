@@ -1,3 +1,3 @@
 """Cogeo_mosaic."""
 
-__version__ = "3.0.0a12"
+__version__ = "3.0.0a13"
