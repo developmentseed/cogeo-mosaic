@@ -196,16 +196,23 @@ def _fetch(
             features = features[:max_items]
             break
 
-        logger.debug(json.dumps(results["context"]))
+        # new STAC context spec
+        # {"page": 1, "limit": 1000, "matched": 5671, "returned": 1000}
+        # SAT-API META
+        # {"page": 4, "limit": 100, "found": 350, "returned": 50}
+        ctx = results.get("context", results.get("meta"))
+        matched = ctx.get("matched", ctx.get("found"))
+
+        logger.debug(json.dumps(ctx))
         # Check if there is more data to fetch
-        if results["context"]["matched"] <= results["context"]["returned"]:
+        if matched <= ctx["returned"]:
             break
 
         # We shouldn't fetch more item than matched
-        if len(features) == results["context"]["matched"]:
+        if len(features) == matched:
             break
 
-        if len(features) > results["context"]["matched"]:
+        if len(features) > matched:
             raise MosaicError(
                 "Something weird is going on, please open an issue in https://github.com/developmentseed/cogeo-mosaic"
             )
