@@ -3,7 +3,6 @@
 import json
 import os
 from typing import Any, Callable, Dict, List, Optional
-from urllib.parse import parse_qsl, urlencode, urlparse
 
 import attr
 import mercantile
@@ -15,6 +14,7 @@ from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import get_assets_from_json
 from cogeo_mosaic.cache import lru_cache
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
+from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -128,6 +128,8 @@ class STACBackend(BaseBackend):
             Mosaic definition.
 
         """
+        logger.debug(f"Using STAC backend: {self.path}")
+
         features = _fetch(
             self.path,
             query,
@@ -135,6 +137,7 @@ class STACBackend(BaseBackend):
             limit=stac_query_limit,
             next_link_key=stac_next_link_key,
         )
+        logger.debug(f"Creating mosaic from {len(features)} features")
 
         return MosaicJSON.from_features(
             features, minzoom, maxzoom, accessor=accessor, **kwargs
@@ -151,6 +154,7 @@ def _fetch(
 ) -> List[Dict]:
     """Call STAC API."""
     features: List[Dict] = []
+    stac_query = query.copy()
 
     headers = {
         "Content-Type": "application/json",
@@ -158,12 +162,12 @@ def _fetch(
         "Accept": "application/geo+json",
     }
 
-    if "features" not in query:
-        query.update({"limit": limit})
+    if "limit" not in stac_query:
+        stac_query.update({"limit": limit})
 
-    def _stac_search(url):
+    def _stac_search(url: str, q: Dict):
         try:
-            r = requests.post(url, headers=headers, json=query)
+            r = requests.post(url, headers=headers, json=q)
             r.raise_for_status()
         except requests.exceptions.HTTPError as e:
             # post-flight errors
@@ -175,17 +179,15 @@ def _fetch(
             raise MosaicError(e.args[0].reason) from e
         return r.json()
 
-    next_url = stac_url
     page = 1
     while True:
-        # HACK: next token is not yet handled in some API
-        parsed_url = urlparse(next_url)
-        qs: Dict[str, Any] = dict(parse_qsl(parsed_url.query))
-        qs.update({"page": page})
-        updated_query = urlencode(qs)
-        next_url = parsed_url._replace(query=updated_query).geturl()
+        logger.debug(f"Fetching page {page}")
 
-        results = _stac_search(next_url)
+        if page > 1:
+            stac_query.update({"page": page})
+        logger.debug("query: " + json.dumps(stac_query))
+
+        results = _stac_search(stac_url, stac_query)
         if not results.get("features"):
             break
 
@@ -194,9 +196,19 @@ def _fetch(
             features = features[:max_items]
             break
 
+        logger.debug(json.dumps(results["context"]))
         # Check if there is more data to fetch
         if results["context"]["matched"] <= results["context"]["returned"]:
             break
+
+        # We shouldn't fetch more item than matched
+        if len(features) == results["context"]["matched"]:
+            break
+
+        if len(features) > results["context"]["matched"]:
+            raise MosaicError(
+                "Something weird is going on, please open an issue in https://github.com/developmentseed/cogeo-mosaic"
+            )
 
         # Right now we construct the next URL
         # https://github.com/radiantearth/stac-api-spec/blob/master/api-spec.md#paging-extension
