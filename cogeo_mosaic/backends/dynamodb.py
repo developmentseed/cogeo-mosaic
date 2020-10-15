@@ -23,22 +23,67 @@ from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExists
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
+# From https://docs.aws.amazon.com/general/latest/gr/rande.html
+AWS_REGIONS = [
+    "af-south-1",
+    "ap-east-1",
+    "ap-northeast-1",
+    "ap-northeast-2",
+    "ap-northeast-3",
+    "ap-south-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ca-central-1",
+    "cn-north-1",
+    "cn-northwest-1",
+    "eu-central-1",
+    "eu-north-1",
+    "eu-south-1",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-west-3",
+    "me-south-1",
+    "sa-east-1",
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+]
+
 
 @attr.s
 class DynamoDBBackend(BaseBackend):
     """DynamoDB Backend Adapter."""
 
     client: Any = attr.ib(default=None)
-    region: str = attr.ib(default=os.getenv("AWS_REGION", "us-east-1"))
-    table_name: str = attr.ib(init=False)
+    region: str = attr.ib(
+        default=os.getenv("AWS_REGION", "us-east-1"),
+        validator=attr.validators.in_(AWS_REGIONS),
+    )
+    table_name: str = attr.ib(
+        init=False, validator=attr.validators.matches_re(r"^[a-zA-Z0-9\_\-\.]+$")
+    )
+    subtable_name: str = attr.ib(default=None)
     table: Any = attr.ib(init=False)
 
     _backend_name = "AWS DynamoDB"
 
     def __attrs_post_init__(self):
-        """Post Init: parse path, create client and connect to Table."""
+        """Post Init: parse path, create client and connect to Table.
+
+        A path looks like
+
+        dynamodb://{region}/{table_name}:{subtable_name}
+
+        A colon is not legal in a dynamodb table identifier
+        """
         parsed = urlparse(self.path)
-        self.table_name = parsed.path.strip("/")
+        table_id = parsed.path.lstrip("/").split(":")
+
+        self.table_name = table_id[0]
+        if len(table_id) > 1:
+            self.subtable_name = table_id[1]
+
         self.region = parsed.netloc or self.region
         self.client = self.client or boto3.resource("dynamodb", region_name=self.region)
         self.table = self.client.Table(self.table_name)
@@ -71,10 +116,18 @@ class DynamoDBBackend(BaseBackend):
         }
 
     @property
+    def _prefix(self) -> str:
+        """Construct prefix if table subkey exists"""
+        if self.subtable_name:
+            return self.subtable_name + "-"
+
+        return ""
+
+    @property
     def _quadkeys(self) -> List[str]:
         """Return the list of quadkey tiles."""
         warnings.warn(
-            "Performing full scan operation might be slow and expensive on large database."
+            "Performing a full scan operation might be slow and expensive on large database."
         )
         resp = self.table.scan(ProjectionExpression="quadkey")  # TODO: Add pagination
         return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
@@ -86,13 +139,13 @@ class DynamoDBBackend(BaseBackend):
         self._write_items(items)
 
     def _update_quadkey(self, quadkey: str, dataset: List[str]):
-        """Update quadkey list."""
+        """Update single quadkey in DynamoDB."""
         self.table.put_item(Item={"quadkey": quadkey, "assets": dataset})
 
     def _update_metadata(self):
         """Update bounds and center."""
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
-        meta["quadkey"] = "-1"
+        meta["quadkey"] = self._prefix + "-1"
         self.table.put_item(Item=meta)
 
     def update(
@@ -122,7 +175,7 @@ class DynamoDBBackend(BaseBackend):
                 assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
                 # add custom sorting algorithm (e.g based on path name)
-                self._update_quadkey(quadkey, assets)
+                self._update_quadkey(self._prefix + quadkey, assets)
 
         bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
 
@@ -135,8 +188,6 @@ class DynamoDBBackend(BaseBackend):
         )
 
         self._update_metadata()
-
-        return
 
     def _create_table(
         self, overwrite: bool = False, billing_mode: str = "PAY_PER_REQUEST"
@@ -176,11 +227,11 @@ class DynamoDBBackend(BaseBackend):
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
 
         # NOTE: quadkey is a string type
-        meta["quadkey"] = "-1"
+        meta["quadkey"] = self._prefix + "-1"
         items.append(meta)
 
         for quadkey, assets in self.mosaic_def.tiles.items():
-            item = {"quadkey": quadkey, "assets": assets}
+            item = {"quadkey": self._prefix + quadkey, "assets": assets}
             items.append(item)
 
         return items
@@ -196,15 +247,15 @@ class DynamoDBBackend(BaseBackend):
     @lru_cache(key=lambda self: hashkey(self.path),)
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
-        meta = self._fetch_dynamodb("-1")
+        meta = self._fetch_dynamodb(self._prefix + "-1")
 
         # Numeric values are loaded from DynamoDB as Decimal types
-        # Convert maxzoom, minzoom, quadkey_zoom to float/int
+        # Convert maxzoom, minzoom, quadkey_zoom to int
         for key in ["minzoom", "maxzoom", "quadkey_zoom"]:
             if meta.get(key):
                 meta[key] = int(meta[key])
 
-        # Convert bounds, center to float/int
+        # Convert bounds, center to float
         for key in ["bounds", "center"]:
             if meta.get(key):
                 meta[key] = list(map(float, meta[key]))
@@ -218,7 +269,9 @@ class DynamoDBBackend(BaseBackend):
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
+        quadkeys = [
+            self._prefix + qk for qk in find_quadkeys(mercator_tile, self.quadkey_zoom)
+        ]
 
         assets = list(
             itertools.chain.from_iterable(
