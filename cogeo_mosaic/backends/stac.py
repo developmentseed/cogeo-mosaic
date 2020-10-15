@@ -97,7 +97,7 @@ class STACBackend(BaseBackend):
         accessor: Callable = default_stac_accessor,
         max_items: Optional[int] = None,
         stac_query_limit: int = 500,
-        stac_next_link_key: str = "next",
+        stac_next_link_key: Optional[str] = None,
         **kwargs: Any,
     ) -> MosaicJSON:
         """
@@ -117,7 +117,7 @@ class STACBackend(BaseBackend):
             Limit the maximum of items returned by the API
         stac_query_limit: int, optional
             Add "limit" option to the POST Query, default is set to 500.
-        stac_next_link_key: str, optional (default: "next")
+        stac_next_link_key: str, optional
             link's 'next' key.
         kwargs: any
             Options forwarded to `MosaicJSON.from_features`
@@ -144,12 +144,26 @@ class STACBackend(BaseBackend):
         )
 
 
+def query_from_link(link: Dict, query: Dict):
+    """Handle Next Link."""
+    q = query.copy()
+    if link["method"] != "POST":
+        raise MosaicError("Fetch doesn't support GET for next request.")
+
+    if link.get("merge", False):
+        q.update(link.get("body", {}))
+    else:
+        q = link.get("body", {})
+
+    return q
+
+
 @lru_cache(key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),)
 def _fetch(
     stac_url: str,
     query: Dict,
     max_items: Optional[int] = None,
-    next_link_key: str = "next",
+    next_link_key: Optional[str] = None,
     limit: int = 500,
 ) -> List[Dict]:
     """Call STAC API."""
@@ -182,9 +196,6 @@ def _fetch(
     page = 1
     while True:
         logger.debug(f"Fetching page {page}")
-
-        if page > 1:
-            stac_query.update({"page": page})
         logger.debug("query: " + json.dumps(stac_query))
 
         results = _stac_search(stac_url, stac_query)
@@ -216,14 +227,17 @@ def _fetch(
             raise MosaicError(
                 "Something weird is going on, please open an issue in https://github.com/developmentseed/cogeo-mosaic"
             )
-
-        # Right now we construct the next URL
-        # https://github.com/radiantearth/stac-api-spec/blob/master/api-spec.md#paging-extension
-        # link = list(filter(lambda link: link["rel"] == next_link_key, results["links"]))
-        # if not link:
-        #     break
-        # next_url = link[0]["href"]
-
         page += 1
+
+        # https://github.com/radiantearth/stac-api-spec/blob/master/api-spec.md#paging-extension
+        if next_link_key:
+            links = list(
+                filter(lambda link: link["rel"] == next_link_key, results["links"])
+            )
+            if not links:
+                break
+            stac_query = query_from_link(links[0], stac_query)
+        else:
+            stac_query.update({"page": page})
 
     return features
