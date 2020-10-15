@@ -1,5 +1,24 @@
 # Release Notes
 
+## Next (TBD)
+
+* add logger (`cogeo_mosaic.logger.logger`)
+* Update STACBackend to better handler paggination (ref: https://github.com/developmentseed/cogeo-mosaic/pull/125)
+* with change from #125, `stac_next_link_key` has be specified if you know the STAC API is using the latest specs:
+
+```python
+with MosaicBackend(
+    f"stac+{stac_endpoint}",
+    query.copy(),
+    11,
+    14,
+    backend_options={
+        "accessor": lambda feature: feature["id"],
+        "stac_next_link_key": "next",
+    }
+) as mosaic:
+```
+
 ## 3.0.0a13 (2020-10-13)
 
 * add TMS in BaseBackend to align with rio-tiler BaseBackend.
