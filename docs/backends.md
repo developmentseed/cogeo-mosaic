@@ -29,7 +29,8 @@ with MosaicBackend("dynamodb://us-east-1/amosaic") as mosaic:
 with MosaicBackend("file:///amosaic.json.gz") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
 
-with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellite"]}) as mosaic:
+# Create only
+with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellite"]}, 10, 12) as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.stac.STACBackend)
 
 with MosaicBackend("amosaic.json.gz") as mosaic:
