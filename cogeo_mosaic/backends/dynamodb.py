@@ -25,7 +25,7 @@ from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
 
-@attr.s()
+@attr.s
 class DynamoDBBackend(BaseBackend):
     """DynamoDB Backend Adapter."""
 
