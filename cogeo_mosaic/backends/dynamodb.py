@@ -53,7 +53,11 @@ class DynamoDBBackend(BaseBackend):
             raise ValueError(f"Invalid DynamoDB path: {self.path}")
 
         parsed = urlparse(self.path)
-        self.table_name, self.mosaic_name = parsed.path.lstrip("/").split(":")
+
+        mosaic_info = parsed.path.lstrip("/").split(":")
+        self.table_name = mosaic_info[0]
+        self.mosaic_name = mosaic_info[1]
+
         self.region = parsed.netloc or self.region
         self.client = self.client or boto3.resource("dynamodb", region_name=self.region)
         self.table = self.client.Table(self.table_name)
