@@ -58,7 +58,6 @@ class DynamoDBBackend(BaseBackend):
         self.client = self.client or boto3.resource("dynamodb", region_name=self.region)
         self.table = self.client.Table(self.table_name)
         super().__attrs_post_init__()
-        attr.validate(self)
 
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
