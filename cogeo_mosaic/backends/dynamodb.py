@@ -83,8 +83,9 @@ class DynamoDBBackend(BaseBackend):
         resp = self.table.query(
             KeyConditionExpression="#mosaicId = :mosaicId",
             # allows you to use dyanmodb reserved keywords as field names
-            ExpressionAttributeNames={"#mosaicId": "mosaicId"},
+            ExpressionAttributeNames={"#mosaicId": "mosaicId", "#quadKey": "quadKey"},
             ExpressionAttributeValues={":mosaicId": {"S": self.mosaicId}},
+            ProjectionExpression="#quadKey",
         )
         return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
 
@@ -241,11 +242,25 @@ class DynamoDBBackend(BaseBackend):
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
 
-        assets = list(
-            itertools.chain.from_iterable(
-                [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
-            )
+        resp = self.table.query(
+            KeyConditionExpression="#mosaicId = :mosaicId",
+            # allows you to use dyanmodb reserved keywords as field names
+            ExpressionAttributeNames={
+                "#mosaicId": "mosaicId",
+                "#quadKey": "quadKey",
+                "#assets": "assets",
+            },
+            ExpressionAttributeValues={":mosaicId": {"S": self.mosaicId}},
+            ProjectionExpression="#quadKey, #assets",
         )
+        assets = [
+            item["assets"] for item in resp["Items"] if item["quadKey"] in quadkeys
+        ]
+        # assets = list(
+        #     itertools.chain.from_iterable(
+        #         [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
+        #     )
+        # )
 
         # Find mosaics recursively?
         return assets
