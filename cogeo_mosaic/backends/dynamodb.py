@@ -20,7 +20,7 @@ from cachetools.keys import hashkey
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import lru_cache
-from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExists
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -94,8 +94,16 @@ class DynamoDBBackend(BaseBackend):
 
     def write(self, overwrite: bool = False, **kwargs: Any):
         """Write mosaicjson document to AWS DynamoDB."""
-        if self._table_exist() and overwrite:
-            self._create_table(overwrite=overwrite, **kwargs)
+        if not self._table_exist():
+            self._create_table(**kwargs)
+
+        if self._mosaic_exist():
+            if not overwrite:
+                raise MosaicExists(
+                    f"Mosaic already exists in {self.table_name}, use `overwrite=True`."
+                )
+            self.clean()
+
         items = self._create_items()
         self._write_items(items)
 
@@ -153,9 +161,7 @@ class DynamoDBBackend(BaseBackend):
 
         self._update_metadata()
 
-    def _create_table(
-        self, overwrite: bool = False, billing_mode: str = "PAY_PER_REQUEST"
-    ):
+    def _create_table(self, billing_mode: str = "PAY_PER_REQUEST", **kwargs: Any):
         # Define schema for primary key
         # Non-keys don't need a schema
         attr_defs = [
@@ -174,6 +180,7 @@ class DynamoDBBackend(BaseBackend):
                 TableName=self.table.table_name,
                 KeySchema=key_schema,
                 BillingMode=billing_mode,
+                **kwargs,
             )
 
             # If outside try/except block, could wait forever if unable to
@@ -261,3 +268,11 @@ class DynamoDBBackend(BaseBackend):
             return True
         except self.table.meta.client.exceptions.ResourceNotFoundException:
             return False
+
+    def _mosaic_exist(self) -> bool:
+        """Check if the mosaic already Exist in the Table."""
+        pass
+
+    def clean(self):
+        """clean MosaicID from dynamoDB Table."""
+        pass
