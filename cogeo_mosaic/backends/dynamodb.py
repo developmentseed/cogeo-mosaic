@@ -38,7 +38,10 @@ class DynamoDBBackend(BaseBackend):
     def __attrs_post_init__(self):
         """Post Init: parse path, create client and connect to Table."""
         parsed = urlparse(self.path)
-        self.table_name = parsed.path.strip("/")
+        # self.table_name = parsed.path.strip("/")
+        self.mosaicId = parsed.path.strip("/")
+        self.table_name = "TABLE_FOR_ALL_MOSAIC_IDs"
+
         self.region = parsed.netloc or self.region
         self.client = self.client or boto3.resource("dynamodb", region_name=self.region)
         self.table = self.client.Table(self.table_name)
@@ -73,10 +76,16 @@ class DynamoDBBackend(BaseBackend):
     @property
     def _quadkeys(self) -> List[str]:
         """Return the list of quadkey tiles."""
-        warnings.warn(
-            "Performing full scan operation might be slow and expensive on large database."
+        # warnings.warn(
+        #     "Performing full scan operation might be slow and expensive on large database."
+        # )
+        # resp = self.table.scan(ProjectionExpression="quadkey")  # TODO: Add pagination
+        resp = self.table.query(
+            KeyConditionExpression="#mosaicId = :mosaicId",
+            # allows you to use dyanmodb reserved keywords as field names
+            ExpressionAttributeNames={"#mosaicId": "mosaicId"},
+            ExpressionAttributeValues={":mosaicId": {"S": self.mosaicId}},
         )
-        resp = self.table.scan(ProjectionExpression="quadkey")  # TODO: Add pagination
         return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
 
     def write(self, overwrite: bool = False, **kwargs: Any):
@@ -87,7 +96,9 @@ class DynamoDBBackend(BaseBackend):
 
     def _update_quadkey(self, quadkey: str, dataset: List[str]):
         """Update quadkey list."""
-        self.table.put_item(Item={"quadkey": quadkey, "assets": dataset})
+        self.table.put_item(
+            Item={"mosaicId": self.mosaicId, "quadkey": quadkey, "assets": dataset}
+        )
 
     def _update_metadata(self):
         """Update bounds and center."""
@@ -149,8 +160,14 @@ class DynamoDBBackend(BaseBackend):
 
         # Define schema for primary key
         # Non-keys don't need a schema
-        attr_defs = [{"AttributeName": "quadkey", "AttributeType": "S"}]
-        key_schema = [{"AttributeName": "quadkey", "KeyType": "HASH"}]
+        attr_defs = [
+            {"AttributeName": "mosaicId", "AttributeType": "S"},
+            {"AttributeName": "quadkey", "AttributeType": "S"},
+        ]
+        key_schema = [
+            {"AttributeName": "mosaicId", "KeyType": "RANGE"},
+            {"AttributeName": "quadkey", "KeyType": "HASH"},
+        ]
 
         # Note: errors if table already exists
         try:
@@ -180,7 +197,7 @@ class DynamoDBBackend(BaseBackend):
         items.append(meta)
 
         for quadkey, assets in self.mosaic_def.tiles.items():
-            item = {"quadkey": quadkey, "assets": assets}
+            item = {"mosaicId": self.mosaicId, "quadkey": quadkey, "assets": assets}
             items.append(item)
 
         return items
@@ -193,7 +210,9 @@ class DynamoDBBackend(BaseBackend):
                 for item in progitems:
                     batch.put_item(item)
 
-    @lru_cache(key=lambda self: hashkey(self.path),)
+    @lru_cache(
+        key=lambda self: hashkey(self.path),
+    )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
         meta = self._fetch_dynamodb("-1")
@@ -214,7 +233,9 @@ class DynamoDBBackend(BaseBackend):
         meta["tiles"] = {}
         return MosaicJSON(**meta)
 
-    @lru_cache(key=lambda self, x, y, z: hashkey(self.path, x, y, z),)
+    @lru_cache(
+        key=lambda self, x, y, z: hashkey(self.path, x, y, z),
+    )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
@@ -231,7 +252,9 @@ class DynamoDBBackend(BaseBackend):
 
     def _fetch_dynamodb(self, quadkey: str) -> Dict:
         try:
-            return self.table.get_item(Key={"quadkey": quadkey}).get("Item", {})
+            return self.table.get_item(
+                Key={"mosaicId": self.mosaicId, "quadkey": quadkey}
+            ).get("Item", {})
         except ClientError as e:
             status_code = e.response["ResponseMetadata"]["HTTPStatusCode"]
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
