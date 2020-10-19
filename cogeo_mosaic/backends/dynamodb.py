@@ -21,6 +21,7 @@ from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import lru_cache
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExists
+from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -46,6 +47,8 @@ class DynamoDBBackend(BaseBackend):
         dynamodb:///{table_name}:{mosaic_name}
 
         """
+        logger.debug(f"Using DynamoDB backend: {self.path}")
+
         if not re.match(
             r"dynamodb://([a-z]{2}\-[a-z]+\-[0-9])?\/[a-zA-Z0-9\_\-\.]+\:[a-zA-Z0-9\_\-\.]+$",
             self.path,
@@ -57,6 +60,9 @@ class DynamoDBBackend(BaseBackend):
         mosaic_info = parsed.path.lstrip("/").split(":")
         self.table_name = mosaic_info[0]
         self.mosaic_name = mosaic_info[1]
+
+        logger.debug(f"Table: {self.table_name}")
+        logger.debug(f"Mosaic: {self.mosaic_name}")
 
         self.region = parsed.netloc or self.region
         self.client = self.client or boto3.resource("dynamodb", region_name=self.region)
@@ -97,10 +103,10 @@ class DynamoDBBackend(BaseBackend):
 
     def write(self, overwrite: bool = False, **kwargs: Any):
         """Write mosaicjson document to AWS DynamoDB."""
-        if not self._table_exist():
+        if not self._table_exists():
             self._create_table(**kwargs)
 
-        if self._mosaic_exist():
+        if self._mosaic_exists():
             if not overwrite:
                 raise MosaicExists(
                     f"Mosaic already exists in {self.table_name}, use `overwrite=True`."
@@ -131,6 +137,8 @@ class DynamoDBBackend(BaseBackend):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
+        logger.debug(f"Updating {self.mosaic_name}...")
+
         new_mosaic = self.mosaic_def.from_features(
             features,
             self.mosaic_def.minzoom,
@@ -165,6 +173,9 @@ class DynamoDBBackend(BaseBackend):
         self._update_metadata()
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST", **kwargs: Any):
+        """Create DynamoDB Table."""
+        logger.debug(f"Creating {self.table_name} Table.")
+
         # Define schema for primary key
         # Non-keys don't need a schema
         attr_defs = [
@@ -264,7 +275,7 @@ class DynamoDBBackend(BaseBackend):
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
             raise exc(e.response["Error"]["Message"]) from e
 
-    def _table_exist(self) -> bool:
+    def _table_exists(self) -> bool:
         """Check if the Table already exists."""
         try:
             _ = self.table.table_status
@@ -272,10 +283,15 @@ class DynamoDBBackend(BaseBackend):
         except self.table.meta.client.exceptions.ResourceNotFoundException:
             return False
 
-    def _mosaic_exist(self) -> bool:
-        """Check if the mosaic already Exist in the Table."""
-        pass
+    def _mosaic_exists(self) -> bool:
+        """Check if the mosaic already exists in the Table."""
+        item = self.table.get_item(
+            Key={"mosaicId": self.mosaic_name, "quadkey": "-1"}
+        ).get("Item", {})
+
+        return True if item else False
 
     def clean(self):
         """clean MosaicID from dynamoDB Table."""
+        logger.debug(f"Deleting items for mosaic {self.mosaic_name}...")
         pass
