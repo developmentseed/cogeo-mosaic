@@ -183,8 +183,8 @@ class DynamoDBBackend(BaseBackend):
             {"AttributeName": "quadkey", "AttributeType": "S"},
         ]
         key_schema = [
-            {"AttributeName": "mosaicId", "KeyType": "RANGE"},
-            {"AttributeName": "quadkey", "KeyType": "HASH"},
+            {"AttributeName": "mosaicId", "KeyType": "HASH"},
+            {"AttributeName": "quadkey", "KeyType": "RANGE"},
         ]
 
         # Note: errors if table already exists
@@ -213,6 +213,7 @@ class DynamoDBBackend(BaseBackend):
 
         # NOTE: quadkey is a string type
         meta["quadkey"] = "-1"
+        meta["mosaicId"] = self.mosaic_name
         items.append(meta)
 
         for quadkey, assets in self.mosaic_def.tiles.items():
