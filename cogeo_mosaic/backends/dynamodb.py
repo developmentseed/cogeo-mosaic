@@ -294,4 +294,28 @@ class DynamoDBBackend(BaseBackend):
     def clean(self):
         """clean MosaicID from dynamoDB Table."""
         logger.debug(f"Deleting items for mosaic {self.mosaic_name}...")
-        pass
+
+        # get items
+        resp = self.table.query(
+            KeyConditionExpression="#mosaicId = :mosaicId",
+            ExpressionAttributeNames={"#mosaicId": "mosaicId", "#quadKey": "quadKey"},
+            ExpressionAttributeValues={":mosaicId": {"S": self.mosaic_name}},
+            ProjectionExpression="#quadKey",
+        )
+
+        # delete items
+        for i in resp["Items"]:
+            self.client.batch_write_item(
+                RequestItems={
+                    self.table_name: [
+                        {
+                            "DeleteRequest": {
+                                "Key": {
+                                    "mosaicId": {"S": i["mosaicId"]},
+                                    "quadkey": {"S": i["quadkey"]},
+                                }
+                            }
+                        }
+                    ]
+                }
+            )
