@@ -19,6 +19,8 @@ with MosaicBackend(
 ) as mosaic:
 ```
 
+* add `to-geojson` CLI to create a GeoJSON from a mosaicJSON document (#128)
+
 ## 3.0.0a13 (2020-10-13)
 
 * add TMS in BaseBackend to align with rio-tiler BaseBackend.

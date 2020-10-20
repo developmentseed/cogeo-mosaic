@@ -46,7 +46,9 @@ $ pip install git+http://github.com/developmentseed/cogeo-mosaic
 ```
 
 **Notes**:
+
 - Starting with version 2.0, pygeos has replaced shapely and thus makes `libgeos` a requirement.
+
 - **pygeos** hosted on pypi migth not compile on certain machine. This has been fixed in the master branch and can be installed with `pip install git+https://github.com/pygeos/pygeos.git`
 
 

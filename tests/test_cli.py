@@ -268,3 +268,31 @@ def test_info_valid():
         assert not result.exception
         assert result.exit_code == 0
         assert "Compressed: True" in result.output
+
+
+def test_to_geojson():
+    """Should work as expected."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
+        result = runner.invoke(cogeo_cli, ["to-geojson", mosaic])
+        assert not result.exception
+        assert result.exit_code == 0
+        info = result.output.split("\n")
+        assert len(info) == 10  # 9 features + empty
+        assert json.loads(info[0])["properties"]["nb_assets"] == 1
+
+        mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
+        result = runner.invoke(cogeo_cli, ["to-geojson", mosaic, "--features"])
+        assert not result.exception
+        assert result.exit_code == 0
+        info = result.output.split("\n")
+        assert len(info) == 10  # 9 features + empty
+        assert json.loads(info[0])["properties"]["nb_assets"] == 1
+
+        mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
+        result = runner.invoke(cogeo_cli, ["to-geojson", mosaic, "--collect"])
+        assert not result.exception
+        assert result.exit_code == 0
+        info = json.loads(result.output)
+        assert len(info["features"]) == 9

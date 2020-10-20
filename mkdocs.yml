@@ -21,8 +21,8 @@ nav:
   - User Guide:
     - Intro: "intro.md"
     - CLI: "cli.md"
-  - Backends: "backends.md"
   - Advanced User Guide:
+    - Backends: "advanced/backends.md"
     - Reader: "advanced/readers.md"
     - Customization: "advanced/custom.md"
   - API:
