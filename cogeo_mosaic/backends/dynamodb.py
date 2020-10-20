@@ -39,6 +39,7 @@ class DynamoDBBackend(BaseBackend):
     table: Any = attr.ib(init=False)
 
     _backend_name = "AWS DynamoDB"
+    _metadata_quadkey: str = "-1"
 
     def __attrs_post_init__(self):
         """Post Init: parse path, create client and connect to Table.
@@ -98,7 +99,11 @@ class DynamoDBBackend(BaseBackend):
             KeyConditionExpression=Key("mosaicId").eq(self.mosaic_name),
             ProjectionExpression="quadkey",
         )
-        return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
+        return [
+            qk["quadkey"]
+            for qk in resp["Items"]
+            if qk["quadkey"] != self._metadata_quadkey
+        ]
 
     def write(self, overwrite: bool = False, **kwargs: Any):
         """Write mosaicjson document to AWS DynamoDB."""
@@ -124,7 +129,7 @@ class DynamoDBBackend(BaseBackend):
     def _update_metadata(self):
         """Update bounds and center."""
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
-        meta["quadkey"] = "-1"
+        meta["quadkey"] = self._metadata_quadkey
         meta["mosaicId"] = self.mosaic_name
         self.table.put_item(Item=meta)
 
@@ -210,8 +215,7 @@ class DynamoDBBackend(BaseBackend):
         # https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
 
-        # NOTE: quadkey is a string type
-        meta["quadkey"] = "-1"
+        meta["quadkey"] = self._metadata_quadkey
         meta["mosaicId"] = self.mosaic_name
         items.append(meta)
 
@@ -232,7 +236,7 @@ class DynamoDBBackend(BaseBackend):
     @lru_cache(key=lambda self: hashkey(self.path),)
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
-        meta = self._fetch_dynamodb("-1")
+        meta = self._fetch_dynamodb(self._metadata_quadkey)
 
         # Numeric values are loaded from DynamoDB as Decimal types
         # Convert maxzoom, minzoom, quadkey_zoom to int
@@ -286,7 +290,7 @@ class DynamoDBBackend(BaseBackend):
     def _mosaic_exists(self) -> bool:
         """Check if the mosaic already exists in the Table."""
         item = self.table.get_item(
-            Key={"mosaicId": self.mosaic_name, "quadkey": "-1"}
+            Key={"mosaicId": self.mosaic_name, "quadkey": self._metadata_quadkey}
         ).get("Item", {})
 
         return True if item else False
@@ -296,21 +300,18 @@ class DynamoDBBackend(BaseBackend):
         logger.debug(f"Deleting items for mosaic {self.mosaic_name}...")
 
         # get quadkeys
-        resp = self.table.query(
-            KeyConditionExpression=Key("mosaicId").eq(self.mosaic_name),
-            ProjectionExpression="quadkey",
-        )
+        dbitems = self._quadkeys + [self._metadata_quadkey]
 
         # delete items
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Client.batch_write_item
         max_items = 25
-        for c in _chunks(resp["Items"], max_items):
+        for c in _chunks(dbitems, max_items):
             items = [
                 {
                     "DeleteRequest": {
                         "Key": {
                             "mosaicId": {"S": self.mosaic_name},
-                            "quadkey": {"S": item["quadkey"]},
+                            "quadkey": {"S": c},
                         }
                     }
                 }
