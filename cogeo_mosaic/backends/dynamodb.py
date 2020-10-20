@@ -17,7 +17,6 @@ import mercantile
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from cachetools.keys import hashkey
-from rio_tiler.utils import _chunks
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
@@ -299,22 +298,9 @@ class DynamoDBBackend(BaseBackend):
         """clean MosaicID from dynamoDB Table."""
         logger.debug(f"Deleting items for mosaic {self.mosaic_name}...")
 
-        # get quadkeys
         quadkey_list = self._quadkeys + [self._metadata_quadkey]
-
-        # delete items
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Client.batch_write_item
-        max_items = 25
-        for quadkeys in _chunks(quadkey_list, max_items):
-            items = [
-                {
-                    "DeleteRequest": {
-                        "Key": {
-                            "mosaicId": {"S": self.mosaic_name},
-                            "quadkey": {"S": quadkey},
-                        }
-                    }
-                }
-                for quadkey in quadkeys
-            ]
-            self.client.batch_write_item(RequestItems={self.table_name: items})
+        with self.table.batch_writer() as batch_writer:
+            for item in quadkey_list:
+                batch_writer.delete_item(
+                    Key={"mosaicId": self.mosaic_name, "quadkey": item}
+                )
