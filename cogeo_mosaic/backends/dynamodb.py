@@ -300,21 +300,21 @@ class DynamoDBBackend(BaseBackend):
         logger.debug(f"Deleting items for mosaic {self.mosaic_name}...")
 
         # get quadkeys
-        dbitems = self._quadkeys + [self._metadata_quadkey]
+        quadkey_list = self._quadkeys + [self._metadata_quadkey]
 
         # delete items
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Client.batch_write_item
         max_items = 25
-        for c in _chunks(dbitems, max_items):
+        for quadkeys in _chunks(quadkey_list, max_items):
             items = [
                 {
                     "DeleteRequest": {
                         "Key": {
                             "mosaicId": {"S": self.mosaic_name},
-                            "quadkey": {"S": c},
+                            "quadkey": {"S": quadkey},
                         }
                     }
                 }
-                for item in c
+                for quadkey in quadkeys
             ]
             self.client.batch_write_item(RequestItems={self.table_name: items})
