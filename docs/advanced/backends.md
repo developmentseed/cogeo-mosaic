@@ -116,11 +116,11 @@ with STACBackend(
     print(mosaic.metadata)
 ```
 
-## Specification
+#### Specification
 
 The STACBackend rely on Spec version 1.0.0alpha.
 
-### Paggination
+#### Paggination
 
 The returned object from the POST requests might not represent the whole results and thus
 we need to use the paggination.
@@ -155,7 +155,7 @@ with STACBackend(
 Warnings: trying to run the previous example will results in fetching the whole collection.
 
 
-## Tile's asset
+#### Tile's asset
 
 MosaicJSON tile asset is defined using `accessor` option. By default the backend will try to construct or retrieve the Item url
 

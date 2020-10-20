@@ -426,10 +426,10 @@ def info(input, to_json):
 @cogeo_cli.command(short_help="Create GeoJSON from a MosaicJSON document")
 @click.argument("input", type=click.Path())
 @click.option(
-    "--collect",
+    "--collect/--features",
     is_flag=True,
     default=False,
-    help="Output as a GeoJSON feature collections.",
+    help="Output as a GeoJSON feature collections or as a newline-delimited GeoJSON features (default is newline-delimited).",
 )
 def to_geojson(input, collect):
     """Read MosaicJSON document and create GeoJSON features."""

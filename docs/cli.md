@@ -16,11 +16,13 @@ Commands:
   footprint             Create geojson from list of files
   info                  Return info about the mosaic
   overview              [EXPERIMENTAL] Create a low resolution mosaic image from a MosaicJSON.
+  to-geojson            Create GeoJSON from a MosaicJSON document
   update                Update a mosaic definition from list of files
   upload                Upload mosaic definition to backend
 ```
 
-### Create Mosaic definition
+## Create
+
 ```bash
 $ cogeo-mosaic create --help
 Usage: cogeo-mosaic create [OPTIONS] [INPUT_FILES]
@@ -37,11 +39,11 @@ Options:
   --threads INTEGER       threads
   -q, --quiet             Remove progressbar and other non-error output.
   --help                  Show this message and exit.
- ```
-
-`[INPUT_FILES]` must be a list of valid Cloud Optimized GeoTIFF.
-
 ```
+
+**[INPUT_FILES]** must be a list of valid Cloud Optimized GeoTIFF.
+
+```bash
 $ cogeo-mosaic create list.txt -o mosaic.json
 
 # or
@@ -87,7 +89,9 @@ Options:
 #### Use it with STAC
 
 ```bash
-curl https://earth-search.aws.element84.com/collections/landsat-8-l1/items | cogeo-mosaic create-from-features --minzoom 7 --maxzoom 12 --property "landsat:scene_id" --quiet | jq
+$ curl https://earth-search.aws.element84.com/collections/landsat-8-l1/items | \
+    cogeo-mosaic create-from-features --minzoom 7 --maxzoom 12 --property "landsat:scene_id" --quiet | \
+    jq
 
 {
   "mosaicjson": "0.0.2",
