@@ -14,8 +14,10 @@ import attr
 import boto3
 import click
 import mercantile
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from cachetools.keys import hashkey
+from rio_tiler.utils import _chunks
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
@@ -93,11 +95,8 @@ class DynamoDBBackend(BaseBackend):
     def _quadkeys(self) -> List[str]:
         """Return the list of quadkey tiles."""
         resp = self.table.query(
-            KeyConditionExpression="#mosaicId = :mosaicId",
-            # allows you to use dyanmodb reserved keywords as field names
-            ExpressionAttributeNames={"#mosaicId": "mosaicId", "#quadKey": "quadKey"},
-            ExpressionAttributeValues={":mosaicId": {"S": self.mosaic_name}},
-            ProjectionExpression="#quadKey",
+            KeyConditionExpression=Key("mosaicId").eq(self.mosaic_name),
+            ProjectionExpression="quadkey",
         )
         return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
 
@@ -296,27 +295,25 @@ class DynamoDBBackend(BaseBackend):
         """clean MosaicID from dynamoDB Table."""
         logger.debug(f"Deleting items for mosaic {self.mosaic_name}...")
 
-        # get items
+        # get quadkeys
         resp = self.table.query(
-            KeyConditionExpression="#mosaicId = :mosaicId",
-            ExpressionAttributeNames={"#mosaicId": "mosaicId", "#quadKey": "quadKey"},
-            ExpressionAttributeValues={":mosaicId": {"S": self.mosaic_name}},
-            ProjectionExpression="#quadKey",
+            KeyConditionExpression=Key("mosaicId").eq(self.mosaic_name),
+            ProjectionExpression="quadkey",
         )
 
         # delete items
-        for i in resp["Items"]:
-            self.client.batch_write_item(
-                RequestItems={
-                    self.table_name: [
-                        {
-                            "DeleteRequest": {
-                                "Key": {
-                                    "mosaicId": {"S": i["mosaicId"]},
-                                    "quadkey": {"S": i["quadkey"]},
-                                }
-                            }
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Client.batch_write_item
+        max_items = 25
+        for c in _chunks(resp["Items"], max_items):
+            items = [
+                {
+                    "DeleteRequest": {
+                        "Key": {
+                            "mosaicId": {"S": self.mosaic_name},
+                            "quadkey": {"S": item["quadkey"]},
                         }
-                    ]
+                    }
                 }
-            )
+                for item in c
+            ]
+            self.client.batch_write_item(RequestItems={self.table_name: items})
