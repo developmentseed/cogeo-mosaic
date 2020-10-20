@@ -6,6 +6,7 @@ import os
 
 import click
 import cligj
+import mercantile
 from click_plugins import with_plugins
 from pkg_resources import iter_entry_points
 from rasterio.rio import options
@@ -420,3 +421,48 @@ def info(input, to_json):
     {click.style("Max Files:", bold=True):<{sep}} {tiles.get('Max Files')}
     {click.style("Mean Files:", bold=True):<{sep}} {tiles.get('Mean Files')}"""
         )
+
+
+@cogeo_cli.command(short_help="Create GeoJSON from a MosaicJSON document")
+@click.argument("input", type=click.Path())
+@click.option(
+    "--collect",
+    is_flag=True,
+    default=False,
+    help="Output as a GeoJSON feature collections.",
+)
+def to_geojson(input, collect):
+    """Read MosaicJSON document and create GeoJSON features."""
+    features = []
+    with MosaicBackend(input) as mosaic:
+        for qk, assets in mosaic.mosaic_def.tiles.items():
+            tile = mercantile.quadkey_to_tile(qk)
+
+            west, south, east, north = mercantile.bounds(tile)
+
+            geom = {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [west, south],
+                        [west, north],
+                        [east, north],
+                        [east, south],
+                        [west, south],
+                    ]
+                ],
+            }
+            feature = {
+                "type": "Feature",
+                "id": str(tile),
+                "geometry": geom,
+                "properties": {"nb_assets": len(assets), "assets": assets},
+            }
+
+            if collect:
+                features.append(feature)
+            else:
+                click.echo(json.dumps(feature))
+
+        if collect and features:
+            click.echo(json.dumps({"type": "FeatureCollection", "features": features},))
