@@ -52,7 +52,7 @@ class DynamoDBBackend(BaseBackend):
         logger.debug(f"Using DynamoDB backend: {self.path}")
 
         if not re.match(
-            r"dynamodb://([a-z]{2}\-[a-z]+\-[0-9])?\/[a-zA-Z0-9\_\-\.]+\:[a-zA-Z0-9\_\-\.]+$",
+            r"^dynamodb://([a-z]{2}\-[a-z]+\-[0-9])?\/[a-zA-Z0-9\_\-\.]+\:[a-zA-Z0-9\_\-\.]+$",
             self.path,
         ):
             raise ValueError(f"Invalid DynamoDB path: {self.path}")
