@@ -21,7 +21,7 @@ from cachetools.keys import hashkey
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import lru_cache
-from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExists
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExistsError
 from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
@@ -99,22 +99,34 @@ class DynamoDBBackend(BaseBackend):
             ProjectionExpression="quadkey",
         )
         return [
-            qk["quadkey"]
-            for qk in resp["Items"]
-            if qk["quadkey"] != self._metadata_quadkey
+            item["quadkey"]
+            for item in resp["Items"]
+            if item["quadkey"] != self._metadata_quadkey
         ]
 
     def write(self, overwrite: bool = False, **kwargs: Any):
-        """Write mosaicjson document to AWS DynamoDB."""
+        """Write mosaicjson document to AWS DynamoDB.
+
+        Args:
+            overwrite (bool): delete old mosaic items inthe Table.
+            **kwargs (any): Options forwarded to `dynamodb.create_table`
+
+        Returns:
+            dict: dictionary with metadata constructed from the sceneid.
+
+        Raises:
+            MosaicExistsError: If mosaic already exists in the Table.
+
+        """
         if not self._table_exists():
             self._create_table(**kwargs)
 
         if self._mosaic_exists():
             if not overwrite:
-                raise MosaicExists(
+                raise MosaicExistsError(
                     f"Mosaic already exists in {self.table_name}, use `overwrite=True`."
                 )
-            self.clean()
+            self.delete()
 
         items = self._create_items()
         self._write_items(items)
@@ -126,7 +138,11 @@ class DynamoDBBackend(BaseBackend):
         )
 
     def _update_metadata(self):
-        """Update bounds and center."""
+        """Update bounds and center.
+
+        Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be in Decimal type
+
+        """
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
         meta["quadkey"] = self._metadata_quadkey
         meta["mosaicId"] = self.mosaic_name
@@ -176,7 +192,13 @@ class DynamoDBBackend(BaseBackend):
         self._update_metadata()
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST", **kwargs: Any):
-        """Create DynamoDB Table."""
+        """Create DynamoDB Table.
+
+        Args:
+            billing_mode (str): DynamoDB billing mode (default set to PER_REQUEST).
+            **kwargs (any): Options forwarded to `dynamodb.create_table`
+
+        """
         logger.debug(f"Creating {self.table_name} Table.")
 
         # Define schema for primary key
@@ -208,14 +230,15 @@ class DynamoDBBackend(BaseBackend):
             return
 
     def _create_items(self) -> List[Dict]:
-        items = []
-        # Create one metadata item with quadkey=-1
-        # Convert float to decimal
-        # https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/
-        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        """Create DynamoDB items from Mosaic defintion.
 
-        meta["quadkey"] = self._metadata_quadkey
-        meta["mosaicId"] = self.mosaic_name
+        Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be
+            in Decimal type (ref: https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/)
+
+        """
+        items = []
+        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        meta = {"quakdey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
         items.append(meta)
 
         for quadkey, assets in self.mosaic_def.tiles.items():
@@ -294,9 +317,9 @@ class DynamoDBBackend(BaseBackend):
 
         return True if item else False
 
-    def clean(self):
-        """clean MosaicID from dynamoDB Table."""
-        logger.debug(f"Deleting items for mosaic {self.mosaic_name}...")
+    def delete(self):
+        """Delete every items for a specific mosaic in the dynamoDB Table."""
+        logger.debug(f"Deleting all items for mosaic {self.mosaic_name}...")
 
         quadkey_list = self._quadkeys + [self._metadata_quadkey]
         with self.table.batch_writer() as batch_writer:

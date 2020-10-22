@@ -15,7 +15,7 @@ from cogeo_mosaic.backends.utils import (
     get_assets_from_json,
 )
 from cogeo_mosaic.cache import lru_cache
-from cogeo_mosaic.errors import _FILE_EXCEPTIONS, MosaicError, MosaicExists
+from cogeo_mosaic.errors import _FILE_EXCEPTIONS, MosaicError, MosaicExistsError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -39,7 +39,7 @@ class FileBackend(BaseBackend):
     def write(self, overwrite: bool = False, gzip: bool = None):
         """Write mosaicjson document to a file."""
         if not overwrite and os.path.exists(self.path):
-            raise MosaicExists("Mosaic file already exist, use `overwrite=True`.")
+            raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
 
         body = self.mosaic_def.dict(exclude_none=True)
         with open(self.path, "wb") as f:
