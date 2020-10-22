@@ -97,6 +97,7 @@ def get_footprints(
             futures.as_completed(future_work),
             file=fout,
             length=len(future_work),
+            label="Get footprints",
             show_percent=True,
         ) as future:
             for _ in future:
