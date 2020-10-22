@@ -1,4 +1,8 @@
-"""cogeo-mosaic HTTP backend."""
+"""cogeo-mosaic HTTP backend.
+
+This file is named web.py instead of http.py because http is a Python standard
+lib module
+"""
 
 import json
 from typing import Any
