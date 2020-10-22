@@ -50,6 +50,21 @@ def test_file_backend():
             == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
         )
         assert mosaic.quadkey_zoom == 7
+
+        info = mosaic.info()
+        assert not info["quadkeys"]
+        assert list(info) == [
+            "bounds",
+            "center",
+            "maxzoom",
+            "minzoom",
+            "name",
+            "quadkeys",
+        ]
+
+        info = mosaic.info(quadkeys=True)
+        assert info["quadkeys"]
+
         assert list(mosaic.metadata.keys()) == [
             "mosaicjson",
             "version",

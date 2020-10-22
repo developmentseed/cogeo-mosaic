@@ -66,7 +66,7 @@ class BaseBackend(BaseReader):
         """Mosaic center."""
         return self.mosaic_def.center
 
-    def info(self):
+    def info(self, quadkeys: bool = False):
         """Mosaic info."""
         return {
             "bounds": self.mosaic_def.bounds,
@@ -74,7 +74,7 @@ class BaseBackend(BaseReader):
             "maxzoom": self.mosaic_def.maxzoom,
             "minzoom": self.mosaic_def.minzoom,
             "name": self.mosaic_def.name if self.mosaic_def.name else "mosaic",
-            "quadkeys": list(self.mosaic_def.tiles),
+            "quadkeys": [] if not quadkeys else list(self.mosaic_def.tiles),
         }
 
     def stats(self):
