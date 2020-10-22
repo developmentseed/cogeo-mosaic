@@ -18,12 +18,12 @@ from requests.exceptions import HTTPError, RequestException
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
-from cogeo_mosaic.backends.http import HttpBackend
 from cogeo_mosaic.backends.s3 import S3Backend
 from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.stac import _fetch as stac_search
 from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
+from cogeo_mosaic.backends.web import HttpBackend
 from cogeo_mosaic.errors import MosaicError, MosaicExistsError, NoAssetFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 
@@ -145,7 +145,7 @@ class MockResponse:
         return self.data
 
 
-@patch("cogeo_mosaic.backends.http.requests")
+@patch("cogeo_mosaic.backends.web.requests")
 def test_http_backend(requests):
     """Test HTTP backend."""
     with open(mosaic_json, "r") as f:
