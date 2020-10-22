@@ -1,5 +1,11 @@
 # Release Notes
 
+
+## 3.0.0a15 (2020-10-22)
+
+* fix typo in DynamoDB backend (https://github.com/developmentseed/cogeo-mosaic/pull/134)
+* rename `cogeo_mosaic/backends/http.py` -> `cogeo_mosaic/backends/web.py` to avoid conflicts (author @kylebarron, https://github.com/developmentseed/cogeo-mosaic/pull/133)
+
 ## 3.0.0a14 (2020-10-22)
 
 * add logger (`cogeo_mosaic.logger.logger`)

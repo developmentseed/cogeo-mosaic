@@ -21,7 +21,7 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.s3.S3Backend)
 
 with MosaicBackend("https://mosaic.com/amosaic.json.gz") as mosaic:
-    assert isinstance(mosaic, cogeo_mosaic.backends.http.HttpBackend)
+    assert isinstance(mosaic, cogeo_mosaic.backends.web.HttpBackend)
 
 with MosaicBackend("dynamodb://us-east-1/amosaic") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.dynamodb.DynamoDBBackend)

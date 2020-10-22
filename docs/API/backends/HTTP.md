@@ -1,2 +1,2 @@
 
-![mkapi](cogeo_mosaic.backends.http.HttpBackend|strict)
+![mkapi](cogeo_mosaic.backends.web.HttpBackend|strict)
