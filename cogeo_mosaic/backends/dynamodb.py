@@ -314,8 +314,7 @@ class DynamoDBBackend(BaseBackend):
         item = self.table.get_item(
             Key={"mosaicId": self.mosaic_name, "quadkey": self._metadata_quadkey}
         ).get("Item", {})
-
-        return True if item else False
+        return bool(item)
 
     def delete(self):
         """Delete every items for a specific mosaic in the dynamoDB Table."""
