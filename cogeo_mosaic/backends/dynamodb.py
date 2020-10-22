@@ -87,7 +87,7 @@ class DynamoDBBackend(BaseBackend):
             "center": self.mosaic_def.center,
             "maxzoom": self.mosaic_def.maxzoom,
             "minzoom": self.mosaic_def.minzoom,
-            "name": self.mosaic_def.name if self.mosaic_def.name else "mosaic",
+            "name": self.mosaic_def.name if self.mosaic_def.name else self.mosaic_name,
             "quadkeys": [] if not quadkeys else self._quadkeys,
         }
 
