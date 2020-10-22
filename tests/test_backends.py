@@ -435,6 +435,16 @@ def test_dynamoDB_backend(client):
         }
         mosaic._create_table()
 
+    with MosaicBackend(
+        "dynamodb:///thiswaskylebarronidea:mosaic2", mosaic_def=mosaic_content
+    ) as mosaic:
+        items = mosaic._create_items()
+        assert len(items) == len(mosaic.mosaic_def.tiles.items()) + 1
+        assert "quadkey" in list(items[0])
+        assert "mosaicId" in list(items[0])
+        assert "bounds" in list(items[0])
+        assert "center" in list(items[0])
+
 
 class STACMockResponse(MockResponse):
     def __init__(self, data):
