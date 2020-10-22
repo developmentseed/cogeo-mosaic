@@ -77,6 +77,10 @@ def test_file_backend():
         assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
+        assert len(mosaic.get_assets(150, 182, 9)) == 2
+        assert len(mosaic.get_assets(147, 182, 9)) == 1
+        assert len(mosaic.get_assets(147, 182, 12)) == 0
+
     with MosaicBackend(mosaic_bin, backend_options={"gzip": True}) as mosaic:
         assert isinstance(mosaic, FileBackend)
         assert (

@@ -20,6 +20,7 @@ with MosaicBackend(
 ```
 
 * add `to-geojson` CLI to create a GeoJSON from a mosaicJSON document (#128)
+* refactor internal cache
 
 ### Breaking changes
 

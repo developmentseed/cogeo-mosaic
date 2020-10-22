@@ -3,7 +3,7 @@
 import hashlib
 import itertools
 import json
-import os
+import warnings
 import zlib
 from typing import Any, Dict, List
 
@@ -30,7 +30,7 @@ def find_quadkeys(mercator_tile: mercantile.Tile, quadkey_zoom: int) -> List[str
     # get parent
     if mercator_tile.z > quadkey_zoom:
         depth = mercator_tile.z - quadkey_zoom
-        for i in range(depth):
+        for _ in range(depth):
             mercator_tile = mercantile.parent(mercator_tile)
         return [mercantile.quadkey(*mercator_tile)]
 
@@ -51,22 +51,14 @@ def get_assets_from_json(
     tiles: Dict, quadkey_zoom: int, x: int, y: int, z: int
 ) -> List[str]:
     """Find assets."""
+    warnings.warn(
+        "get_assets_from_json will be deprecated in 3.0.0, and is now part of the backends.",
+        DeprecationWarning,
+    )
+
     mercator_tile = mercantile.Tile(x=x, y=y, z=z)
     quadkeys = find_quadkeys(mercator_tile, quadkey_zoom)
-
-    assets = list(itertools.chain.from_iterable([tiles.get(qk, []) for qk in quadkeys]))
-
-    # check if we have a mosaic in the url (.json/.gz)
-    return list(
-        itertools.chain.from_iterable(
-            [
-                get_assets_from_json(tiles, quadkey_zoom, x, y, z)
-                if os.path.splitext(asset)[1] in [".json", ".gz"]
-                else [asset]
-                for asset in assets
-            ]
-        )
-    )
+    return list(itertools.chain.from_iterable([tiles.get(qk, []) for qk in quadkeys]))
 
 
 def _compress_gz_json(data: Dict) -> bytes:
