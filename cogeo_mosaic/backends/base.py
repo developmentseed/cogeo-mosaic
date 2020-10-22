@@ -1,11 +1,14 @@
 """cogeo_mosaic.backend.base: base Backend class."""
 
 import abc
+import itertools
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import attr
 import mercantile
 import numpy
+from cachetools import TTLCache, cached
+from cachetools.keys import hashkey
 from morecantile import TileMatrixSet
 from rio_tiler.constants import MAX_THREADS, WEB_MERCATOR_TMS
 from rio_tiler.errors import PointOutsideBounds
@@ -13,7 +16,8 @@ from rio_tiler.io import BaseReader, COGReader
 from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.tasks import create_tasks, filter_tasks
 
-from cogeo_mosaic.backends.utils import get_hash
+from cogeo_mosaic.backends.utils import find_quadkeys, get_hash
+from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import NoAssetFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
@@ -91,13 +95,28 @@ class BaseBackend(BaseReader):
         """
         return self.mosaic_def.dict(exclude={"tiles"}, exclude_none=True)
 
-    @abc.abstractmethod
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
+        return self.get_assets(x, y, z)
 
-    @abc.abstractmethod
     def assets_for_point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
+        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
+        return self.get_assets(tile.x, tile.y, tile.z)
+
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self, x, y, z: hashkey(self.path, x, y, z),
+    )
+    def get_assets(self, x: int, y: int, z: int) -> List[str]:
+        """Find assets."""
+        mercator_tile = mercantile.Tile(x=x, y=y, z=z)
+        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
+        return list(
+            itertools.chain.from_iterable(
+                [self.mosaic_def.tiles.get(qk, []) for qk in quadkeys]
+            )
+        )
 
     def tile(
         self, x: int, y: int, z: int, reverse: bool = False, **kwargs: Any,

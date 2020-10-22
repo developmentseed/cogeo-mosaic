@@ -1,22 +1,18 @@
 """cogeo-mosaic AWS S3 backend."""
 
 import json
-from typing import Any, List
+from typing import Any
 from urllib.parse import urlparse
 
 import attr
-import mercantile
 from boto3.session import Session as boto3_session
 from botocore.exceptions import ClientError
+from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
-from cogeo_mosaic.backends.utils import (
-    _compress_gz_json,
-    _decompress_gz,
-    get_assets_from_json,
-)
-from cogeo_mosaic.cache import lru_cache
+from cogeo_mosaic.backends.utils import _compress_gz_json, _decompress_gz
+from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExistsError
 from cogeo_mosaic.mosaic import MosaicJSON
 
@@ -39,17 +35,6 @@ class S3Backend(BaseBackend):
         self.client = self.client or boto3_session().client("s3")
         super().__attrs_post_init__()
 
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
-        return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
-
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
-        """Retrieve assets for point."""
-        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
-        return get_assets_from_json(
-            self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
-        )
-
     def write(self, overwrite: bool = False, gzip: bool = None, **kwargs: Any):
         """Write mosaicjson document to AWS S3."""
         mosaic_doc = self.mosaic_def.dict(exclude_none=True)
@@ -63,7 +48,10 @@ class S3Backend(BaseBackend):
 
         _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
 
-    @lru_cache(key=lambda self, gzip=None: hashkey(self.path, gzip))
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self, gzip=None: hashkey(self.path, gzip),
+    )
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         body = _aws_get_data(self.key, self.bucket, client=self.client)

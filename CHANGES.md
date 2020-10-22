@@ -20,6 +20,8 @@ with MosaicBackend(
 ```
 
 * add `to-geojson` CLI to create a GeoJSON from a mosaicJSON document (#128)
+* refactor internal cache (https://github.com/developmentseed/cogeo-mosaic/pull/131)
+* add progressbar for iterating over quadkeys when creating a mosaic (author @kylebarron, https://github.com/developmentseed/cogeo-mosaic/pull/130)
 
 ### Breaking changes
 
@@ -29,6 +31,8 @@ with MosaicBackend(
 * renamed exception `MosaicExists` to `MosaicExistsError`
 * renamed option `fetch_quadkeys` to `quadkeys` in DynamoDBBackend.info() method
 * add `quadkeys` option in `Backends.info()` to return (or not) the list of quadkeys (https://github.com/developmentseed/cogeo-mosaic/pull/129)
+* moves `get_assets` to the base Backend (https://github.com/developmentseed/cogeo-mosaic/pull/131)
+* remove multi_level mosaic support (https://github.com/developmentseed/cogeo-mosaic/issues/122)
 
 ## 3.0.0a13 (2020-10-13)
 

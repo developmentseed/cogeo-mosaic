@@ -1,16 +1,16 @@
 """cogeo-mosaic HTTP backend."""
 
 import json
-from typing import Any, List
+from typing import Any
 
 import attr
-import mercantile
 import requests
+from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
-from cogeo_mosaic.backends.utils import _decompress_gz, get_assets_from_json
-from cogeo_mosaic.cache import lru_cache
+from cogeo_mosaic.backends.utils import _decompress_gz
+from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.mosaic import MosaicJSON
 
@@ -21,17 +21,6 @@ class HttpBackend(BaseBackend):
 
     _backend_name = "HTTP"
 
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
-        return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
-
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
-        """Retrieve assets for point."""
-        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
-        return get_assets_from_json(
-            self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
-        )
-
     def write(self):
         """Write mosaicjson document."""
         raise NotImplementedError
@@ -40,7 +29,10 @@ class HttpBackend(BaseBackend):
         """Update the mosaicjson document."""
         raise NotImplementedError
 
-    @lru_cache(key=lambda self, gzip=None: hashkey(self.path, gzip),)
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self, gzip=None: hashkey(self.path, gzip),
+    )
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         try:

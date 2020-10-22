@@ -2,19 +2,14 @@
 
 import json
 import os
-from typing import List
 
 import attr
-import mercantile
+from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
-from cogeo_mosaic.backends.utils import (
-    _compress_gz_json,
-    _decompress_gz,
-    get_assets_from_json,
-)
-from cogeo_mosaic.cache import lru_cache
+from cogeo_mosaic.backends.utils import _compress_gz_json, _decompress_gz
+from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import _FILE_EXCEPTIONS, MosaicError, MosaicExistsError
 from cogeo_mosaic.mosaic import MosaicJSON
 
@@ -24,17 +19,6 @@ class FileBackend(BaseBackend):
     """Local File Backend Adapter"""
 
     _backend_name = "File"
-
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
-        return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
-
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
-        """Retrieve assets for point."""
-        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
-        return get_assets_from_json(
-            self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
-        )
 
     def write(self, overwrite: bool = False, gzip: bool = None):
         """Write mosaicjson document to a file."""
@@ -52,7 +36,10 @@ class FileBackend(BaseBackend):
                 exc = _FILE_EXCEPTIONS.get(e, MosaicError)  # type: ignore
                 raise exc(str(e)) from e
 
-    @lru_cache(key=lambda self, gzip=None: hashkey(self.path, gzip),)
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self, gzip=None: hashkey(self.path, gzip),
+    )
     def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         try:

@@ -1,40 +1,32 @@
-"""backend cache configuration"""
-import functools
-import os
-from typing import Callable
+"""cogeo-mosaic cache configuration"""
 
-from cachetools import TTLCache, cached
-
-# TTL of the cache in seconds
-COGEO_MOSAIC_CACHE_TTL = int(os.getenv("CACHE_TTL", 300))
-
-# Maximum size of the LRU cache in MB
-COGEO_MOSAIC_CACHE_MAXSIZE = int(os.getenv("CACHE_MAXSIZE", 512))
-
-# Whether or not caching is enabled
-COGEO_MOSAIC_CACHE_ENABLED = os.getenv("CACHE_ENABLED", "TRUE")
+import pydantic
 
 
-def lru_cache(key: Callable) -> Callable:
-    """Decorator to optionally cache the result of an instance method"""
+class CacheSettings(pydantic.BaseSettings):
+    """Application settings"""
 
-    def decorator(func: Callable) -> Callable:
-        if COGEO_MOSAIC_CACHE_ENABLED == "TRUE":
+    # TTL of the cache in seconds
+    ttl: int = 300
 
-            def wrapper(*args, **kwargs):
-                cache_deco = cached(
-                    TTLCache(
-                        maxsize=COGEO_MOSAIC_CACHE_MAXSIZE, ttl=COGEO_MOSAIC_CACHE_TTL
-                    ),
-                    key=key,
-                )
-                return cache_deco(func)(*args, **kwargs)
+    # Maximum size of the LRU cache in MB
+    maxsize: int = 512
 
-        else:
+    # Whether or not caching is enabled
+    disable: bool = False
 
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
+    class Config:
+        """model config"""
 
-        return functools.update_wrapper(wrapper, func)
+        env_prefix = "COGEO_MOSAIC_CACHE_"
 
-    return decorator
+    @pydantic.root_validator
+    def check_enable(cls, values):
+        """Check if cache is desabled."""
+        if values.get("disable"):
+            values["ttl"] = 0
+            values["maxsize"] = 0
+        return values
+
+
+cache_config = CacheSettings()

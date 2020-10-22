@@ -5,6 +5,7 @@ import os
 import re
 
 import mercantile
+import pytest
 
 from cogeo_mosaic.backends import utils
 
@@ -64,12 +65,16 @@ def test_find_quadkeys():
 def test_get_assets_from_json():
     """Get assets list."""
     qkz = mosaic_content.get("quadkey_zoom") or mosaic_content.get("minzoom")
-    assert (
-        len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 150, 182, 9)) == 2
-    )
-    assert (
-        len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 9)) == 1
-    )
-    assert (
-        len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 12)) == 0
-    )
+    with pytest.warns(DeprecationWarning):
+        assert (
+            len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 150, 182, 9))
+            == 2
+        )
+        assert (
+            len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 9))
+            == 1
+        )
+        assert (
+            len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 12))
+            == 0
+        )

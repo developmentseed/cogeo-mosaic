@@ -5,14 +5,13 @@ import os
 from typing import Any, Callable, Dict, List, Optional
 
 import attr
-import mercantile
 import requests
+from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from rio_tiler.io import BaseReader, STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
-from cogeo_mosaic.backends.utils import get_assets_from_json
-from cogeo_mosaic.cache import lru_cache
+from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -68,17 +67,6 @@ class STACBackend(BaseBackend):
         """Post Init: if not passed in init, try to read from self.path."""
         self.mosaic_def = self.mosaic_def or self._read(
             self.query, self.minzoom, self.maxzoom, **self.backend_options
-        )
-
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
-        return get_assets_from_json(self.mosaic_def.tiles, self.quadkey_zoom, x, y, z)
-
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
-        """Retrieve assets for point."""
-        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
-        return get_assets_from_json(
-            self.mosaic_def.tiles, self.quadkey_zoom, tile.x, tile.y, tile.z
         )
 
     def write(self):
@@ -158,7 +146,10 @@ def query_from_link(link: Dict, query: Dict):
     return q
 
 
-@lru_cache(key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),)
+@cached(
+    TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+    key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),
+)
 def _fetch(
     stac_url: str,
     query: Dict,

@@ -16,11 +16,12 @@ import click
 import mercantile
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
+from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
-from cogeo_mosaic.cache import lru_cache
+from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExistsError
 from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -70,15 +71,6 @@ class DynamoDBBackend(BaseBackend):
         self.client = self.client or boto3.resource("dynamodb", region_name=self.region)
         self.table = self.client.Table(self.table_name)
         super().__attrs_post_init__()
-
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
-        return self.get_assets(x, y, z)
-
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
-        """Retrieve assets for point."""
-        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
-        return self.get_assets(tile.x, tile.y, tile.z)
 
     def info(self, quadkeys: bool = False):
         """Mosaic info."""
@@ -255,7 +247,10 @@ class DynamoDBBackend(BaseBackend):
                 for item in progitems:
                     batch.put_item(item)
 
-    @lru_cache(key=lambda self: hashkey(self.path),)
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self: hashkey(self.path),
+    )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
         meta = self._fetch_dynamodb(self._metadata_quadkey)
@@ -276,20 +271,19 @@ class DynamoDBBackend(BaseBackend):
         meta["tiles"] = {}
         return MosaicJSON(**meta)
 
-    @lru_cache(key=lambda self, x, y, z: hashkey(self.path, x, y, z),)
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self, x, y, z: hashkey(self.path, x, y, z),
+    )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
-
-        assets = list(
+        return list(
             itertools.chain.from_iterable(
                 [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
             )
         )
-
-        # Find mosaics recursively?
-        return assets
 
     def _fetch_dynamodb(self, quadkey: str) -> Dict:
         try:
