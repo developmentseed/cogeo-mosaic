@@ -28,6 +28,7 @@ with MosaicBackend(
 
 * renamed exception `MosaicExists` to `MosaicExistsError`
 * renamed option `fetch_quadkeys` to `quadkeys` in DynamoDBBackend.info() method
+* add `quadkeys` option in `Backends.info()` to return (or not) the list of quadkeys (https://github.com/developmentseed/cogeo-mosaic/pull/129)
 
 ## 3.0.0a13 (2020-10-13)
 

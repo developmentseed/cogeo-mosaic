@@ -60,7 +60,7 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
     mosaic.bounds                      # property - Mosaic bounds
     mosaic.spatial_info                # property - zooms and bounds info
 
-    mosaic.info                        # method -  spatial_info, list of quadkeys and mosaic name
+    mosaic.info(quadkeys=True/False)   # method -  spatial_info, list of quadkeys and mosaic name
 
     mosaic.assets_for_tile(1,2,3)      # method - Find assets for a specific mercator tile
     mosaic.assets_for_point(lng, lat)  # method - Find assets for a specific point
