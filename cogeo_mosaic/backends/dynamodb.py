@@ -317,7 +317,7 @@ class DynamoDBBackend(BaseBackend):
         return bool(item)
 
     def delete(self):
-        """Delete every items for a specific mosaic in the dynamoDB Table."""
+        """Delete all items for a specific mosaic in the dynamoDB Table."""
         logger.debug(f"Deleting all items for mosaic {self.mosaic_name}...")
 
         quadkey_list = self._quadkeys + [self._metadata_quadkey]
