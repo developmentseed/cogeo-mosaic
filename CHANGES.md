@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next (TBD)
+## 3.0.0a14 (2020-10-22)
 
 * add logger (`cogeo_mosaic.logger.logger`)
 * Update STACBackend to better handler paggination (ref: https://github.com/developmentseed/cogeo-mosaic/pull/125)
