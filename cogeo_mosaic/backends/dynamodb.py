@@ -3,6 +3,7 @@
 import itertools
 import json
 import os
+import re
 import sys
 import warnings
 from decimal import Decimal
@@ -13,13 +14,15 @@ import attr
 import boto3
 import click
 import mercantile
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import lru_cache
-from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExists
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExistsError
+from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -31,14 +34,38 @@ class DynamoDBBackend(BaseBackend):
     client: Any = attr.ib(default=None)
     region: str = attr.ib(default=os.getenv("AWS_REGION", "us-east-1"))
     table_name: str = attr.ib(init=False)
+    mosaic_name: str = attr.ib(init=False)
     table: Any = attr.ib(init=False)
 
     _backend_name = "AWS DynamoDB"
+    _metadata_quadkey: str = "-1"
 
     def __attrs_post_init__(self):
-        """Post Init: parse path, create client and connect to Table."""
+        """Post Init: parse path, create client and connect to Table.
+
+        A path looks like
+
+        dynamodb://{region}/{table_name}:{mosaic_name}
+        dynamodb:///{table_name}:{mosaic_name}
+
+        """
+        logger.debug(f"Using DynamoDB backend: {self.path}")
+
+        if not re.match(
+            r"^dynamodb://([a-z]{2}\-[a-z]+\-[0-9])?\/[a-zA-Z0-9\_\-\.]+\:[a-zA-Z0-9\_\-\.]+$",
+            self.path,
+        ):
+            raise ValueError(f"Invalid DynamoDB path: {self.path}")
+
         parsed = urlparse(self.path)
-        self.table_name = parsed.path.strip("/")
+
+        mosaic_info = parsed.path.lstrip("/").split(":")
+        self.table_name = mosaic_info[0]
+        self.mosaic_name = mosaic_info[1]
+
+        logger.debug(f"Table: {self.table_name}")
+        logger.debug(f"Mosaic: {self.mosaic_name}")
+
         self.region = parsed.netloc or self.region
         self.client = self.client or boto3.resource("dynamodb", region_name=self.region)
         self.table = self.client.Table(self.table_name)
@@ -53,46 +80,72 @@ class DynamoDBBackend(BaseBackend):
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
-    def info(self, fetch_quadkeys: bool = False):
+    def info(self, quadkeys: bool = False):
         """Mosaic info."""
-        if not fetch_quadkeys:
-            warnings.warn(
-                "Returning empty quadkey list, performing full scan operation might be slow and expensive on large database."
-                "You can retrieve the list of quadkey by setting `fetch_quadkeys=True`"
-            )
-
         return {
             "bounds": self.mosaic_def.bounds,
             "center": self.mosaic_def.center,
             "maxzoom": self.mosaic_def.maxzoom,
             "minzoom": self.mosaic_def.minzoom,
             "name": self.mosaic_def.name if self.mosaic_def.name else "mosaic",
-            "quadkeys": [] if not fetch_quadkeys else self._quadkeys,
+            "quadkeys": [] if not quadkeys else self._quadkeys,
         }
 
     @property
     def _quadkeys(self) -> List[str]:
         """Return the list of quadkey tiles."""
-        warnings.warn(
-            "Performing full scan operation might be slow and expensive on large database."
+        resp = self.table.query(
+            KeyConditionExpression=Key("mosaicId").eq(self.mosaic_name),
+            ProjectionExpression="quadkey",
         )
-        resp = self.table.scan(ProjectionExpression="quadkey")  # TODO: Add pagination
-        return [qk["quadkey"] for qk in resp["Items"] if qk["quadkey"] != "-1"]
+        return [
+            item["quadkey"]
+            for item in resp["Items"]
+            if item["quadkey"] != self._metadata_quadkey
+        ]
 
     def write(self, overwrite: bool = False, **kwargs: Any):
-        """Write mosaicjson document to AWS DynamoDB."""
-        self._create_table(overwrite=overwrite, **kwargs)
+        """Write mosaicjson document to AWS DynamoDB.
+
+        Args:
+            overwrite (bool): delete old mosaic items inthe Table.
+            **kwargs (any): Options forwarded to `dynamodb.create_table`
+
+        Returns:
+            dict: dictionary with metadata constructed from the sceneid.
+
+        Raises:
+            MosaicExistsError: If mosaic already exists in the Table.
+
+        """
+        if not self._table_exists():
+            self._create_table(**kwargs)
+
+        if self._mosaic_exists():
+            if not overwrite:
+                raise MosaicExistsError(
+                    f"Mosaic already exists in {self.table_name}, use `overwrite=True`."
+                )
+            self.delete()
+
         items = self._create_items()
         self._write_items(items)
 
     def _update_quadkey(self, quadkey: str, dataset: List[str]):
-        """Update quadkey list."""
-        self.table.put_item(Item={"quadkey": quadkey, "assets": dataset})
+        """Update single quadkey in DynamoDB."""
+        self.table.put_item(
+            Item={"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": dataset}
+        )
 
     def _update_metadata(self):
-        """Update bounds and center."""
+        """Update bounds and center.
+
+        Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be in Decimal type
+
+        """
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
-        meta["quadkey"] = "-1"
+        meta["quadkey"] = self._metadata_quadkey
+        meta["mosaicId"] = self.mosaic_name
         self.table.put_item(Item=meta)
 
     def update(
@@ -103,6 +156,8 @@ class DynamoDBBackend(BaseBackend):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
+        logger.debug(f"Updating {self.mosaic_name}...")
+
         new_mosaic = self.mosaic_def.from_features(
             features,
             self.mosaic_def.minzoom,
@@ -136,21 +191,26 @@ class DynamoDBBackend(BaseBackend):
 
         self._update_metadata()
 
-        return
+    def _create_table(self, billing_mode: str = "PAY_PER_REQUEST", **kwargs: Any):
+        """Create DynamoDB Table.
 
-    def _create_table(
-        self, overwrite: bool = False, billing_mode: str = "PAY_PER_REQUEST"
-    ):
-        if self._table_exist():
-            if not overwrite:
-                raise MosaicExists("Table already exist, use `overwrite=True`.")
-            self.table.delete()
-            self.table.wait_until_not_exists()
+        Args:
+            billing_mode (str): DynamoDB billing mode (default set to PER_REQUEST).
+            **kwargs (any): Options forwarded to `dynamodb.create_table`
+
+        """
+        logger.debug(f"Creating {self.table_name} Table.")
 
         # Define schema for primary key
         # Non-keys don't need a schema
-        attr_defs = [{"AttributeName": "quadkey", "AttributeType": "S"}]
-        key_schema = [{"AttributeName": "quadkey", "KeyType": "HASH"}]
+        attr_defs = [
+            {"AttributeName": "mosaicId", "AttributeType": "S"},
+            {"AttributeName": "quadkey", "AttributeType": "S"},
+        ]
+        key_schema = [
+            {"AttributeName": "mosaicId", "KeyType": "HASH"},
+            {"AttributeName": "quadkey", "KeyType": "RANGE"},
+        ]
 
         # Note: errors if table already exists
         try:
@@ -159,6 +219,7 @@ class DynamoDBBackend(BaseBackend):
                 TableName=self.table.table_name,
                 KeySchema=key_schema,
                 BillingMode=billing_mode,
+                **kwargs,
             )
 
             # If outside try/except block, could wait forever if unable to
@@ -169,18 +230,19 @@ class DynamoDBBackend(BaseBackend):
             return
 
     def _create_items(self) -> List[Dict]:
-        items = []
-        # Create one metadata item with quadkey=-1
-        # Convert float to decimal
-        # https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/
-        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        """Create DynamoDB items from Mosaic defintion.
 
-        # NOTE: quadkey is a string type
-        meta["quadkey"] = "-1"
+        Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be
+            in Decimal type (ref: https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/)
+
+        """
+        items = []
+        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        meta = {"quakdey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
         items.append(meta)
 
         for quadkey, assets in self.mosaic_def.tiles.items():
-            item = {"quadkey": quadkey, "assets": assets}
+            item = {"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": assets}
             items.append(item)
 
         return items
@@ -196,15 +258,15 @@ class DynamoDBBackend(BaseBackend):
     @lru_cache(key=lambda self: hashkey(self.path),)
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
-        meta = self._fetch_dynamodb("-1")
+        meta = self._fetch_dynamodb(self._metadata_quadkey)
 
         # Numeric values are loaded from DynamoDB as Decimal types
-        # Convert maxzoom, minzoom, quadkey_zoom to float/int
+        # Convert maxzoom, minzoom, quadkey_zoom to int
         for key in ["minzoom", "maxzoom", "quadkey_zoom"]:
             if meta.get(key):
                 meta[key] = int(meta[key])
 
-        # Convert bounds, center to float/int
+        # Convert bounds, center to float
         for key in ["bounds", "center"]:
             if meta.get(key):
                 meta[key] = list(map(float, meta[key]))
@@ -231,16 +293,36 @@ class DynamoDBBackend(BaseBackend):
 
     def _fetch_dynamodb(self, quadkey: str) -> Dict:
         try:
-            return self.table.get_item(Key={"quadkey": quadkey}).get("Item", {})
+            return self.table.get_item(
+                Key={"mosaicId": self.mosaic_name, "quadkey": quadkey}
+            ).get("Item", {})
         except ClientError as e:
             status_code = e.response["ResponseMetadata"]["HTTPStatusCode"]
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
             raise exc(e.response["Error"]["Message"]) from e
 
-    def _table_exist(self) -> bool:
+    def _table_exists(self) -> bool:
         """Check if the Table already exists."""
         try:
             _ = self.table.table_status
             return True
         except self.table.meta.client.exceptions.ResourceNotFoundException:
             return False
+
+    def _mosaic_exists(self) -> bool:
+        """Check if the mosaic already exists in the Table."""
+        item = self.table.get_item(
+            Key={"mosaicId": self.mosaic_name, "quadkey": self._metadata_quadkey}
+        ).get("Item", {})
+        return bool(item)
+
+    def delete(self):
+        """Delete all items for a specific mosaic in the dynamoDB Table."""
+        logger.debug(f"Deleting all items for mosaic {self.mosaic_name}...")
+
+        quadkey_list = self._quadkeys + [self._metadata_quadkey]
+        with self.table.batch_writer() as batch_writer:
+            for item in quadkey_list:
+                batch_writer.delete_item(
+                    Key={"mosaicId": self.mosaic_name, "quadkey": item}
+                )

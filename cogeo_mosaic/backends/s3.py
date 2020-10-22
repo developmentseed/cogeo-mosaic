@@ -17,7 +17,7 @@ from cogeo_mosaic.backends.utils import (
     get_assets_from_json,
 )
 from cogeo_mosaic.cache import lru_cache
-from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExists
+from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExistsError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -59,7 +59,7 @@ class S3Backend(BaseBackend):
             body = json.dumps(mosaic_doc).encode("utf-8")
 
         if not overwrite and _aws_head_object(self.key, self.bucket):
-            raise MosaicExists("Mosaic file already exist, use `overwrite=True`.")
+            raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
 
         _aws_put_data(self.key, self.bucket, body, client=self.client, **kwargs)
 

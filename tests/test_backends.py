@@ -24,7 +24,7 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.stac import _fetch as stac_search
 from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
-from cogeo_mosaic.errors import MosaicError, MosaicExists, NoAssetFoundError
+from cogeo_mosaic.errors import MosaicError, MosaicExistsError, NoAssetFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
@@ -97,7 +97,7 @@ def test_file_backend():
             with open("mosaic.json") as f:
                 m = json.loads(f.read())
                 assert m["quadkey_zoom"] == 7
-            with pytest.raises(MosaicExists):
+            with pytest.raises(MosaicExistsError):
                 mosaic.write()
             mosaic.write(overwrite=True)
 
@@ -267,7 +267,7 @@ def test_s3_backend(session):
     session.return_value.client.return_value.head_object.return_value = True
     with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
         assert isinstance(mosaic, S3Backend)
-        with pytest.raises(MosaicExists):
+        with pytest.raises(MosaicExistsError):
             mosaic.write()
     session.return_value.client.return_value.get_object.assert_not_called()
     session.return_value.client.return_value.head_object.assert_called_once()
@@ -358,7 +358,7 @@ class MockTable(object):
             return {}
         return {"Item": {"assets": items}}
 
-    def scan(self, *args, **kwargs):
+    def query(self, *args, **kwargs):
         """Mock Scan."""
         mosaic = MosaicJSON(**mosaic_content)
         return {
@@ -373,7 +373,7 @@ def test_dynamoDB_backend(client):
     """Test DynamoDB backend."""
     client.return_value.Table = MockTable
 
-    with MosaicBackend("dynamodb:///thiswaskylebarronidea") as mosaic:
+    with MosaicBackend("dynamodb:///thiswaskylebarronidea:mosaic") as mosaic:
         assert mosaic._backend_name == "AWS DynamoDB"
         assert isinstance(mosaic, DynamoDBBackend)
         assert mosaic.quadkey_zoom == 7
@@ -389,31 +389,31 @@ def test_dynamoDB_backend(client):
         assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
-        # Warns in backend.info()
-        with pytest.warns(UserWarning):
-            info = mosaic.info()
-            assert not info["quadkeys"]
-            assert list(info) == [
-                "bounds",
-                "center",
-                "maxzoom",
-                "minzoom",
-                "name",
-                "quadkeys",
-            ]
+        info = mosaic.info()
+        assert not info["quadkeys"]
+        assert list(info) == [
+            "bounds",
+            "center",
+            "maxzoom",
+            "minzoom",
+            "name",
+            "quadkeys",
+        ]
 
-        # Warns in backend._quadkeys
-        with pytest.warns(UserWarning):
-            info = mosaic.info(fetch_quadkeys=True)
-            assert info["quadkeys"]
+        info = mosaic.info(quadkeys=True)
+        assert info["quadkeys"]
 
     with MosaicBackend(
-        "dynamodb:///thiswaskylebarronidea", mosaic_def=mosaic_content
+        "dynamodb:///thiswaskylebarronidea:mosaic2", mosaic_def=mosaic_content
     ) as mosaic:
         assert isinstance(mosaic, DynamoDBBackend)
         items = mosaic._create_items()
         assert len(items) == 10
-        assert items[-1] == {"quadkey": "0302330", "assets": ["cog1.tif", "cog2.tif"]}
+        assert items[-1] == {
+            "mosaicId": "mosaic2",
+            "quadkey": "0302330",
+            "assets": ["cog1.tif", "cog2.tif"],
+        }
         mosaic._create_table()
 
 

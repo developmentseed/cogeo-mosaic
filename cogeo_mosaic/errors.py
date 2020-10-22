@@ -21,6 +21,10 @@ class MosaicExists(MosaicError):
     """MosaicJSON already exists."""
 
 
+class MosaicExistsError(MosaicError):
+    """MosaicJSON already exists."""
+
+
 _HTTP_EXCEPTIONS = {
     401: MosaicAuthError,
     403: MosaicAuthError,

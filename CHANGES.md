@@ -21,6 +21,14 @@ with MosaicBackend(
 
 * add `to-geojson` CLI to create a GeoJSON from a mosaicJSON document (#128)
 
+### Breaking changes
+
+* refactored DynamoDB backend to store multiple mosaics in one table (https://github.com/developmentseed/cogeo-mosaic/pull/127)
+    - new path schema `dynamodb://{REGION}?/{TABLE}:{MOSAIC}`
+
+* renamed exception `MosaicExists` to `MosaicExistsError`
+* renamed option `fetch_quadkeys` to `quadkeys` in DynamoDBBackend.info() method
+
 ## 3.0.0a13 (2020-10-13)
 
 * add TMS in BaseBackend to align with rio-tiler BaseBackend.
