@@ -230,7 +230,7 @@ class DynamoDBBackend(BaseBackend):
         """
         items = []
         meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
-        meta = {"quakdey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
+        meta = {"quadkey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
         items.append(meta)
 
         for quadkey, assets in self.mosaic_def.tiles.items():
