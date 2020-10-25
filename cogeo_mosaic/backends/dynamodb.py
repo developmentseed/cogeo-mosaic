@@ -22,7 +22,12 @@ from cachetools.keys import hashkey
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import cache_config
-from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExistsError
+from cogeo_mosaic.errors import (
+    _HTTP_EXCEPTIONS,
+    MosaicError,
+    MosaicExistsError,
+    MosaicNotFoundError,
+)
 from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
@@ -254,6 +259,10 @@ class DynamoDBBackend(BaseBackend):
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
         meta = self._fetch_dynamodb(self._metadata_quadkey)
+        if not meta:
+            raise MosaicNotFoundError(
+                f"Mosaic {self.mosaic_name} not found in table {self.table_name}"
+            )
 
         # Numeric values are loaded from DynamoDB as Decimal types
         # Convert maxzoom, minzoom, quadkey_zoom to int
