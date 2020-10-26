@@ -1,6 +1,6 @@
 # Release Notes
 
-## 3.0.0a16 (TBD)
+## 3.0.0a16 (2020-10-26)
 
 * raise `MosaicNotFoundError` when mosaic doesn't exists in the DynamoDB table.
 
