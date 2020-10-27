@@ -253,7 +253,7 @@ class DynamoDBBackend(BaseBackend):
                 items,
                 length=len(items),
                 show_percent=True,
-                label=f"Uploading mosaic {self.table_name}:{self.mosaic_name} to DynamodDB",
+                label=f"Uploading mosaic {self.table_name}:{self.mosaic_name} to DynamoDB",
             ) as progitems:
                 for item in progitems:
                     batch.put_item(item)
