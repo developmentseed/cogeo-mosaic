@@ -77,17 +77,6 @@ class DynamoDBBackend(BaseBackend):
         self.table = self.client.Table(self.table_name)
         super().__attrs_post_init__()
 
-    def info(self, quadkeys: bool = False):
-        """Mosaic info."""
-        return {
-            "bounds": self.mosaic_def.bounds,
-            "center": self.mosaic_def.center,
-            "maxzoom": self.mosaic_def.maxzoom,
-            "minzoom": self.mosaic_def.minzoom,
-            "name": self.mosaic_def.name if self.mosaic_def.name else self.mosaic_name,
-            "quadkeys": [] if not quadkeys else self._quadkeys,
-        }
-
     @property
     def _quadkeys(self) -> List[str]:
         """Return the list of quadkey tiles."""
@@ -140,7 +129,7 @@ class DynamoDBBackend(BaseBackend):
         Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be in Decimal type
 
         """
-        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        meta = json.loads(self.metadata.json(), parse_float=Decimal)
         meta["quadkey"] = self._metadata_quadkey
         meta["mosaicId"] = self.mosaic_name
         self.table.put_item(Item=meta)
@@ -234,7 +223,7 @@ class DynamoDBBackend(BaseBackend):
 
         """
         items = []
-        meta = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        meta = json.loads(self.metadata.json(), parse_float=Decimal)
         meta = {"quadkey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
         items.append(meta)
 

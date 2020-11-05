@@ -53,11 +53,11 @@ def test_file_backend():
 
         info = mosaic.info()
         assert not info["quadkeys"]
-        assert list(info) == [
+        assert list(info.dict()) == [
             "bounds",
             "center",
-            "maxzoom",
             "minzoom",
+            "maxzoom",
             "name",
             "quadkeys",
         ]
@@ -65,7 +65,7 @@ def test_file_backend():
         info = mosaic.info(quadkeys=True)
         assert info["quadkeys"]
 
-        assert list(mosaic.metadata.keys()) == [
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
             "minzoom",
@@ -96,7 +96,7 @@ def test_file_backend():
     with MosaicBackend(mosaic_jsonV1) as mosaic:
         assert isinstance(mosaic, FileBackend)
         assert mosaic.quadkey_zoom == 7
-        assert list(mosaic.metadata.keys()) == [
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
             "minzoom",
@@ -161,7 +161,7 @@ def test_http_backend(requests):
             == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
         )
         assert mosaic.quadkey_zoom == 7
-        assert list(mosaic.metadata.keys()) == [
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
             "minzoom",
@@ -221,7 +221,7 @@ def test_s3_backend(session):
             == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
         )
         assert mosaic.quadkey_zoom == 7
-        assert list(mosaic.metadata.keys()) == [
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
             "minzoom",
@@ -396,7 +396,7 @@ def test_dynamoDB_backend(client):
         assert mosaic._backend_name == "AWS DynamoDB"
         assert isinstance(mosaic, DynamoDBBackend)
         assert mosaic.quadkey_zoom == 7
-        assert list(mosaic.metadata.keys()) == [
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
             "minzoom",
@@ -410,11 +410,11 @@ def test_dynamoDB_backend(client):
 
         info = mosaic.info()
         assert not info["quadkeys"]
-        assert list(info) == [
+        assert list(info.dict()) == [
             "bounds",
             "center",
-            "maxzoom",
             "minzoom",
+            "maxzoom",
             "name",
             "quadkeys",
         ]
@@ -470,7 +470,7 @@ def test_stac_backend(post):
         assert isinstance(mosaic, STACBackend)
         assert post.call_count == 1
         assert mosaic.quadkey_zoom == 8
-        assert list(mosaic.metadata.keys()) == [
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
             "minzoom",
@@ -502,7 +502,7 @@ def test_stac_backend(post):
         assert isinstance(mosaic, STACBackend)
         assert post.call_count == 2
         assert mosaic.quadkey_zoom == 8
-        assert list(mosaic.metadata.keys()) == [
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
             "minzoom",
@@ -657,11 +657,11 @@ def test_BaseReader():
             mosaic.part()
 
         info = mosaic.info()
-        assert list(info) == [
+        assert list(info.dict()) == [
             "bounds",
             "center",
-            "maxzoom",
             "minzoom",
+            "maxzoom",
             "name",
             "quadkeys",
         ]

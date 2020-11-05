@@ -38,7 +38,7 @@ def find_quadkeys(mercator_tile: mercantile.Tile, quadkey_zoom: int) -> List[str
     elif mercator_tile.z < quadkey_zoom:
         depth = quadkey_zoom - mercator_tile.z
         mercator_tiles = [mercator_tile]
-        for i in range(depth):
+        for _ in range(depth):
             mercator_tiles = sum([mercantile.children(t) for t in mercator_tiles], [])
 
         mercator_tiles = list(filter(lambda t: t.z == quadkey_zoom, mercator_tiles))
