@@ -10,13 +10,15 @@ Set by default to `rio_tiler.io.COGReader`, or to `rio_tiler.io.STACReader` for 
 ```python
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends import MosaicBackend
+from rio_tiler.models import ImageData
 
 dataset = ["1.tif", "2.tif"]
 mosaic_definition = MosaicJSON.from_urls(dataset)
 
 # Create a mosaic object in memory
 with MosaicBackend(None, mosaid_def=mosaic_definition, reader=COGReader) as mosaic:
-    tile, mask = mosaic.tile(1, 1, 1)
+    img, assets_used = mosaic.tile(1, 1, 1)
+    assert isinstance(img, ImageData)
 
 # By default the STACbackend will store the Item url as assets, but STACReader (default reader) will know how to read them.
 with MosaicBackend(
@@ -25,7 +27,7 @@ with MosaicBackend(
   7,  # minzoom
   12, # maxzoom
 ) as mosaic:
-    tile, mask = mosaic.tile(1, 1, 1, assets="red")
+    img, assets_used = mosaic.tile(1, 1, 1, assets="red")
 ```
 
 Let's use a custom accessor to save some specific assets url in the mosaic
@@ -44,5 +46,5 @@ with MosaicBackend(
   reader=COGReader,
   backend_options={"accessor": accessor},
 ) as mosaic:
-    tile, mask = mosaic.tile(1, 1, 1)
+    img, assets_used = mosaic.tile(1, 1, 1)
 ```

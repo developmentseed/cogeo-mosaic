@@ -88,7 +88,7 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
 from cogeo_mosaic.backends import MosaicBackend
 
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
-    tile, mask = mosaic.tile(1, 2, 3)
+    img, assets_used = mosaic.tile(1, 2, 3)
 ```
 
 ##### Write
@@ -120,7 +120,7 @@ from cogeo_mosaic.backends import MosaicBackend
 mosaic_definition = MosaicJSON.from_urls(["1.tif", "2.tif"])
 
 with MosaicBackend(None, mosaic_def=mosaicdata) as mosaic:
-    tile, mask = mosaic.tile(1, 2, 3)
+    img, assets_used = mosaic.tile(1, 2, 3)
 ```
 
 # Image Order

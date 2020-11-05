@@ -1,5 +1,10 @@
 # Release Notes
 
+## 3.0.0a17 (TBD)
+
+* update for rio-tiler 2.0rc and add backend output models
+
+
 ## 3.0.0a16 (2020-10-26)
 
 * raise `MosaicNotFoundError` when mosaic doesn't exists in the DynamoDB table.
