@@ -44,7 +44,7 @@ def _tile(
 
 def _get_info(src_path: str) -> Dict:
     with COGReader(src_path) as cog:
-        info = cog.info()
+        info = cog.info().dict()
         info["nodata_value"] = cog.dataset.nodata
 
     return info

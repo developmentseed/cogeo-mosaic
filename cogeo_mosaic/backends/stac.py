@@ -2,13 +2,13 @@
 
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import attr
 import requests
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
-from rio_tiler.io import BaseReader, STACReader
+from rio_tiler.io import STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.cache import cache_config
@@ -57,7 +57,7 @@ class STACBackend(BaseBackend):
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
     mosaic_def: MosaicJSON = attr.ib(default=None)
-    reader: BaseReader = attr.ib(default=STACReader)
+    reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
     backend_options: Dict = attr.ib(factory=dict)
 
@@ -68,6 +68,7 @@ class STACBackend(BaseBackend):
         self.mosaic_def = self.mosaic_def or self._read(
             self.query, self.minzoom, self.maxzoom, **self.backend_options
         )
+        self.bounds = self.mosaic_def.bounds
 
     def write(self):
         """Write mosaicjson document."""

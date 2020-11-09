@@ -2,23 +2,24 @@
 
 import abc
 import itertools
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
 
 import attr
 import mercantile
-import numpy
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from morecantile import TileMatrixSet
 from rio_tiler.constants import MAX_THREADS, WEB_MERCATOR_TMS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, COGReader
+from rio_tiler.models import ImageData
 from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.tasks import create_tasks, filter_tasks
 
 from cogeo_mosaic.backends.utils import find_quadkeys, get_hash
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import NoAssetFoundError
+from cogeo_mosaic.models import Info, Metadata
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -29,11 +30,10 @@ class BaseBackend(BaseReader):
 
     path: str = attr.ib()
     mosaic_def: MosaicJSON = attr.ib(default=None)
-    reader: BaseReader = attr.ib(default=COGReader)
+    reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
     backend_options: Dict = attr.ib(factory=dict)
-    minzoom: int = attr.ib(init=False)
-    maxzoom: int = attr.ib(init=False)
+
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
     # works with WebMercator (mercantile) for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
@@ -49,51 +49,46 @@ class BaseBackend(BaseReader):
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
         self.mosaic_def = self.mosaic_def or self._read(**self.backend_options)
+
         self.minzoom = self.mosaic_def.minzoom
         self.maxzoom = self.mosaic_def.maxzoom
-
-    def __enter__(self):
-        """Support using with Context Managers."""
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Support using with Context Managers."""
-        pass
-
-    @property
-    def bounds(self):
-        """Mosaic Bounds."""
-        return self.mosaic_def.bounds
+        self.bounds = self.mosaic_def.bounds
 
     @property
     def center(self):
-        """Mosaic center."""
+        """Return center from the mosaic definition."""
         return self.mosaic_def.center
 
-    def info(self, quadkeys: bool = False):
+    def info(self, quadkeys: bool = False) -> Info:  # type: ignore
         """Mosaic info."""
-        return {
-            "bounds": self.mosaic_def.bounds,
-            "center": self.mosaic_def.center,
-            "maxzoom": self.mosaic_def.maxzoom,
-            "minzoom": self.mosaic_def.minzoom,
-            "name": self.mosaic_def.name if self.mosaic_def.name else "mosaic",
-            "quadkeys": [] if not quadkeys else list(self.mosaic_def.tiles),
-        }
+        return Info(
+            bounds=self.mosaic_def.bounds,
+            center=self.mosaic_def.center,
+            maxzoom=self.mosaic_def.maxzoom,
+            minzoom=self.mosaic_def.minzoom,
+            name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
+            quadkeys=[] if not quadkeys else self._quadkeys,
+        )
+
+    @property
+    def _quadkeys(self) -> List[str]:
+        """Return the list of quadkey tiles."""
+        return list(self.mosaic_def.tiles)
 
     def stats(self):
         """PlaceHolder for BaseReader.stats."""
         raise NotImplementedError
 
     @property
-    def metadata(self) -> Dict:
+    def metadata(self) -> Metadata:  # type: ignore
         """Retrieve Mosaic metadata
 
         Returns
         -------
         MosaicJSON as dict without `tiles` key.
+
         """
-        return self.mosaic_def.dict(exclude={"tiles"}, exclude_none=True)
+        return Metadata(**self.mosaic_def.dict())
 
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
@@ -118,9 +113,9 @@ class BaseBackend(BaseReader):
             )
         )
 
-    def tile(
+    def tile(  # type: ignore
         self, x: int, y: int, z: int, reverse: bool = False, **kwargs: Any,
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    ) -> Tuple[ImageData, List[str]]:
         """Get Tile from multiple observation."""
         assets = self.assets_for_tile(x, y, z)
         if not assets:
@@ -129,7 +124,7 @@ class BaseBackend(BaseReader):
         if reverse:
             assets = list(reversed(assets))
 
-        def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any):
+        def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any) -> ImageData:
             with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.tile(x, y, z, **kwargs)
 
@@ -184,11 +179,6 @@ class BaseBackend(BaseReader):
     def quadkey_zoom(self) -> int:
         """Return Quadkey zoom property."""
         return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
-
-    @property
-    def _quadkeys(self) -> List[str]:
-        """Return the list of quadkeys"""
-        return list(self.mosaic_def.tiles.keys())
 
     @abc.abstractmethod
     def write(self, overwrite: bool = True):
