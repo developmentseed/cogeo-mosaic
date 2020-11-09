@@ -155,7 +155,10 @@ class DynamoDBBackend(BaseBackend):
 
         fout = os.devnull if quiet else sys.stderr
         with click.progressbar(  # type: ignore
-            new_mosaic.tiles.items(), file=fout, show_percent=True
+            new_mosaic.tiles.items(),
+            file=fout,
+            show_percent=True,
+            label=f"Updating mosaic {self.table_name}:{self.mosaic_name}",
         ) as items:
             for quadkey, new_assets in items:
                 tile = mercantile.quadkey_to_tile(quadkey)
@@ -236,7 +239,10 @@ class DynamoDBBackend(BaseBackend):
     def _write_items(self, items: List[Dict]):
         with self.table.batch_writer() as batch:
             with click.progressbar(
-                items, length=len(items), show_percent=True
+                items,
+                length=len(items),
+                show_percent=True,
+                label=f"Uploading mosaic {self.table_name}:{self.mosaic_name} to DynamoDB",
             ) as progitems:
                 for item in progitems:
                     batch.put_item(item)

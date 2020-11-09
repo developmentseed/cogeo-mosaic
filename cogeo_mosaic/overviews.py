@@ -195,6 +195,7 @@ def create_overview_cogs(
                             futures.as_completed(future_work),
                             length=len(future_work),
                             show_percent=True,
+                            label="Loading tiles",
                         ) as future:
                             for res in future:
                                 pass
