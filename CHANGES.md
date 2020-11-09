@@ -1,6 +1,6 @@
 # Release Notes
 
-## 3.0.0a17 (TBD)
+## 3.0.0a17 (2020-11-09)
 
 * update for rio-tiler 2.0rc and add backend output models
 
