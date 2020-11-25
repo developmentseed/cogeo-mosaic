@@ -1,9 +1,12 @@
 # Release Notes
 
+## 3.0.0a18 (2020-11-24)
+
+** update Backend base class for rio-tiler 2.0.0rc3 (add `.feature()` method)
+
 ## 3.0.0a17 (2020-11-09)
 
 * update for rio-tiler 2.0rc and add backend output models
-
 
 ## 3.0.0a16 (2020-10-26)
 

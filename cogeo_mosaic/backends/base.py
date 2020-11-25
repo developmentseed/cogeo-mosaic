@@ -166,6 +166,10 @@ class BaseBackend(BaseReader):
         """PlaceHolder for BaseReader.part."""
         raise NotImplementedError
 
+    def feature(self):
+        """PlaceHolder for BaseReader.feature."""
+        raise NotImplementedError
+
     @abc.abstractmethod
     def _read(self) -> MosaicJSON:
         """Fetch mosaic definition"""
