@@ -21,15 +21,18 @@ def test_decompress():
     with open(mosaic_gz, "rb") as f:
         body = f.read()
     res = json.loads(utils._decompress_gz(body))
-    assert list(res.keys()) == [
-        "mosaicjson",
-        "quadkey_zoom",
-        "minzoom",
-        "maxzoom",
-        "bounds",
-        "center",
-        "tiles",
-    ]
+    assert sorted(list(res.keys())) == sorted(
+        [
+            "mosaicjson",
+            "quadkey_zoom",
+            "minzoom",
+            "maxzoom",
+            "bounds",
+            "center",
+            "tiles",
+            "version",
+        ]
+    )
 
 
 def test_compress():
@@ -72,7 +75,7 @@ def test_get_assets_from_json():
         )
         assert (
             len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 9))
-            == 1
+            == 2
         )
         assert (
             len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 12))

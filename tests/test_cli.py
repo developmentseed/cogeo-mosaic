@@ -130,9 +130,9 @@ def test_from_features():
             [
                 "create-from-features",
                 "--minzoom",
-                "7",
+                "6",
                 "--maxzoom",
-                "9",
+                "8",
                 "--property",
                 "path",
                 "--quiet",
@@ -148,9 +148,9 @@ def test_from_features():
             [
                 "create-from-features",
                 "--minzoom",
-                "7",
+                "6",
                 "--maxzoom",
-                "9",
+                "8",
                 "--property",
                 "path",
                 "-o",
@@ -168,9 +168,9 @@ def test_from_features():
             [
                 "create-from-features",
                 "--minzoom",
-                "7",
+                "6",
                 "--maxzoom",
-                "9",
+                "8",
                 "--property",
                 "path",
                 "--name",
@@ -202,8 +202,8 @@ def test_overview_valid():
         assert not result.exception
         assert result.exit_code == 0
         with rasterio.open("mosaic_0.tif") as src_dst:
-            assert src_dst.width == 512
-            assert src_dst.height == 512
+            assert src_dst.width == 256
+            assert src_dst.height == 256
             assert not src_dst.overviews(1)
             assert src_dst.compression.value == "DEFLATE"
 
@@ -225,11 +225,11 @@ def test_overview_valid():
         assert not result.exception
         assert result.exit_code == 0
         with rasterio.open("ovr_0.tif") as src_dst:
-            assert src_dst.width == 512
-            assert src_dst.height == 512
+            assert src_dst.width == 256
+            assert src_dst.height == 256
             assert src_dst.profile["blockxsize"] == 128
             assert src_dst.profile["blockysize"] == 128
-            assert src_dst.overviews(1) == [2, 4]
+            assert src_dst.overviews(1) == [2]
             assert not src_dst.compression
 
 
@@ -279,20 +279,20 @@ def test_to_geojson():
         assert not result.exception
         assert result.exit_code == 0
         info = result.output.split("\n")
-        assert len(info) == 10  # 9 features + empty
-        assert json.loads(info[0])["properties"]["nb_assets"] == 1
+        assert len(info) == 5
+        assert json.loads(info[0])["properties"]["nb_assets"] == 2
 
         mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
         result = runner.invoke(cogeo_cli, ["to-geojson", mosaic, "--features"])
         assert not result.exception
         assert result.exit_code == 0
         info = result.output.split("\n")
-        assert len(info) == 10  # 9 features + empty
-        assert json.loads(info[0])["properties"]["nb_assets"] == 1
+        assert len(info) == 5
+        assert json.loads(info[0])["properties"]["nb_assets"] == 2
 
         mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
         result = runner.invoke(cogeo_cli, ["to-geojson", mosaic, "--collect"])
         assert not result.exception
         assert result.exit_code == 0
         info = json.loads(result.output)
-        assert len(info["features"]) == 9
+        assert len(info["features"]) == 4

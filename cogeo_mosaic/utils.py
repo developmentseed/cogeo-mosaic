@@ -9,10 +9,8 @@ from typing import Dict, List, Sequence
 import click
 import mercantile
 import numpy
-import rasterio
 from pygeos import area, intersection
-from rasterio.warp import transform_bounds
-from rio_tiler.mercator import get_zooms
+from rio_tiler.io import COGReader
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -42,11 +40,8 @@ def _filter_futures(tasks):
 
 def get_dataset_info(src_path: str) -> Dict:
     """Get rasterio dataset meta."""
-    with rasterio.open(src_path) as src_dst:
-        bounds = transform_bounds(
-            src_dst.crs, "epsg:4326", *src_dst.bounds, densify_pts=21
-        )
-        min_zoom, max_zoom = get_zooms(src_dst, ensure_global_max_zoom=True)
+    with COGReader(src_path) as cog:
+        bounds = cog.bounds
         return {
             "geometry": {
                 "type": "Polygon",
@@ -62,10 +57,10 @@ def get_dataset_info(src_path: str) -> Dict:
             },
             "properties": {
                 "path": src_path,
-                "bounds": bounds,
-                "minzoom": min_zoom,
-                "maxzoom": max_zoom,
-                "datatype": src_dst.meta["dtype"],
+                "bounds": cog.bounds,
+                "minzoom": cog.minzoom,
+                "maxzoom": cog.maxzoom,
+                "datatype": cog.dataset.meta["dtype"],
             },
             "type": "Feature",
         }
