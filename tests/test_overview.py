@@ -37,15 +37,12 @@ def test_overview_valid():
         assert cog_validate("mosaic_ovr_0.tif")
 
         with rasterio.open("mosaic_ovr_0.tif") as src:
-            assert src.height == 512
-            assert src.width == 512
+            assert src.height == 256
+            assert src.width == 256
             assert src.meta["dtype"] == "uint16"
             assert src.is_tiled
             assert src.profile["blockxsize"] == 256
             assert src.profile["blockysize"] == 256
             assert src.compression.value == "DEFLATE"
             assert src.interleaving.value == "PIXEL"
-            assert src.overviews(1) == [2]
-
-        with rasterio.open("mosaic_ovr_0.tif", OVERVIEW_LEVEL=0) as src:
-            assert src.block_shapes[0] == (128, 128)
+            assert src.overviews(1) == []

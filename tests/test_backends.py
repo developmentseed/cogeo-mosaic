@@ -47,9 +47,9 @@ def test_file_backend():
         assert isinstance(mosaic, FileBackend)
         assert (
             mosaic.mosaicid
-            == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
+            == "e7f894d96ab10f1fc936820ad547e36523d974f5a0890e8ee7524660"
         )
-        assert mosaic.quadkey_zoom == 7
+        assert mosaic.quadkey_zoom == 6
 
         info = mosaic.info()
         assert not info["quadkeys"]
@@ -78,20 +78,19 @@ def test_file_backend():
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
         assert len(mosaic.get_assets(150, 182, 9)) == 2
-        assert len(mosaic.get_assets(147, 182, 9)) == 1
         assert len(mosaic.get_assets(147, 182, 12)) == 0
 
     with MosaicBackend(mosaic_bin, backend_options={"gzip": True}) as mosaic:
         assert isinstance(mosaic, FileBackend)
         assert (
             mosaic.mosaicid
-            == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
+            == "e7f894d96ab10f1fc936820ad547e36523d974f5a0890e8ee7524660"
         )
-        assert mosaic.quadkey_zoom == 7
+        assert mosaic.quadkey_zoom == 6
 
     with MosaicBackend(mosaic_json) as mosaic:
         assert isinstance(mosaic, FileBackend)
-        assert mosaic.quadkey_zoom == 7
+        assert mosaic.quadkey_zoom == 6
 
     with MosaicBackend(mosaic_jsonV1) as mosaic:
         assert isinstance(mosaic, FileBackend)
@@ -115,7 +114,7 @@ def test_file_backend():
             mosaic.write()
             with open("mosaic.json") as f:
                 m = json.loads(f.read())
-                assert m["quadkey_zoom"] == 7
+                assert m["quadkey_zoom"] == 6
             with pytest.raises(MosaicExistsError):
                 mosaic.write()
             mosaic.write(overwrite=True)
@@ -124,13 +123,13 @@ def test_file_backend():
             mosaic.write()
             with open("mosaic.json.gz", "rb") as f:
                 m = json.loads(_decompress_gz(f.read()))
-                assert m["quadkey_zoom"] == 7
+                assert m["quadkey_zoom"] == 6
 
         with MosaicBackend("abinaryfile.bin", mosaic_def=mosaic_content) as mosaic:
             mosaic.write(gzip=True)
             with open("abinaryfile.bin", "rb") as f:
                 m = json.loads(_decompress_gz(f.read()))
-                assert m["quadkey_zoom"] == 7
+                assert m["quadkey_zoom"] == 6
 
 
 class MockResponse:
@@ -158,9 +157,9 @@ def test_http_backend(requests):
         assert isinstance(mosaic, HttpBackend)
         assert (
             mosaic.mosaicid
-            == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
+            == "e7f894d96ab10f1fc936820ad547e36523d974f5a0890e8ee7524660"
         )
-        assert mosaic.quadkey_zoom == 7
+        assert mosaic.quadkey_zoom == 6
         assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
@@ -199,7 +198,7 @@ def test_http_backend(requests):
         assert isinstance(mosaic, HttpBackend)
         assert (
             mosaic.mosaicid
-            == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
+            == "e7f894d96ab10f1fc936820ad547e36523d974f5a0890e8ee7524660"
         )
 
 
@@ -218,9 +217,9 @@ def test_s3_backend(session):
         assert isinstance(mosaic, S3Backend)
         assert (
             mosaic.mosaicid
-            == "f39f05644731addf1d183fa094ff6478900a27912ad035ef570231b1"
+            == "e7f894d96ab10f1fc936820ad547e36523d974f5a0890e8ee7524660"
         )
-        assert mosaic.quadkey_zoom == 7
+        assert mosaic.quadkey_zoom == 6
         assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
@@ -359,16 +358,20 @@ class MockTable(object):
                 "Item": {
                     "mosaicjson": "0.0.2",
                     "version": "1.0.0",
-                    "minzoom": 7,
-                    "maxzoom": 9,
-                    "quadkey_zoom": 7,
+                    "minzoom": 6,
+                    "maxzoom": 8,
+                    "quadkey_zoom": 6,
                     "bounds": [
                         Decimal("-75.98703377403767"),
                         Decimal("44.93504283303786"),
                         Decimal("-71.337604724099"),
-                        Decimal("47.096855991923235"),
+                        Decimal("47.09685599202324"),
                     ],
-                    "center": [Decimal("-74.53125"), Decimal("45.99569351896393"), 7],
+                    "center": [
+                        Decimal("-73.66231924906833"),
+                        Decimal("46.01594941248055"),
+                        6,
+                    ],
                 }
             }
 
@@ -395,7 +398,7 @@ def test_dynamoDB_backend(client):
     with MosaicBackend("dynamodb:///thiswaskylebarronidea:mosaic") as mosaic:
         assert mosaic._backend_name == "AWS DynamoDB"
         assert isinstance(mosaic, DynamoDBBackend)
-        assert mosaic.quadkey_zoom == 7
+        assert mosaic.quadkey_zoom == 6
         assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
             "mosaicjson",
             "version",
@@ -427,10 +430,10 @@ def test_dynamoDB_backend(client):
     ) as mosaic:
         assert isinstance(mosaic, DynamoDBBackend)
         items = mosaic._create_items()
-        assert len(items) == 10
+        assert len(items) == 5
         assert items[-1] == {
             "mosaicId": "mosaic2",
-            "quadkey": "0302330",
+            "quadkey": "030233",
             "assets": ["cog1.tif", "cog2.tif"],
         }
         mosaic._create_table()

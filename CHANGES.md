@@ -1,8 +1,12 @@
 # Release Notes
 
+## 3.0.0a19 (2020-12-14)
+
+* remove `rio_tiler.mercator` functions
+
 ## 3.0.0a18 (2020-11-24)
 
-** update Backend base class for rio-tiler 2.0.0rc3 (add `.feature()` method)
+* update Backend base class for rio-tiler 2.0.0rc3 (add `.feature()` method)
 
 ## 3.0.0a17 (2020-11-09)
 
