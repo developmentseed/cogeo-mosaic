@@ -37,8 +37,8 @@ def test_dataset_info():
     assert info["properties"]["path"]
     assert info["properties"]["bounds"]
     assert info["properties"]["datatype"]
-    assert info["properties"]["minzoom"] == 6
-    assert info["properties"]["maxzoom"] == 8
+    assert info["properties"]["minzoom"] == 7
+    assert info["properties"]["maxzoom"] == 9
 
 
 def test_footprint():

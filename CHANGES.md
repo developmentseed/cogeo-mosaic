@@ -1,8 +1,14 @@
 # Release Notes
 
+## 3.0.0b1 (2020-12-18)
+
+* remove `overview` command (https://github.com/developmentseed/cogeo-mosaic/issues/71#issuecomment-748265645)
+* remove `rio-cogeo` dependencies
+* update rio-tiler version (`2.0.0rc4`)
+
 ## 3.0.0a19 (2020-12-14)
 
-* remove `rio_tiler.mercator` functions
+* Update to remove all calls to `rio_tiler.mercator` functions.
 
 ## 3.0.0a18 (2020-11-24)
 

@@ -3,7 +3,6 @@
 import json
 import os
 
-import rasterio
 from click.testing import CliRunner
 
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -130,9 +129,9 @@ def test_from_features():
             [
                 "create-from-features",
                 "--minzoom",
-                "6",
+                "7",
                 "--maxzoom",
-                "8",
+                "9",
                 "--property",
                 "path",
                 "--quiet",
@@ -148,9 +147,9 @@ def test_from_features():
             [
                 "create-from-features",
                 "--minzoom",
-                "6",
+                "7",
                 "--maxzoom",
-                "8",
+                "9",
                 "--property",
                 "path",
                 "-o",
@@ -168,9 +167,9 @@ def test_from_features():
             [
                 "create-from-features",
                 "--minzoom",
-                "6",
+                "7",
                 "--maxzoom",
-                "8",
+                "9",
                 "--property",
                 "path",
                 "--name",
@@ -189,58 +188,6 @@ def test_from_features():
         assert mosaic.name == "my_mosaic"
         assert mosaic.description == "A mosaic"
         assert mosaic.attribution == "someone"
-
-
-def test_overview_valid():
-    """Should work as expected."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        with open("mosaic.json", "w") as f:
-            f.write(json.dumps(mosaic_content.dict(exclude_none=True)))
-
-        result = runner.invoke(cogeo_cli, ["overview", "mosaic.json"])
-        assert not result.exception
-        assert result.exit_code == 0
-        with rasterio.open("mosaic_0.tif") as src_dst:
-            assert src_dst.width == 256
-            assert src_dst.height == 256
-            assert not src_dst.overviews(1)
-            assert src_dst.compression.value == "DEFLATE"
-
-        result = runner.invoke(
-            cogeo_cli,
-            [
-                "overview",
-                "mosaic.json",
-                "--prefix",
-                "ovr",
-                "--cog-profile",
-                "raw",
-                "--co",
-                "BLOCKXSIZE=128",
-                "--co",
-                "BLOCKYSIZE=128",
-            ],
-        )
-        assert not result.exception
-        assert result.exit_code == 0
-        with rasterio.open("ovr_0.tif") as src_dst:
-            assert src_dst.width == 256
-            assert src_dst.height == 256
-            assert src_dst.profile["blockxsize"] == 128
-            assert src_dst.profile["blockysize"] == 128
-            assert src_dst.overviews(1) == [2]
-            assert not src_dst.compression
-
-
-def test_overview_DynamoDB():
-    """Should work as expected."""
-    runner = CliRunner()
-    result = runner.invoke(
-        cogeo_cli, ["overview", "dynamodb://afakemosaic"], input="n\n"
-    )
-    assert not result.exception
-    assert result.exit_code == 0
 
 
 def test_info_valid():
@@ -279,20 +226,20 @@ def test_to_geojson():
         assert not result.exception
         assert result.exit_code == 0
         info = result.output.split("\n")
-        assert len(info) == 5
-        assert json.loads(info[0])["properties"]["nb_assets"] == 2
+        assert len(info) == 10
+        assert json.loads(info[0])["properties"]["nb_assets"] == 1
 
         mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
         result = runner.invoke(cogeo_cli, ["to-geojson", mosaic, "--features"])
         assert not result.exception
         assert result.exit_code == 0
         info = result.output.split("\n")
-        assert len(info) == 5
-        assert json.loads(info[0])["properties"]["nb_assets"] == 2
+        assert len(info) == 10
+        assert json.loads(info[0])["properties"]["nb_assets"] == 1
 
         mosaic = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
         result = runner.invoke(cogeo_cli, ["to-geojson", mosaic, "--collect"])
         assert not result.exception
         assert result.exit_code == 0
         info = json.loads(result.output)
-        assert len(info["features"]) == 4
+        assert len(info["features"]) == 9
