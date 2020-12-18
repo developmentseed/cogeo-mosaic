@@ -38,7 +38,7 @@
 ## Install (python >=3)
 ```bash
 $ pip install pip -U
-$ pip install cogeo-mosaic
+$ pip install cogeo-mosaic --pre
 
 # Or from source
 
