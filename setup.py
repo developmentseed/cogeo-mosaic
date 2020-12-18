@@ -10,13 +10,13 @@ inst_reqs = [
     "attrs",
     "boto3",
     "mercantile",
+    "morecantile",
     "pygeos>=0.7",
     "pydantic",
     "requests",
     "rasterio",
     "requests",
-    "rio-cogeo>=2.0",
-    "rio-tiler>=2.0.0rc3,<2.1",
+    "rio-tiler>=2.0.0rc4,<2.1",
     "cachetools",
     "supermercado",
 ]
@@ -29,7 +29,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="3.0.0a19",
+    version="3.0.0b1",
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",

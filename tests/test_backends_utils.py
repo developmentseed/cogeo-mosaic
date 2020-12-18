@@ -75,7 +75,7 @@ def test_get_assets_from_json():
         )
         assert (
             len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 9))
-            == 2
+            == 1
         )
         assert (
             len(utils.get_assets_from_json(mosaic_content["tiles"], qkz, 147, 182, 12))

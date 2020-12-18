@@ -37,7 +37,7 @@ def test_mosaic_create():
     assert list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
     assert mosaic.tiles == mosaic_content["tiles"]
 
-    mosaic = MosaicJSON.from_urls(assets, minzoom=6, maxzoom=8)
+    mosaic = MosaicJSON.from_urls(assets, minzoom=7, maxzoom=9)
     assert [round(b, 3) for b in list(mosaic.bounds)] == [
         round(b, 3) for b in mosaic_content["bounds"]
     ]

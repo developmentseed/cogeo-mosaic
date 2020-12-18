@@ -9,13 +9,10 @@ import cligj
 import mercantile
 from click_plugins import with_plugins
 from pkg_resources import iter_entry_points
-from rasterio.rio import options
-from rio_cogeo.profiles import cog_profiles
 
 from cogeo_mosaic import __version__ as cogeo_mosaic_version
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
-from cogeo_mosaic.overviews import PIXSEL_METHODS, create_overview_cogs
 from cogeo_mosaic.utils import get_footprints
 
 
@@ -251,98 +248,6 @@ def footprint(input_files, output, threads, quiet):
             f.write(json.dumps(foot))
     else:
         click.echo(json.dumps(foot))
-
-
-@cogeo_cli.command(
-    short_help="[EXPERIMENTAL] Create a low resolution mosaic image from a MosaicJSON."
-)
-@click.argument("input_mosaic", type=click.Path())
-@click.option(
-    "--cog-profile",
-    "-p",
-    "cogeo_profile",
-    type=click.Choice(cog_profiles.keys()),
-    default="deflate",
-    help="CloudOptimized GeoTIFF profile (default: deflate).",
-)
-@click.option(
-    "--method", type=click.Choice(PIXSEL_METHODS.keys()), default="first",
-)
-@click.option("--prefix", type=str, help="Output files prefix")
-@click.option(
-    "--threads",
-    type=int,
-    default=1,
-    help="# of Python threads. 1 thread is recommended, as GDAL can have issues when multiple threads read the same file.",
-)
-@click.option(
-    "--overview-level",
-    type=int,
-    default=6,
-    help="Max internal overivew level for the COG. "
-    f"Will be used to get the size of each COG. Default is {256 * 2 **6}",
-)
-@click.option(
-    "--in-memory/--no-in-memory",
-    default=True,
-    help="Force processing raster in memory / not in memory (default: process in memory)",
-)
-@options.creation_options
-@click.option(
-    "--yes",
-    "-y",
-    is_flag=True,
-    help="Force overview creation for DynamoDB without asking for confirmation",
-)
-def overview(
-    input_mosaic,
-    cogeo_profile,
-    method,
-    prefix,
-    threads,
-    overview_level,
-    in_memory,
-    creation_options,
-    yes,
-):
-    """Create a low resolution mosaic image from a MosaicJSON."""
-    if input_mosaic.startswith("dynamodb://") and not yes:
-        value = click.prompt(
-            click.style(
-                "Creating overviews from a DynamoDB-backed mosaic will many read requests and might be expensive. Continue? (Y/n)"
-            ),
-            type=str,
-            default="Y",
-            err=True,
-        )
-
-        if value.lower() != "y":
-            click.secho("Alright, this might be a good thing!", err=True)
-            return
-
-    output_profile = cog_profiles.get(cogeo_profile)
-    output_profile.update(dict(BIGTIFF=os.environ.get("BIGTIFF", "IF_SAFER")))
-    if creation_options:
-        output_profile.update(creation_options)
-
-    config = dict(
-        GDAL_NUM_THREADS="ALL_CPU",
-        GDAL_TIFF_INTERNAL_MASK=os.environ.get("GDAL_TIFF_INTERNAL_MASK", True),
-        GDAL_TIFF_OVR_BLOCKSIZE="128",
-    )
-    if not prefix:
-        prefix = os.path.basename(input_mosaic).split(".")[0]
-
-    create_overview_cogs(
-        input_mosaic,
-        output_profile,
-        prefix,
-        max_overview_level=overview_level,
-        method=method,
-        config=config,
-        threads=threads,
-        in_memory=in_memory,
-    )
 
 
 @cogeo_cli.command(short_help="Return info about the mosaic")
