@@ -8,7 +8,6 @@ with open("README.md") as f:
 # Runtime requirements.
 inst_reqs = [
     "attrs",
-    "boto3",
     "mercantile",
     "morecantile",
     "pygeos>=0.7",
@@ -22,6 +21,7 @@ inst_reqs = [
 ]
 
 extra_reqs = {
+    "aws": ["boto3"],
     "test": ["pytest", "pytest-cov"],
     "dev": ["pytest", "pytest-cov", "pre-commit"],
     "docs": ["mkdocs", "mkdocs-material", "pygments", "mkapi"],

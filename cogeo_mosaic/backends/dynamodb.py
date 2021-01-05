@@ -11,10 +11,8 @@ from typing import Any, Dict, List, Sequence
 from urllib.parse import urlparse
 
 import attr
-import boto3
 import click
 import mercantile
-from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
@@ -31,6 +29,13 @@ from cogeo_mosaic.errors import (
 from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
+
+try:
+    import boto3
+    from boto3.dynamodb.conditions import Key
+except ImportError:  # pragma: nocover
+    boto3 = None  # type: ignore
+    Key = None  # type: ignore
 
 
 @attr.s
@@ -55,6 +60,8 @@ class DynamoDBBackend(BaseBackend):
         dynamodb:///{table_name}:{mosaic_name}
 
         """
+        assert boto3 is not None, "'boto3' must be installed to use DynamoDBBackend"
+
         logger.debug(f"Using DynamoDB backend: {self.path}")
 
         if not re.match(
