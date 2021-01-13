@@ -91,7 +91,7 @@ class SQLiteBackend(BaseBackend):
         """Write mosaicjson document to an SQLite database.
 
         Args:
-            overwrite (bool): delete old mosaic items inthe Table.
+            overwrite (bool): delete old mosaic items in the Table.
 
         Returns:
             dict: dictionary with metadata constructed from the sceneid.
