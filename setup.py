@@ -22,7 +22,6 @@ inst_reqs = [
 
 extra_reqs = {
     "aws": ["boto3"],
-    "sqlite": ["sqlite3"],
     "test": ["pytest", "pytest-cov"],
     "dev": ["pytest", "pytest-cov", "pre-commit"],
     "docs": ["mkdocs", "mkdocs-material", "pygments", "mkapi"],

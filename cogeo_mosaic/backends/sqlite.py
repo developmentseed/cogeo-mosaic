@@ -2,6 +2,8 @@
 
 import itertools
 import json
+import re
+import sqlite3
 from typing import Dict, List, Sequence
 from urllib.parse import urlparse
 
@@ -23,26 +25,18 @@ from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
-try:
-    import sqlite3
-    from sqlite3 import Connection, OperationalError
-
-    sqlite3.register_adapter(dict, json.dumps)
-    sqlite3.register_converter("JSON", json.loads)
-except ImportError:  # pragma: nocover
-    sqlite3 = None  # type: ignore
-    Connection = None  # type: ignore
-    OperationalError = None  # type: ignore
+sqlite3.register_adapter(dict, json.dumps)
+sqlite3.register_converter("JSON", json.loads)
 
 
 @attr.s
 class SQLiteBackend(BaseBackend):
     """SQLite Backend Adapter."""
 
-    db_name: str = attr.ib(init=False)
+    db_path: str = attr.ib(init=False)
     mosaic_name: str = attr.ib(init=False)
 
-    db: Connection = attr.ib(init=False)
+    db: sqlite3.Connection = attr.ib(init=False)
 
     _backend_name = "SQLite"
     _metadata_quadkey: str = "-1"
@@ -52,20 +46,21 @@ class SQLiteBackend(BaseBackend):
 
         A path looks like
 
-        sqlite:///{db_name}:{mosaic_name}
+        sqlite:///{db_path}:{mosaic_name}
 
         """
-        assert sqlite3 is not None, "'sqlite3' must be installed to use SQLiteBackend"
+        if not re.match(r"^sqlite:///.+\:[a-zA-Z0-9\_\-\.]+$", self.path,):
+            raise ValueError(f"Invalid SQLite path: {self.path}")
 
         parsed = urlparse(self.path)
-        mosaic_info = parsed.path.lstrip("/").split(":")
-        self.db_name = mosaic_info[0]
-        self.mosaic_name = mosaic_info[1]
+        path = parsed.path.lstrip("/")
+        self.mosaic_name = path.split(":")[-1]
+        self.db_path = path.replace(f":{self.mosaic_name}", "")
 
-        self.db = sqlite3.connect(self.db_name, detect_types=sqlite3.PARSE_DECLTYPES)
+        self.db = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         self.db.row_factory = sqlite3.Row
 
-        logger.debug(f"Using SQLite backend: {self.db_name}")
+        logger.debug(f"Using SQLite backend: {self.db_path}")
         super().__attrs_post_init__()
 
     def close(self):
@@ -103,11 +98,11 @@ class SQLiteBackend(BaseBackend):
         if self._mosaic_exists():
             if not overwrite:
                 raise MosaicExistsError(
-                    f"'{self.mosaic_name}' Table already exists in {self.db_name}, use `overwrite=True`."
+                    f"'{self.mosaic_name}' Table already exists in {self.db_path}, use `overwrite=True`."
                 )
             self.delete()
 
-        logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_name}.")
+        logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
         with self.db:
             self.db.execute(
                 f"CREATE TABLE {self.mosaic_name} (quadkey TEXT NOT NULL, value JSON NOT NULL);",
@@ -123,8 +118,6 @@ class SQLiteBackend(BaseBackend):
             self.db.executemany(
                 f"INSERT INTO {self.mosaic_name} (quadkey, value) VALUES (?, ?);", items
             )
-
-        return
 
     def _update_quadkey(self, quadkey: str, dataset: List[str]):
         """Update single quadkey in Table."""
@@ -231,7 +224,7 @@ class SQLiteBackend(BaseBackend):
     def delete(self):
         """Delete a mosaic."""
         logger.debug(
-            f"Deleting all items for '{self.mosaic_name}' mosaic in {self.db_name}..."
+            f"Deleting all items for '{self.mosaic_name}' mosaic in {self.db_path}..."
         )
         with self.db:
             self.db.execute(f"DROP TABLE IF EXISTS {self.mosaic_name};")
