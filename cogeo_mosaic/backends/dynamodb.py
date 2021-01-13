@@ -13,7 +13,6 @@ from urllib.parse import urlparse
 import attr
 import click
 import mercantile
-from botocore.exceptions import ClientError
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
@@ -33,9 +32,11 @@ from cogeo_mosaic.utils import bbox_union
 try:
     import boto3
     from boto3.dynamodb.conditions import Key
+    from botocore.exceptions import ClientError
 except ImportError:  # pragma: nocover
     boto3 = None  # type: ignore
     Key = None  # type: ignore
+    ClientError = None  # type: ignore
 
 
 @attr.s
