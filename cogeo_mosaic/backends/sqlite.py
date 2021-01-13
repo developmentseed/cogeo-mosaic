@@ -15,17 +15,14 @@ from cachetools.keys import hashkey
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import cache_config
-from cogeo_mosaic.errors import (
-    _HTTP_EXCEPTIONS,
-    MosaicError,
-    MosaicExistsError,
-    MosaicNotFoundError,
-)
+from cogeo_mosaic.errors import MosaicExistsError, MosaicNotFoundError
 from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
 sqlite3.register_adapter(dict, json.dumps)
+sqlite3.register_adapter(tuple, json.dumps)
+sqlite3.register_adapter(list, json.dumps)
 sqlite3.register_converter("JSON", json.loads)
 
 
@@ -39,7 +36,7 @@ class SQLiteBackend(BaseBackend):
     db: sqlite3.Connection = attr.ib(init=False)
 
     _backend_name = "SQLite"
-    _metadata_quadkey: str = "-1"
+    _metadata_table: str = "mosaicjson_metadata"
 
     def __attrs_post_init__(self):
         """Post Init: parse path connect to Table.
@@ -55,10 +52,17 @@ class SQLiteBackend(BaseBackend):
         parsed = urlparse(self.path)
         path = parsed.path.lstrip("/")
         self.mosaic_name = path.split(":")[-1]
+        assert (
+            self.mosaic_name is not self._metadata_table
+        ), f"'{self._metadata_table}' is a reserved table name."
         self.db_path = path.replace(f":{self.mosaic_name}", "")
 
         self.db = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         self.db.row_factory = sqlite3.Row
+
+        # Here we make sure the mosaicJSON.name is the same
+        if self.mosaic_def:
+            self.mosaic_def.name = self.mosaic_name
 
         logger.debug(f"Using SQLite backend: {self.db_path}")
         super().__attrs_post_init__()
@@ -76,10 +80,8 @@ class SQLiteBackend(BaseBackend):
         """Return the list of quadkey tiles."""
         with self.db:
             rows = self.db.execute(
-                f"SELECT quadkey FROM {self.mosaic_name} WHERE quadkey != ?;",
-                (self._metadata_quadkey,),
+                f"SELECT quadkey FROM {self.mosaic_name};",
             ).fetchall()
-
         return [r["quadkey"] for r in rows]
 
     def write(self, overwrite: bool = False):
@@ -105,36 +107,69 @@ class SQLiteBackend(BaseBackend):
         logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
         with self.db:
             self.db.execute(
-                f"CREATE TABLE {self.mosaic_name} (quadkey TEXT NOT NULL, value JSON NOT NULL);",
+                f"""
+                    CREATE TABLE IF NOT EXISTS {self._metadata_table}
+                    (
+                        mosaicjson TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        version TEXT NOT NULL,
+                        attribution TEXT,
+                        minzoom INTEGER NOT NULL,
+                        maxzoom INTEGER NOT NULL,
+                        quadkey_zoom INTEGER,
+                        bounds JSON NOT NULL,
+                        center JSON
+                    );
+                """
+            )
+            self.db.execute(
+                f"""
+                    CREATE TABLE {self.mosaic_name}
+                    (
+                        quadkey TEXT NOT NULL,
+                        assets JSON NOT NULL
+                    );
+                """
             )
 
         logger.debug(f"Adding items in '{self.mosaic_name}' Table.")
-        items = []
-        items.append((self._metadata_quadkey, self.metadata.dict()))
-        for qk, assets in self.mosaic_def.tiles.items():
-            items.append((qk, {"assets": assets}))
-
         with self.db:
+            self.db.execute(
+                f"""
+                    INSERT INTO {self._metadata_table}
+                    (
+                        mosaicjson,
+                        name,
+                        description,
+                        version,
+                        attribution,
+                        minzoom,
+                        maxzoom,
+                        quadkey_zoom,
+                        bounds,
+                        center
+                    )
+                    VALUES
+                    (
+                        :mosaicjson,
+                        :name,
+                        :description,
+                        :version,
+                        :attribution,
+                        :minzoom,
+                        :maxzoom,
+                        :quadkey_zoom,
+                        :bounds,
+                        :center
+                    );
+                """,
+                self.metadata.dict(),
+            )
+
             self.db.executemany(
-                f"INSERT INTO {self.mosaic_name} (quadkey, value) VALUES (?, ?);", items
-            )
-
-    def _update_quadkey(self, quadkey: str, dataset: List[str]):
-        """Update single quadkey in Table."""
-        with self.db:
-            self.db.execute(
-                f"UPDATE {self.mosaic_name} SET value = ? WHERE quadkey=?;",
-                ({"assets": dataset}, quadkey),
-            )
-
-    def _update_metadata(self):
-        """Update bounds and center."""
-        meta = self.metadata.dict()
-        meta["mosaicId"] = self.mosaic_name
-        with self.db:
-            self.db.execute(
-                f"UPDATE {self.mosaic_name} SET value = ? WHERE quadkey=?;",
-                (meta, self._metadata_quadkey),
+                f"INSERT INTO {self.mosaic_name} (quadkey, assets) VALUES (?, ?);",
+                self.mosaic_def.tiles.items(),
             )
 
     def update(
@@ -155,13 +190,6 @@ class SQLiteBackend(BaseBackend):
             quiet=quiet,
             **kwargs,
         )
-
-        for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = mercantile.quadkey_to_tile(quadkey)
-            assets = self.assets_for_tile(*tile)
-            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
-            self._update_quadkey(quadkey, assets)
-
         bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
 
         self.mosaic_def._increase_version()
@@ -172,7 +200,58 @@ class SQLiteBackend(BaseBackend):
             self.mosaic_def.minzoom,
         )
 
-        self._update_metadata()
+        with self.db:
+            self.db.execute(
+                f"""
+                    UPDATE {self._metadata_table}
+                    SET mosaicjson = :mosaicjson,
+                        name = :name,
+                        description = :description,
+                        version = :version,
+                        attribution = :attribution,
+                        minzoom = :minzoom,
+                        maxzoom = :maxzoom,
+                        quadkey_zoom = :quadkey_zoom,
+                        bounds = :bounds,
+                        center = :center
+                    WHERE name=:name
+                """,
+                self.mosaic_def.dict(),
+            )
+
+            if add_first:
+                self.db.executemany(
+                    f"""
+                        UPDATE {self.mosaic_name}
+                        SET assets = (
+                            SELECT json_group_array(value)
+                            FROM (
+                                SELECT value FROM json_each(?)
+                                UNION ALL
+                                SELECT value FROM json_each(assets)
+                            )
+                        )
+                        WHERE quadkey=?;
+                    """,
+                    [(assets, qk) for qk, assets in self.new_mosaic.tiles.items()],
+                )
+
+            else:
+                self.db.executemany(
+                    f"""
+                        UPDATE {self.mosaic_name}
+                        SET assets = (
+                            SELECT json_group_array(value)
+                            FROM (
+                                SELECT value FROM json_each(assets)
+                                UNION ALL
+                                SELECT value FROM json_each(?)
+                            )
+                        )
+                        WHERE quadkey=?;
+                    """,
+                    [(assets, qk) for qk, assets in self.new_mosaic.tiles.items()],
+                )
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
@@ -180,7 +259,7 @@ class SQLiteBackend(BaseBackend):
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
-        meta = self._fetch(self._metadata_quadkey)
+        meta = self._fetch_metadata()
         if not meta:
             raise MosaicNotFoundError(f"Mosaic not found in {self.path}")
 
@@ -195,22 +274,22 @@ class SQLiteBackend(BaseBackend):
         """Find assets."""
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
-        return list(
-            itertools.chain.from_iterable(
-                [self._fetch(qk).get("assets", []) for qk in quadkeys]
-            )
-        )
+        return list(itertools.chain.from_iterable([self._fetch(qk) for qk in quadkeys]))
 
-    def _fetch(self, quadkey: str) -> Dict:
-        try:
-            with self.db:
-                row = self.db.execute(
-                    f"SELECT value FROM {self.mosaic_name} WHERE quadkey=?;", (quadkey,)
-                ).fetchone()
-                return row["value"] if row else {}
-        except Exception as e:
-            exc = _HTTP_EXCEPTIONS.get(404, MosaicError)
-            raise exc(repr(e)) from e
+    def _fetch_metadata(self) -> Dict:
+        with self.db:
+            row = self.db.execute(
+                f"SELECT * FROM {self._metadata_table} WHERE name=?;",
+                (self.mosaic_name,),
+            ).fetchone()
+            return dict(row) if row else {}
+
+    def _fetch(self, quadkey: str) -> List:
+        with self.db:
+            row = self.db.execute(
+                f"SELECT assets FROM {self.mosaic_name} WHERE quadkey=?;", (quadkey,)
+            ).fetchone()
+            return row["assets"] if row else []
 
     def _mosaic_exists(self) -> bool:
         """Check if the mosaic Table already exists."""
@@ -227,4 +306,7 @@ class SQLiteBackend(BaseBackend):
             f"Deleting all items for '{self.mosaic_name}' mosaic in {self.db_path}..."
         )
         with self.db:
+            self.db.execute(
+                f"DELETE FROM {self._metadata_table} WHERE name=?;", (self.mosaic_name,)
+            )
             self.db.execute(f"DROP TABLE IF EXISTS {self.mosaic_name};")
