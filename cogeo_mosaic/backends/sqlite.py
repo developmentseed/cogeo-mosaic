@@ -51,10 +51,12 @@ class SQLiteBackend(BaseBackend):
 
         parsed = urlparse(self.path)
         path = parsed.path.lstrip("/")
+
         self.mosaic_name = path.split(":")[-1]
         assert (
             self.mosaic_name is not self._metadata_table
         ), f"'{self._metadata_table}' is a reserved table name."
+
         self.db_path = path.replace(f":{self.mosaic_name}", "")
 
         self.db = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
@@ -233,7 +235,7 @@ class SQLiteBackend(BaseBackend):
                         )
                         WHERE quadkey=?;
                     """,
-                    [(assets, qk) for qk, assets in self.new_mosaic.tiles.items()],
+                    [(assets, qk) for qk, assets in new_mosaic.tiles.items()],
                 )
 
             else:
@@ -250,7 +252,7 @@ class SQLiteBackend(BaseBackend):
                         )
                         WHERE quadkey=?;
                     """,
-                    [(assets, qk) for qk, assets in self.new_mosaic.tiles.items()],
+                    [(assets, qk) for qk, assets in new_mosaic.tiles.items()],
                 )
 
     @cached(
