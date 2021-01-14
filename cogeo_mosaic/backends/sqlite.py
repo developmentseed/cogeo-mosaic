@@ -34,7 +34,6 @@ class SQLiteBackend(BaseBackend):
 
     db_path: str = attr.ib(init=False)
     mosaic_name: str = attr.ib(init=False)
-
     db: sqlite3.Connection = attr.ib(init=False)
 
     _backend_name = "SQLite"
@@ -325,14 +324,28 @@ class SQLiteBackend(BaseBackend):
 
     @classmethod
     def list_mosaics_in_db(cls, db_path: str,) -> List[str]:
-        """List Mosaic tables in SQLite database."""
+        """List Mosaic tables in SQLite database.
 
+        Args:
+            db_path (str): SQLite file.
+
+        Returns:
+            list: list of mosaic names in database.
+
+        Raises:
+            ValueError: if file does NOT exists.
+
+        Examples:
+            >>> SQLiteBackend.list_mosaics_in_db("mosaics.db")
+            ["test"]
+
+        """
         parsed = urlparse(db_path)
         if parsed.scheme:
             db_path = parsed.path[1:]  # remove `/` on the left
 
         if not os.path.exists(db_path):
-            raise ValueError(f"SQLite database not found at path {db_path}.")
+            raise ValueError(f"SQLite database not found at path '{db_path}'.")
 
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
