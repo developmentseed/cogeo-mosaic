@@ -1,5 +1,10 @@
 # Release Notes
 
+## 3.0.0b2 (TBD)
+
+* add `SQLite` backend (https://github.com/developmentseed/cogeo-mosaic/pull/148)
+* fix cached responsed after updating a mosaic (https://github.com/developmentseed/cogeo-mosaic/pull/148/files#r557020660)
+
 ## 3.0.0b1 (2020-12-18)
 
 * remove `overview` command (https://github.com/developmentseed/cogeo-mosaic/issues/71#issuecomment-748265645)

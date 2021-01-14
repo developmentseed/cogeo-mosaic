@@ -34,6 +34,7 @@ nav:
       - HTTP: "API/backends/HTTP.md"
       - s3: "API/backends/S3.md"
       - DynamoDB: "API/backends/DynamoDB.md"
+      - SQLite: "API/backends/SQLite.md"
       - STAC: "API/backends/STAC.md"
   - Migration to v3.0: "v3_migration.md"
   - Development - Contributing: "contributing.md"
