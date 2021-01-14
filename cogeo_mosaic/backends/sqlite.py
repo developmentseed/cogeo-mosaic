@@ -2,6 +2,7 @@
 
 import itertools
 import json
+import os
 import re
 import sqlite3
 import warnings
@@ -51,14 +52,20 @@ class SQLiteBackend(BaseBackend):
             raise ValueError(f"Invalid SQLite path: {self.path}")
 
         parsed = urlparse(self.path)
-        path = parsed.path[1:]  # remove `/` on the left
+        uri_path = parsed.path[1:]  # remove `/` on the left
 
-        self.mosaic_name = path.split(":")[-1]
+        self.mosaic_name = uri_path.split(":")[-1]
         assert (
             not self.mosaic_name == self._metadata_table
         ), f"'{self._metadata_table}' is a reserved table name."
 
-        self.db_path = path.replace(f":{self.mosaic_name}", "")
+        self.db_path = uri_path.replace(f":{self.mosaic_name}", "")
+
+        # When mosaic_def is not passed, we have to make sure the db exists
+        if not self.mosaic_def and not os.path.exists(self.db_path):
+            raise MosaicNotFoundError(
+                f"SQLite database not found at path {self.db_path}."
+            )
 
         self.db = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         self.db.row_factory = sqlite3.Row
@@ -129,7 +136,7 @@ class SQLiteBackend(BaseBackend):
             )
             self.db.execute(
                 f"""
-                    CREATE TABLE \"{self.mosaic_name}\"
+                    CREATE TABLE "{self.mosaic_name}"
                     (
                         quadkey TEXT NOT NULL,
                         assets JSON NOT NULL
@@ -227,7 +234,7 @@ class SQLiteBackend(BaseBackend):
             if add_first:
                 self.db.executemany(
                     f"""
-                        UPDATE \"{self.mosaic_name}\"
+                        UPDATE "{self.mosaic_name}"
                         SET assets = (
                             SELECT json_group_array(value)
                             FROM (
@@ -244,7 +251,7 @@ class SQLiteBackend(BaseBackend):
             else:
                 self.db.executemany(
                     f"""
-                        UPDATE \"{self.mosaic_name}\"
+                        UPDATE "{self.mosaic_name}"
                         SET assets = (
                             SELECT json_group_array(value)
                             FROM (
@@ -315,3 +322,32 @@ class SQLiteBackend(BaseBackend):
                 f"DELETE FROM {self._metadata_table} WHERE name=?;", (self.mosaic_name,)
             )
             self.db.execute(f'DROP TABLE IF EXISTS "{self.mosaic_name}";')
+
+    @classmethod
+    def list_mosaics_in_db(cls, db_path: str,) -> List[str]:
+        """List Mosaic tables in SQLite database."""
+
+        parsed = urlparse(db_path)
+        if parsed.scheme:
+            db_path = parsed.path[1:]  # remove `/` on the left
+
+        if not os.path.exists(db_path):
+            raise ValueError(f"SQLite database not found at path {db_path}.")
+
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        with db:
+            rows = db.execute(f"SELECT name FROM {cls._metadata_table};").fetchall()
+            rows_table = db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table';",
+            ).fetchall()
+        db.close()
+
+        names_in_metadata = [r["name"] for r in rows]
+        all_tables = [r["name"] for r in rows_table]
+
+        for name in names_in_metadata:
+            if name not in all_tables:
+                warnings.warn(f"'{name}' found in metadata, but table does not exists.")
+
+        return [r for r in names_in_metadata if r in all_tables]
