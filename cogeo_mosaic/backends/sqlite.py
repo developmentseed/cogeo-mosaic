@@ -4,6 +4,7 @@ import itertools
 import json
 import re
 import sqlite3
+import warnings
 from typing import Dict, List, Sequence
 from urllib.parse import urlparse
 
@@ -63,7 +64,8 @@ class SQLiteBackend(BaseBackend):
         self.db.row_factory = sqlite3.Row
 
         # Here we make sure the mosaicJSON.name is the same
-        if self.mosaic_def:
+        if self.mosaic_def and self.mosaic_def.name != self.mosaic_name:
+            warnings.warn("Updating 'mosaic.name' to match table name.")
             self.mosaic_def.name = self.mosaic_name
 
         logger.debug(f"Using SQLite backend: {self.db_path}")
