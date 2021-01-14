@@ -84,7 +84,7 @@ class SQLiteBackend(BaseBackend):
         """Return the list of quadkey tiles."""
         with self.db:
             rows = self.db.execute(
-                f"SELECT quadkey FROM {self.mosaic_name};",
+                f'SELECT quadkey FROM "{self.mosaic_name}";',
             ).fetchall()
         return [r["quadkey"] for r in rows]
 
@@ -129,7 +129,7 @@ class SQLiteBackend(BaseBackend):
             )
             self.db.execute(
                 f"""
-                    CREATE TABLE {self.mosaic_name}
+                    CREATE TABLE \"{self.mosaic_name}\"
                     (
                         quadkey TEXT NOT NULL,
                         assets JSON NOT NULL
@@ -172,7 +172,7 @@ class SQLiteBackend(BaseBackend):
             )
 
             self.db.executemany(
-                f"INSERT INTO {self.mosaic_name} (quadkey, assets) VALUES (?, ?);",
+                f'INSERT INTO "{self.mosaic_name}" (quadkey, assets) VALUES (?, ?);',
                 self.mosaic_def.tiles.items(),
             )
 
@@ -227,7 +227,7 @@ class SQLiteBackend(BaseBackend):
             if add_first:
                 self.db.executemany(
                     f"""
-                        UPDATE {self.mosaic_name}
+                        UPDATE \"{self.mosaic_name}\"
                         SET assets = (
                             SELECT json_group_array(value)
                             FROM (
@@ -244,7 +244,7 @@ class SQLiteBackend(BaseBackend):
             else:
                 self.db.executemany(
                     f"""
-                        UPDATE {self.mosaic_name}
+                        UPDATE \"{self.mosaic_name}\"
                         SET assets = (
                             SELECT json_group_array(value)
                             FROM (
@@ -292,7 +292,7 @@ class SQLiteBackend(BaseBackend):
     def _fetch(self, quadkey: str) -> List:
         with self.db:
             row = self.db.execute(
-                f"SELECT assets FROM {self.mosaic_name} WHERE quadkey=?;", (quadkey,)
+                f'SELECT assets FROM "{self.mosaic_name}" WHERE quadkey=?;', (quadkey,)
             ).fetchone()
             return row["assets"] if row else []
 
@@ -314,4 +314,4 @@ class SQLiteBackend(BaseBackend):
             self.db.execute(
                 f"DELETE FROM {self._metadata_table} WHERE name=?;", (self.mosaic_name,)
             )
-            self.db.execute(f"DROP TABLE IF EXISTS {self.mosaic_name};")
+            self.db.execute(f'DROP TABLE IF EXISTS "{self.mosaic_name}";')
