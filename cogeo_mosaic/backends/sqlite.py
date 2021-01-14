@@ -3,16 +3,17 @@
 import itertools
 import json
 import os
-import re
 import sqlite3
 import warnings
-from typing import Dict, List, Sequence
-from urllib.parse import urlparse
+from typing import Dict, List, Sequence, Type
 
 import attr
 import mercantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
+from morecantile import TileMatrixSet
+from rio_tiler.constants import WEB_MERCATOR_TMS
+from rio_tiler.io import BaseReader, COGReader
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
@@ -32,41 +33,39 @@ sqlite3.register_converter("JSON", json.loads)
 class SQLiteBackend(BaseBackend):
     """SQLite Backend Adapter."""
 
-    db_path: str = attr.ib(init=False)
-    mosaic_name: str = attr.ib(init=False)
+    path: str = attr.ib()
+    mosaic_name: str = attr.ib()
+
+    mosaic_def: MosaicJSON = attr.ib(default=None)
+    reader: Type[BaseReader] = attr.ib(default=COGReader)
+    reader_options: Dict = attr.ib(factory=dict)
+    backend_options: Dict = attr.ib(factory=dict)
+
+    tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
+
     db: sqlite3.Connection = attr.ib(init=False)
 
     _backend_name = "SQLite"
     _metadata_table: str = "mosaicjson_metadata"
 
-    def __attrs_post_init__(self):
-        """Post Init: parse path connect to Table.
-
-        A path looks like
-
-        sqlite:///{db_path}:{mosaic_name}
-
-        """
-        if not re.match(r"^sqlite:///.+\:[a-zA-Z0-9\_\-\.]+$", self.path,):
-            raise ValueError(f"Invalid SQLite path: {self.path}")
-
-        parsed = urlparse(self.path)
-        uri_path = parsed.path[1:]  # remove `/` on the left
-
-        self.mosaic_name = uri_path.split(":")[-1]
+    @mosaic_name.validator
+    def _check_mosaic_name(self, attribute, value):
         assert (
-            not self.mosaic_name == self._metadata_table
+            not value == self._metadata_table
         ), f"'{self._metadata_table}' is a reserved table name."
 
-        self.db_path = uri_path.replace(f":{self.mosaic_name}", "")
+    @mosaic_def.validator
+    def _check_mosaic_def(self, attribute, value):
+        if value is not None:
+            self.mosaic_def = MosaicJSON(**dict(value))
 
+    def __attrs_post_init__(self):
+        """Post Init: parse path connect to Table."""
         # When mosaic_def is not passed, we have to make sure the db exists
-        if not self.mosaic_def and not os.path.exists(self.db_path):
-            raise MosaicNotFoundError(
-                f"SQLite database not found at path {self.db_path}."
-            )
+        if not self.mosaic_def and not os.path.exists(self.path):
+            raise MosaicNotFoundError(f"SQLite database not found at path {self.path}.")
 
-        self.db = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+        self.db = sqlite3.connect(self.path, detect_types=sqlite3.PARSE_DECLTYPES)
         self.db.row_factory = sqlite3.Row
 
         # Here we make sure the mosaicJSON.name is the same
@@ -74,7 +73,7 @@ class SQLiteBackend(BaseBackend):
             warnings.warn("Updating 'mosaic.name' to match table name.")
             self.mosaic_def.name = self.mosaic_name
 
-        logger.debug(f"Using SQLite backend: {self.db_path}")
+        logger.debug(f"Using SQLite backend: {self.path}")
         super().__attrs_post_init__()
 
     def close(self):
@@ -110,11 +109,11 @@ class SQLiteBackend(BaseBackend):
         if self._mosaic_exists():
             if not overwrite:
                 raise MosaicExistsError(
-                    f"'{self.mosaic_name}' Table already exists in {self.db_path}, use `overwrite=True`."
+                    f"'{self.mosaic_name}' Table already exists in {self.path}, use `overwrite=True`."
                 )
             self.delete()
 
-        logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
+        logger.debug(f"Creating '{self.mosaic_name}' Table in {self.path}.")
         with self.db:
             self.db.execute(
                 f"""
@@ -266,7 +265,7 @@ class SQLiteBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
+        key=lambda self: hashkey(self.path, self.mosaic_name),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
@@ -314,7 +313,7 @@ class SQLiteBackend(BaseBackend):
     def delete(self):
         """Delete a mosaic."""
         logger.debug(
-            f"Deleting all items for '{self.mosaic_name}' mosaic in {self.db_path}..."
+            f"Deleting all items for '{self.mosaic_name}' mosaic in {self.path}..."
         )
         with self.db:
             self.db.execute(
@@ -340,10 +339,6 @@ class SQLiteBackend(BaseBackend):
             ["test"]
 
         """
-        parsed = urlparse(db_path)
-        if parsed.scheme:
-            db_path = parsed.path[1:]  # remove `/` on the left
-
         if not os.path.exists(db_path):
             raise ValueError(f"SQLite database not found at path '{db_path}'.")
 

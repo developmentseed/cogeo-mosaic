@@ -682,7 +682,7 @@ def test_BaseReader():
 
 def test_sqlite_backend():
     """Test sqlite backend."""
-    with MosaicBackend(f"sqlite:///{mosaic_db}:test") as mosaic:
+    with MosaicBackend(f"sqlite:///{mosaic_db}?mosaic=test") as mosaic:
         assert mosaic._backend_name == "SQLite"
         assert isinstance(mosaic, SQLiteBackend)
         assert (
@@ -723,32 +723,31 @@ def test_sqlite_backend():
 
     # Validation error, mosaic_def is empty
     with pytest.raises(ValidationError):
-        with MosaicBackend("sqlite:///:memory::test", mosaic_def={}):
+        with MosaicBackend("sqlite:///:memory:?mosaic=test", mosaic_def={}):
             pass
 
     # invalid scheme `sqlit://`
     with pytest.raises(ValueError):
-        with SQLiteBackend("sqlit:///:memory::test"):
-            pass
-
-    # `:` is an invalid character for mosaic name
-    with pytest.raises(ValueError):
-        with SQLiteBackend("sqlite:///:memory::test:"):
+        with MosaicBackend("sqlit:///:memory:?mosaic=test"):
             pass
 
     # `mosaicjson_metadata` is a reserved mosaic name
     with pytest.raises(AssertionError):
-        with MosaicBackend("sqlite:///:memory::mosaicjson_metadata"):
+        with MosaicBackend("sqlite:///:memory:?mosaic=mosaicjson_metadata"):
             pass
 
     # Warns when changing name
     with pytest.warns(UserWarning):
         with MosaicBackend(mosaic_gz) as m:
-            with MosaicBackend("sqlite:///:memory::test", mosaic_def=m.mosaic_def) as d:
+            with MosaicBackend(
+                "sqlite:///:memory:?mosaic=test", mosaic_def=m.mosaic_def
+            ) as d:
                 assert d.mosaic_def.name == "test"
 
     # need to set overwrite when mosaic already exists
-    with MosaicBackend("sqlite:///:memory::test", mosaic_def=mosaic_content) as mosaic:
+    with MosaicBackend(
+        "sqlite:///:memory:?mosaic=test", mosaic_def=mosaic_content
+    ) as mosaic:
         mosaic.write()
         with pytest.raises(MosaicExistsError):
             mosaic.write()
@@ -756,18 +755,18 @@ def test_sqlite_backend():
 
     # files doesn't exists
     with pytest.raises(MosaicNotFoundError):
-        with MosaicBackend("sqlite:///test.db:test2") as mosaic:
+        with MosaicBackend("sqlite:///test.db?mosaic=test2") as mosaic:
             pass
 
     # mosaic doesn't exists in DB
     with pytest.raises(MosaicNotFoundError):
-        with MosaicBackend(f"sqlite:///{mosaic_db}:test2") as mosaic:
+        with MosaicBackend(f"sqlite:///{mosaic_db}?mosaic=test2") as mosaic:
             pass
 
     # Test with `.` in mosaic name
     with pytest.warns(UserWarning):
         with MosaicBackend(
-            "sqlite:///:memory::test.mosaic", mosaic_def=mosaic_content
+            "sqlite:///:memory:?mosaic=test.mosaic", mosaic_def=mosaic_content
         ) as m:
             m.write()
             assert m._mosaic_exists()
@@ -781,7 +780,9 @@ def test_sqlite_backend():
     features = get_footprints([asset2], quiet=True)
 
     # Test update methods
-    with MosaicBackend("sqlite:///:memory::test", mosaic_def=mosaic_oneasset) as m:
+    with MosaicBackend(
+        "sqlite:///:memory:?mosaic=test", mosaic_def=mosaic_oneasset
+    ) as m:
         m.write()
         meta = m.metadata
         assert len(m.get_assets(150, 182, 9)) == 1
@@ -795,7 +796,9 @@ def test_sqlite_backend():
         assert assets[1] == asset1
 
     # Test update with `add_first=False`
-    with MosaicBackend("sqlite:///:memory::test2", mosaic_def=mosaic_oneasset) as m:
+    with MosaicBackend(
+        "sqlite:///:memory:?mosaic=test2", mosaic_def=mosaic_oneasset
+    ) as m:
         m.write()
         meta = m.metadata
         assert len(m.get_assets(150, 182, 9)) == 1
@@ -809,7 +812,6 @@ def test_sqlite_backend():
         assert assets[1] == asset2
 
     assert SQLiteBackend.list_mosaics_in_db(mosaic_db) == ["test"]
-    assert SQLiteBackend.list_mosaics_in_db(f"sqlite:///{mosaic_db}") == ["test"]
 
     with pytest.raises(ValueError):
         assert SQLiteBackend.list_mosaics_in_db("test.db")
