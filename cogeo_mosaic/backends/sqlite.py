@@ -51,11 +51,11 @@ class SQLiteBackend(BaseBackend):
             raise ValueError(f"Invalid SQLite path: {self.path}")
 
         parsed = urlparse(self.path)
-        path = parsed.path.lstrip("/")
+        path = parsed.path[1:]  # remove `/` on the left
 
         self.mosaic_name = path.split(":")[-1]
         assert (
-            self.mosaic_name is not self._metadata_table
+            not self.mosaic_name == self._metadata_table
         ), f"'{self._metadata_table}' is a reserved table name."
 
         self.db_path = path.replace(f":{self.mosaic_name}", "")
@@ -186,7 +186,7 @@ class SQLiteBackend(BaseBackend):
         """Update existing MosaicJSON on backend."""
         logger.debug(f"Updating {self.mosaic_name}...")
 
-        new_mosaic = self.mosaic_def.from_features(
+        new_mosaic = MosaicJSON.from_features(
             features,
             self.mosaic_def.minzoom,
             self.mosaic_def.maxzoom,
@@ -194,6 +194,7 @@ class SQLiteBackend(BaseBackend):
             quiet=quiet,
             **kwargs,
         )
+
         bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
 
         self.mosaic_def._increase_version()
@@ -272,7 +273,7 @@ class SQLiteBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z),
+        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
