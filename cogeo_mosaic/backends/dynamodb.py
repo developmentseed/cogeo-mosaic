@@ -152,7 +152,7 @@ class DynamoDBBackend(BaseBackend):
         """Update existing MosaicJSON on backend."""
         logger.debug(f"Updating {self.mosaic_name}...")
 
-        new_mosaic = self.mosaic_def.from_features(
+        new_mosaic = MosaicJSON.from_features(
             features,
             self.mosaic_def.minzoom,
             self.mosaic_def.maxzoom,
