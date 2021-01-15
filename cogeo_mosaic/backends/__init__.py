@@ -16,24 +16,35 @@ def MosaicBackend(url: str, *args: Any, **kwargs: Any) -> BaseBackend:
     """Select mosaic backend for url."""
     parsed = urlparse(url)
 
+    # `stac+https//{hostname}/{path}`
     if parsed.scheme and parsed.scheme.startswith("stac+"):
         url = url.replace("stac+", "")
         return STACBackend(url, *args, **kwargs)
 
-    if parsed.scheme == "s3":
+    # `s3:///{bucket}{key}`
+    elif parsed.scheme == "s3":
         return S3Backend(url, *args, **kwargs)
 
-    if parsed.scheme == "dynamodb":
+    # `dynamodb://{region}/{table}:{mosaic}`
+    elif parsed.scheme == "dynamodb":
         return DynamoDBBackend(url, *args, **kwargs)
 
-    if parsed.scheme == "sqlite":
+    # `sqlite:///{path.db}:{mosaic}`
+    elif parsed.scheme == "sqlite":
         return SQLiteBackend(url, *args, **kwargs)
 
-    if parsed.scheme in ["https", "http"]:
+    # https://{hostname}/{path}
+    elif parsed.scheme in ["https", "http"]:
         return HttpBackend(url, *args, **kwargs)
 
-    if parsed.scheme == "file":
-        path = parsed.path
-        return FileBackend(path, *args, **kwargs)
+    # file:///{path}
+    elif parsed.scheme == "file":
+        return FileBackend(parsed.path, *args, **kwargs)
 
-    return FileBackend(url, *args, **kwargs)
+    # Invalid Scheme
+    elif parsed.scheme:
+        raise ValueError(f"'{parsed.scheme}' is not supported")
+
+    # fallback to FileBackend
+    else:
+        return FileBackend(url, *args, **kwargs)
