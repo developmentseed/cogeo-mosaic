@@ -42,7 +42,7 @@ def MosaicBackend(url: str, *args: Any, **kwargs: Any) -> BaseBackend:
     elif parsed.scheme in ["https", "http"]:
         return HttpBackend(url, *args, **kwargs)
 
-    # file://{path}
+    # file:///{path}
     elif parsed.scheme == "file":
         path = parsed.path
         return FileBackend(path, *args, **kwargs)
