@@ -46,7 +46,7 @@ with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellit
 
 ## STAC Backend
 
-The STACBackend is a **read-only** backend, meaning it's not used to read or write a file. This backend will POST to the input url looking for STAC items which will then be used to create the mosaicJSON in memory.
+The STACBackend is a **read-only** backend, meaning it can't be used to write a file. This backend will POST to the input url looking for STAC items which will then be used to create the mosaicJSON in memory.
 
 ```python
 import datetime
