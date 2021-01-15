@@ -2,10 +2,10 @@
 
 import itertools
 import json
-import os
 import re
 import sqlite3
 import warnings
+from pathlib import Path
 from typing import Dict, List, Sequence
 from urllib.parse import urlparse
 
@@ -61,7 +61,7 @@ class SQLiteBackend(BaseBackend):
         self.db_path = uri_path.replace(f":{self.mosaic_name}", "")
 
         # When mosaic_def is not passed, we have to make sure the db exists
-        if not self.mosaic_def and not os.path.exists(self.db_path):
+        if not self.mosaic_def and not Path(self.db_path).exists():
             raise MosaicNotFoundError(
                 f"SQLite database not found at path {self.db_path}."
             )
@@ -344,7 +344,7 @@ class SQLiteBackend(BaseBackend):
         if parsed.scheme:
             db_path = parsed.path[1:]  # remove `/` on the left
 
-        if not os.path.exists(db_path):
+        if not Path(db_path).exists():
             raise ValueError(f"SQLite database not found at path '{db_path}'.")
 
         db = sqlite3.connect(db_path)
