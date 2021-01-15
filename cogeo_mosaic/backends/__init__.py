@@ -1,6 +1,6 @@
 """cogeo_mosaic.backends."""
 
-from typing import Any
+from typing import Any, Callable, Dict, Sequence, Type, Union
 from urllib.parse import urlparse
 
 from cogeo_mosaic.backends.base import BaseBackend
@@ -12,39 +12,44 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.web import HttpBackend
 
 
+class Backends:
+    """Backend."""
+
+    backends: Dict = {}
+
+    @classmethod
+    def register(
+        cls,
+        scheme: Union[str, Sequence[str]],
+        backend: Type[BaseBackend],
+        uri_converter: Callable = lambda x: x,
+    ):
+        """Register new backend."""
+        if isinstance(scheme, str):
+            scheme = (scheme,)
+
+        for sch in scheme:
+            cls.backends.update({sch: (backend, uri_converter)})
+
+
+Backends.register(("file", "default"), FileBackend, lambda x: urlparse(x).path)
+Backends.register(("http", "https"), HttpBackend)
+Backends.register("s3", S3Backend)
+Backends.register("dynamodb", DynamoDBBackend)
+Backends.register("sqlite", SQLiteBackend)
+Backends.register(
+    ("stac+http", "stac+https"), STACBackend, lambda x: x.replace("stac+", "")
+)
+
+
 def MosaicBackend(url: str, *args: Any, **kwargs: Any) -> BaseBackend:
     """Select mosaic backend for url."""
     parsed = urlparse(url)
+    scheme = parsed.scheme or "default"
 
-    # `stac+https//{hostname}/{path}`
-    if parsed.scheme and parsed.scheme.startswith("stac+"):
-        url = url.replace("stac+", "")
-        return STACBackend(url, *args, **kwargs)
+    try:
+        backend_class, convertor = Backends.backends[scheme]
+    except KeyError:
+        raise ValueError(f"No backend registered for scheme: {scheme}")
 
-    # `s3:///{bucket}{key}`
-    elif parsed.scheme == "s3":
-        return S3Backend(url, *args, **kwargs)
-
-    # `dynamodb://{region}/{table}:{mosaic}`
-    elif parsed.scheme == "dynamodb":
-        return DynamoDBBackend(url, *args, **kwargs)
-
-    # `sqlite:///{path.db}:{mosaic}`
-    elif parsed.scheme == "sqlite":
-        return SQLiteBackend(url, *args, **kwargs)
-
-    # https://{hostname}/{path}
-    elif parsed.scheme in ["https", "http"]:
-        return HttpBackend(url, *args, **kwargs)
-
-    # file:///{path}
-    elif parsed.scheme == "file":
-        return FileBackend(parsed.path, *args, **kwargs)
-
-    # Invalid Scheme
-    elif parsed.scheme:
-        raise ValueError(f"'{parsed.scheme}' is not supported")
-
-    # fallback to FileBackend
-    else:
-        return FileBackend(url, *args, **kwargs)
+    return backend_class(convertor(url), *args, **kwargs)
