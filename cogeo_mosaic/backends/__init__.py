@@ -1,6 +1,6 @@
 """cogeo_mosaic.backends."""
 
-from typing import Any, Callable, Dict, Sequence, Type, Union
+from typing import Any, Callable, Sequence, Type, Union
 from urllib.parse import urlparse
 
 from cogeo_mosaic.backends.base import BaseBackend
@@ -15,7 +15,29 @@ from cogeo_mosaic.backends.web import HttpBackend
 class Backends:
     """Backend."""
 
-    backends: Dict = {}
+    backends = {
+        "file": (FileBackend, lambda x: urlparse(x).path),
+        "http": (HttpBackend, lambda x: x),
+        "https": (HttpBackend, lambda x: x),
+        "s3": (S3Backend, lambda x: x),
+        "dynamodb": (DynamoDBBackend, lambda x: x),
+        "sqlite": (SQLiteBackend, lambda x: x),
+        "stac+http": (STACBackend, lambda x: x.replace("stac+", "")),
+        "stac+https": (STACBackend, lambda x: x.replace("stac+", "")),
+    }
+
+    def get(self, url: str, *args: Any, **kwargs: Any) -> BaseBackend:
+        """Get Backend."""
+        parsed = urlparse(url)
+        if not parsed.scheme:
+            return FileBackend(parsed.path, *args, **kwargs)
+
+        try:
+            backend_class, convertor = self.backends[parsed.scheme]
+        except KeyError:
+            raise ValueError(f"No backend registered for scheme: {parsed.scheme}")
+
+        return backend_class(convertor(url), *args, **kwargs)
 
     @classmethod
     def register(
@@ -32,24 +54,9 @@ class Backends:
             cls.backends.update({sch: (backend, uri_converter)})
 
 
-Backends.register(("file", "default"), FileBackend, lambda x: urlparse(x).path)
-Backends.register(("http", "https"), HttpBackend)
-Backends.register("s3", S3Backend)
-Backends.register("dynamodb", DynamoDBBackend)
-Backends.register("sqlite", SQLiteBackend)
-Backends.register(
-    ("stac+http", "stac+https"), STACBackend, lambda x: x.replace("stac+", "")
-)
+backends = Backends()
 
 
 def MosaicBackend(url: str, *args: Any, **kwargs: Any) -> BaseBackend:
     """Select mosaic backend for url."""
-    parsed = urlparse(url)
-    scheme = parsed.scheme or "default"
-
-    try:
-        backend_class, convertor = Backends.backends[scheme]
-    except KeyError:
-        raise ValueError(f"No backend registered for scheme: {scheme}")
-
-    return backend_class(convertor(url), *args, **kwargs)
+    return backends.get(url, *args, **kwargs)
