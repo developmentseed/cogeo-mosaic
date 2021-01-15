@@ -7,6 +7,7 @@ from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.backends.s3 import S3Backend
+from cogeo_mosaic.backends.sqlite import SQLiteBackend
 from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.web import HttpBackend
 
@@ -24,6 +25,9 @@ def MosaicBackend(url: str, *args: Any, **kwargs: Any) -> BaseBackend:
 
     if parsed.scheme == "dynamodb":
         return DynamoDBBackend(url, *args, **kwargs)
+
+    if parsed.scheme == "sqlite":
+        return SQLiteBackend(url, *args, **kwargs)
 
     if parsed.scheme in ["https", "http"]:
         return HttpBackend(url, *args, **kwargs)

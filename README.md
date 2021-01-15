@@ -35,7 +35,7 @@
 
 **Read the official announcement https://medium.com/devseed/cog-talk-part-2-mosaics-bbbf474e66df**
 
-## Install (python >=3)
+## Install
 ```bash
 $ pip install pip -U
 $ pip install cogeo-mosaic --pre
@@ -52,7 +52,7 @@ $ pip install git+http://github.com/developmentseed/cogeo-mosaic
 - **pygeos** hosted on pypi migth not compile on certain machine. This has been fixed in the master branch and can be installed with `pip install git+https://github.com/pygeos/pygeos.git`
 
 
-# See it in actions
+## See it in actions
 
 - [**TiTiler**](http://github.com/developmentseed/titiler): A lightweight Cloud Optimized GeoTIFF dynamic tile server (COG, STAC and MosaicJSON).
 
@@ -67,6 +67,8 @@ See [LICENSE](https://github.com/developmentseed/cogeo-mosaic/blob/master/LICENS
 ## Authors
 
 Created by [Development Seed](<http://developmentseed.org>)
+
+See [contributors](https://github.com/developmentseed/cogeo-mosaic/graphs/contributors) for a listing of individual contributors.
 
 ## Changes
 

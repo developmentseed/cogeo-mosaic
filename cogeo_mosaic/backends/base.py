@@ -101,7 +101,7 @@ class BaseBackend(BaseReader):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z),
+        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
@@ -196,7 +196,7 @@ class BaseBackend(BaseReader):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
-        new_mosaic = self.mosaic_def.from_features(
+        new_mosaic = MosaicJSON.from_features(
             features,
             self.mosaic_def.minzoom,
             self.mosaic_def.maxzoom,

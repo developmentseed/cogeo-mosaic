@@ -10,6 +10,10 @@ Starting in version `3.0.0`, we introduced specific backend storage for:
 
 - **AWS DynamoDB** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
 
+- **SQLite** (`sqlite:///{file.db}:{mosaic_name}`)
+
+#### Read Only Backend
+
 - **STAC** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
 
 To ease the usage we added a helper function to use the right backend based on the uri schema: `cogeo_mosaic.backends.MosaicBackend`
@@ -26,20 +30,23 @@ with MosaicBackend("https://mosaic.com/amosaic.json.gz") as mosaic:
 with MosaicBackend("dynamodb://us-east-1/amosaic") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.dynamodb.DynamoDBBackend)
 
+with MosaicBackend("sqlite:///mosaic.db:amosaic") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.sqlite.SQLiteBackend)
+
 with MosaicBackend("file:///amosaic.json.gz") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
 
-# Create only
-with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellite"]}, 10, 12) as mosaic:
-    assert isinstance(mosaic, cogeo_mosaic.backends.stac.STACBackend)
-
 with MosaicBackend("amosaic.json.gz") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
+
+# Read-Only
+with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellite"]}, 10, 12) as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.stac.STACBackend)
 ```
 
 ## STAC Backend
 
-The STACBackend is purely dynamic, meaning it's not used to read or write a file. This backend will POST to the input url looking for STAC items which will then be used to create the mosaicJSON.
+The STACBackend is a **read-only** backend, meaning it can't be used to write a file. This backend will POST to the input url looking for STAC items which will then be used to create the mosaicJSON in memory.
 
 ```python
 import datetime

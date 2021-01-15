@@ -19,15 +19,23 @@ from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.backends.s3 import S3Backend
+from cogeo_mosaic.backends.sqlite import SQLiteBackend
 from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.stac import _fetch as stac_search
 from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
 from cogeo_mosaic.backends.web import HttpBackend
-from cogeo_mosaic.errors import MosaicError, MosaicExistsError, NoAssetFoundError
+from cogeo_mosaic.errors import (
+    MosaicError,
+    MosaicExistsError,
+    MosaicNotFoundError,
+    NoAssetFoundError,
+)
 from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.utils import get_footprints
 
 mosaic_gz = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json.gz")
+mosaic_db = os.path.join(os.path.dirname(__file__), "fixtures", "mosaics.db")
 mosaic_bin = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.bin")
 mosaic_json = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic.json")
 mosaic_jsonV1 = os.path.join(os.path.dirname(__file__), "fixtures", "mosaic_0.0.1.json")
@@ -670,3 +678,138 @@ def test_BaseReader():
         ]
 
         assert mosaic.spatial_info
+
+
+def test_sqlite_backend():
+    """Test sqlite backend."""
+    with MosaicBackend(f"sqlite:///{mosaic_db}:test") as mosaic:
+        assert mosaic._backend_name == "SQLite"
+        assert isinstance(mosaic, SQLiteBackend)
+        assert (
+            mosaic.mosaicid
+            == "f7fc24d47a79f1496dcdf9997de83e6305c252a931fba2c7d006b7d8"
+        )
+        assert mosaic.quadkey_zoom == 7
+
+        info = mosaic.info()
+        assert not info["quadkeys"]
+        assert list(info.dict()) == [
+            "bounds",
+            "center",
+            "minzoom",
+            "maxzoom",
+            "name",
+            "quadkeys",
+        ]
+
+        info = mosaic.info(quadkeys=True)
+        assert info["quadkeys"]
+
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
+            "mosaicjson",
+            "name",
+            "version",
+            "minzoom",
+            "maxzoom",
+            "quadkey_zoom",
+            "bounds",
+            "center",
+        ]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
+
+        assert len(mosaic.get_assets(150, 182, 9)) == 2
+        assert len(mosaic.get_assets(147, 182, 12)) == 0
+
+    # Validation error, mosaic_def is empty
+    with pytest.raises(ValidationError):
+        with MosaicBackend("sqlite:///:memory::test", mosaic_def={}):
+            pass
+
+    # invalid scheme `sqlit://`
+    with pytest.raises(ValueError):
+        with SQLiteBackend("sqlit:///:memory::test"):
+            pass
+
+    # `:` is an invalid character for mosaic name
+    with pytest.raises(ValueError):
+        with SQLiteBackend("sqlite:///:memory::test:"):
+            pass
+
+    # `mosaicjson_metadata` is a reserved mosaic name
+    with pytest.raises(AssertionError):
+        with MosaicBackend("sqlite:///:memory::mosaicjson_metadata"):
+            pass
+
+    # Warns when changing name
+    with pytest.warns(UserWarning):
+        with MosaicBackend(mosaic_gz) as m:
+            with MosaicBackend("sqlite:///:memory::test", mosaic_def=m.mosaic_def) as d:
+                assert d.mosaic_def.name == "test"
+
+    # need to set overwrite when mosaic already exists
+    with MosaicBackend("sqlite:///:memory::test", mosaic_def=mosaic_content) as mosaic:
+        mosaic.write()
+        with pytest.raises(MosaicExistsError):
+            mosaic.write()
+        mosaic.write(overwrite=True)
+
+    # files doesn't exists
+    with pytest.raises(MosaicNotFoundError):
+        with MosaicBackend("sqlite:///test.db:test2") as mosaic:
+            pass
+
+    # mosaic doesn't exists in DB
+    with pytest.raises(MosaicNotFoundError):
+        with MosaicBackend(f"sqlite:///{mosaic_db}:test2") as mosaic:
+            pass
+
+    # Test with `.` in mosaic name
+    with pytest.warns(UserWarning):
+        with MosaicBackend(
+            "sqlite:///:memory::test.mosaic", mosaic_def=mosaic_content
+        ) as m:
+            m.write()
+            assert m._mosaic_exists()
+            assert m.mosaic_def.name == "test.mosaic"
+
+            m.delete()
+            assert not m._mosaic_exists()
+            assert not m._fetch_metadata()
+
+    mosaic_oneasset = MosaicJSON.from_urls([asset1], quiet=True)
+    features = get_footprints([asset2], quiet=True)
+
+    # Test update methods
+    with MosaicBackend("sqlite:///:memory::test", mosaic_def=mosaic_oneasset) as m:
+        m.write()
+        meta = m.metadata
+        assert len(m.get_assets(150, 182, 9)) == 1
+
+        m.update(features)
+        assert not m.metadata == meta
+
+        assets = m.get_assets(150, 182, 9)
+        assert len(assets) == 2
+        assert assets[0] == asset2
+        assert assets[1] == asset1
+
+    # Test update with `add_first=False`
+    with MosaicBackend("sqlite:///:memory::test2", mosaic_def=mosaic_oneasset) as m:
+        m.write()
+        meta = m.metadata
+        assert len(m.get_assets(150, 182, 9)) == 1
+
+        m.update(features, add_first=False)
+        assert not m.metadata == meta
+
+        assets = m.get_assets(150, 182, 9)
+        assert len(assets) == 2
+        assert assets[0] == asset1
+        assert assets[1] == asset2
+
+    assert SQLiteBackend.list_mosaics_in_db(mosaic_db) == ["test"]
+    assert SQLiteBackend.list_mosaics_in_db(f"sqlite:///{mosaic_db}") == ["test"]
+
+    with pytest.raises(ValueError):
+        assert SQLiteBackend.list_mosaics_in_db("test.db")
