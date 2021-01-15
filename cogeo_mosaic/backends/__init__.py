@@ -39,19 +39,23 @@ class Backends:
 
         return backend_class(convertor(url), *args, **kwargs)
 
-    @classmethod
     def register(
-        cls,
+        self,
         scheme: Union[str, Sequence[str]],
         backend: Type[BaseBackend],
         uri_converter: Callable = lambda x: x,
     ):
-        """Register new backend."""
+        """Register new backend.
+
+        Examples:
+            >>> instance.register("local", FileBackend, lambda x: urlparse(x).path)
+
+        """
         if isinstance(scheme, str):
             scheme = (scheme,)
 
         for sch in scheme:
-            cls.backends.update({sch: (backend, uri_converter)})
+            self.backends.update({sch: (backend, uri_converter)})
 
 
 backends = Backends()
