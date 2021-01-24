@@ -1,9 +1,11 @@
 """cogeo_mosaic.overviews: create low resolution image from a mosaic."""
 
 import random
+import sys
 from tempfile import NamedTemporaryFile
 from typing import Dict, Optional
 
+import click
 import mercantile
 import rasterio
 from affine import Affine
@@ -31,7 +33,8 @@ def create_overview_cog(
     """Create overview COG from mosaic
     """
     base_zoom = mosaic.minzoom - 1
-    extrema = tile_extrema(mosaic.bounds, base_zoom)
+    output_base_tiles = list(mercantile.tiles(*mosaic.bounds, base_zoom))
+    extrema = tile_extrema(output_base_tiles)
 
     rasterio_env_kwargs = {} if rasterio_env is None else rasterio_env
     with rasterio.Env(**rasterio_env_kwargs):
@@ -44,13 +47,21 @@ def create_overview_cog(
     with NamedTemporaryFile(suffix=".tif") as tmpf:
         with rasterio.open(tmpf.name, "w", **profile) as rio_tmp:
             # Loop over *output* tiles
-            # TODO: Add progress bar
-            for tile in mercantile.tiles(*mosaic.bounds, base_zoom):
-                window = find_window(tile, extrema, tilesize=tilesize)
-                data = read_data(tile=tile, mosaic=mosaic, tilesize=tilesize)
+            with click.progressbar(
+                output_base_tiles,
+                show_percent=True,
+                label="Loading source tiles",
+                file=sys.stderr,
+            ) as bar:
+                for tile in bar:
+                    window = find_window(tile, extrema, tilesize=tilesize)
 
-                if data:
-                    write_data_window(rio_dst=rio_tmp, data=data, window=window)
+                    # TODO: how to pass rasterio_env_kwargs? Adding `rasterio.Env`
+                    # here doesn't seem to work.
+                    data = read_data(tile=tile, mosaic=mosaic, tilesize=tilesize)
+
+                    if data:
+                        write_data_window(rio_dst=rio_tmp, data=data, window=window)
 
         # Convert output geotiff to COG
         copy_to_cog(
@@ -88,10 +99,9 @@ def copy_to_cog(
     )
 
 
-def tile_extrema(bounds, zoom):
+def tile_extrema(tiles):
     """Find extrema of tiles
     """
-    tiles = list(mercantile.tiles(*bounds, zoom))
     minx = min(tiles, key=lambda tile: tile.x).x
     miny = min(tiles, key=lambda tile: tile.y).y
     maxx = max(tiles, key=lambda tile: tile.x).x
