@@ -10,9 +10,9 @@ from affine import Affine
 from mercantile import Tile
 from rasterio.windows import Window
 from rio_cogeo.cogeo import cog_translate
+from rio_cogeo.profiles import cog_profiles
 from rio_cogeo.utils import _meters_per_pixel
 from rio_tiler.models import ImageData
-from supermercado.burntiles import tile_extrema
 
 from cogeo_mosaic.backends import FileBackend
 from cogeo_mosaic.errors import NoAssetFoundError
@@ -20,30 +20,85 @@ from cogeo_mosaic.mosaic import MosaicJSON
 
 
 def create_overview_cog(
-    mosaic: MosaicJSON, output_path: str, tilesize: int = 256, max_overview_level=None
+    mosaic: MosaicJSON,
+    output_path: str,
+    tilesize: int = 256,
+    rasterio_env=None,
+    max_overview_level=None,
+    output_profile="deflate",
+    output_profile_options=None,
 ):
     """Create overview COG from mosaic
     """
     base_zoom = mosaic.minzoom - 1
     extrema = tile_extrema(mosaic.bounds, base_zoom)
 
-    info = get_cog_profile(get_random_asset(mosaic))
+    rasterio_env_kwargs = {} if rasterio_env is None else rasterio_env
+    with rasterio.Env(**rasterio_env_kwargs):
+        info = get_cog_profile(get_random_asset(mosaic))
+
     profile = get_output_profile(
         info=info, base_zoom=base_zoom, extrema=extrema, tilesize=tilesize
     )
 
-    with NamedTemporaryFile() as tmpf:
+    with NamedTemporaryFile(suffix=".tif") as tmpf:
         with rasterio.open(tmpf.name, "w", **profile) as rio_tmp:
             # Loop over *output* tiles
             # TODO: Add progress bar
             for tile in mercantile.tiles(*mosaic.bounds, base_zoom):
                 window = find_window(tile, extrema, tilesize=tilesize)
                 data = read_data(tile=tile, mosaic=mosaic, tilesize=tilesize)
+
                 if data:
                     write_data_window(rio_dst=rio_tmp, data=data, window=window)
 
         # Convert output geotiff to COG
-        cog_translate(tmpf.name, output_path, overview_level=max_overview_level)
+        copy_to_cog(
+            src_path=tmpf.name,
+            dst_path=output_path,
+            max_overview_level=max_overview_level,
+            output_profile=output_profile,
+            output_profile_options=output_profile_options,
+        )
+
+
+def copy_to_cog(
+    src_path, dst_path, max_overview_level, output_profile, output_profile_options
+):
+    """Copy intermediate GeoTIFF to COG
+    """
+    out_profile = cog_profiles.get(output_profile)
+    out_profile.update({"BIGTIFF": "IF_SAFER"})
+    if output_profile_options:
+        out_profile.update(output_profile_options)
+
+    config = {
+        "GDAL_NUM_THREADS": "ALL_CPUS",
+        "GDAL_TIFF_INTERNAL_MASK": True,
+        "GDAL_TIFF_OVR_BLOCKSIZE": "128",
+    }
+
+    cog_translate(
+        src_path,
+        dst_path,
+        out_profile,
+        config=config,
+        in_memory=False,
+        overview_level=max_overview_level,
+    )
+
+
+def tile_extrema(bounds, zoom):
+    """Find extrema of tiles
+    """
+    tiles = list(mercantile.tiles(*bounds, zoom))
+    minx = min(tiles, key=lambda tile: tile.x).x
+    miny = min(tiles, key=lambda tile: tile.y).y
+    maxx = max(tiles, key=lambda tile: tile.x).x
+    maxy = max(tiles, key=lambda tile: tile.y).y
+
+    # Add one to max x and y since it's an exclusive bound
+    return {"x": {"min": minx, "max": maxx + 1}, "y": {"min": miny, "max": maxy + 1}}
 
 
 def read_data(tile: Tile, mosaic: MosaicJSON, tilesize: int) -> Optional[ImageData]:
