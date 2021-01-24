@@ -19,7 +19,9 @@ from cogeo_mosaic.errors import NoAssetFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
-def create_overview_cog(mosaic: MosaicJSON, output_path: str, tilesize: int = 256):
+def create_overview_cog(
+    mosaic: MosaicJSON, output_path: str, tilesize: int = 256, max_overview_level=None
+):
     """Create overview COG from mosaic
     """
     base_zoom = mosaic.minzoom - 1
@@ -41,7 +43,7 @@ def create_overview_cog(mosaic: MosaicJSON, output_path: str, tilesize: int = 25
                     write_data_window(rio_dst=rio_tmp, data=data, window=window)
 
         # Convert output geotiff to COG
-        cog_translate(tmpf.name, output_path)
+        cog_translate(tmpf.name, output_path, overview_level=max_overview_level)
 
 
 def read_data(tile: Tile, mosaic: MosaicJSON, tilesize: int) -> Optional[ImageData]:
