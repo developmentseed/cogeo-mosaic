@@ -3,7 +3,7 @@
 import random
 import sys
 from tempfile import NamedTemporaryFile
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import click
 import mercantile
@@ -15,10 +15,21 @@ from rio_cogeo.cogeo import cog_translate
 from rio_cogeo.profiles import cog_profiles
 from rio_cogeo.utils import _meters_per_pixel
 from rio_tiler.models import ImageData
+from rio_tiler.mosaic.methods import defaults
+from rio_tiler.mosaic.methods.base import MosaicMethodBase
 
 from cogeo_mosaic.backends import FileBackend
 from cogeo_mosaic.errors import NoAssetFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
+
+PIXEL_SELECTION_METHODS = {
+    "first": defaults.FirstMethod,
+    "highest": defaults.HighestMethod,
+    "lowest": defaults.LowestMethod,
+    "mean": defaults.MeanMethod,
+    "median": defaults.MedianMethod,
+    "stdev": defaults.StdevMethod,
+}
 
 
 def create_overview_cog(
@@ -27,11 +38,15 @@ def create_overview_cog(
     tilesize: int = 256,
     rasterio_env=None,
     max_overview_level=None,
+    pixel_selection_method: Union[str, MosaicMethodBase] = "first",
     output_profile="deflate",
     output_profile_options=None,
 ):
     """Create overview COG from mosaic
     """
+    if type(pixel_selection_method) == str:
+        pixel_selection_method = PIXEL_SELECTION_METHODS[pixel_selection_method]
+
     base_zoom = mosaic.minzoom - 1
     output_base_tiles = list(mercantile.tiles(*mosaic.bounds, base_zoom))
     extrema = tile_extrema(output_base_tiles)
@@ -58,7 +73,12 @@ def create_overview_cog(
 
                     # TODO: how to pass rasterio_env_kwargs? Adding `rasterio.Env`
                     # here doesn't seem to work.
-                    data = read_data(tile=tile, mosaic=mosaic, tilesize=tilesize)
+                    data = read_data(
+                        tile=tile,
+                        mosaic=mosaic,
+                        tilesize=tilesize,
+                        pixel_selection_method=pixel_selection_method,
+                    )
 
                     if data:
                         write_data_window(rio_dst=rio_tmp, data=data, window=window)
@@ -111,13 +131,20 @@ def tile_extrema(tiles):
     return {"x": {"min": minx, "max": maxx + 1}, "y": {"min": miny, "max": maxy + 1}}
 
 
-def read_data(tile: Tile, mosaic: MosaicJSON, tilesize: int) -> Optional[ImageData]:
+def read_data(
+    tile: Tile,
+    mosaic: MosaicJSON,
+    tilesize: int,
+    pixel_selection_method: MosaicMethodBase,
+) -> Optional[ImageData]:
     """Read data for tile from mosaic
     """
     # Use FileBackend with no path as "fake" in-memory mosaic backend
     with FileBackend(path=None, mosaic_def=mosaic) as mosaic_backend:
         try:
-            img_data, _ = mosaic_backend.tile(*tile, tilesize=tilesize)
+            img_data, _ = mosaic_backend.tile(
+                *tile, tilesize=tilesize, pixel_selection=pixel_selection_method
+            )
             return img_data
         except NoAssetFoundError:
             return None
