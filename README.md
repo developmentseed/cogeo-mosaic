@@ -4,7 +4,7 @@
   <img src="https://user-images.githubusercontent.com/10407788/73185274-c41dc900-40eb-11ea-8b67-f79c0682c3b0.jpg" style="max-width: 800px;" alt="rio-tiler"></a>
 </p>
 <p align="center">
-  <em>Create mosaics of Cloud Optimized GeoTIFF based on <a href='https://github.com/developmentseed/mosaicjson-spec'>mosaicJSON</a> specification.</em>
+  <em>Create mosaics of Cloud Optimized GeoTIFF based on the <a href='https://github.com/developmentseed/mosaicjson-spec'>mosaicJSON</a> specification.</em>
 </p>
 <p align="center">
   <a href="https://github.com/developmentseed/cogeo-mosaic/actions?query=workflow%3ACI" target="_blank">
@@ -49,10 +49,10 @@ $ pip install git+http://github.com/developmentseed/cogeo-mosaic
 
 - Starting with version 2.0, pygeos has replaced shapely and thus makes `libgeos` a requirement.
 
-- **pygeos** hosted on pypi migth not compile on certain machine. This has been fixed in the master branch and can be installed with `pip install git+https://github.com/pygeos/pygeos.git`
+- **pygeos** hosted on pypi might not compile on certain machines. This has been fixed in the master branch and can be installed with `pip install git+https://github.com/pygeos/pygeos.git`
 
 
-## See it in actions
+## See it in action
 
 - [**TiTiler**](http://github.com/developmentseed/titiler): A lightweight Cloud Optimized GeoTIFF dynamic tile server (COG, STAC and MosaicJSON).
 
