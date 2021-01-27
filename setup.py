@@ -8,15 +8,14 @@ with open("README.md") as f:
 # Runtime requirements.
 inst_reqs = [
     "attrs",
+    "cachetools",
     "mercantile",
-    "morecantile",
-    "pygeos>=0.7",
+    "morecantile>=2.1,<2.2",
     "pydantic",
-    "requests",
+    "pygeos>=0.7",
     "rasterio",
     "requests",
-    "rio-tiler>=2.0.0rc4,<2.1",
-    "cachetools",
+    "rio-tiler>=2.0,<2.1",
     "supermercado",
 ]
 

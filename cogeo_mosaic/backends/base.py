@@ -26,10 +26,24 @@ from cogeo_mosaic.utils import bbox_union
 
 @attr.s
 class BaseBackend(BaseReader):
-    """Base Class for cogeo-mosaic backend storage."""
+    """Base Class for cogeo-mosaic backend storage.
+
+    Attributes:
+        path (str): mosaic path.
+        mode (str, optional): Access mode. Available modes are: r (read-only), r+ (read and write), w (write). Defaults to read-only `r`.
+        reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to rio_tiler.io.COGReader.
+        reader_options (dict): Options to forward to the reader config.
+        backend_options (dict): Global backend options.
+        tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
+        bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to TMS's bounds.
+        minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to TMS's minzoom.
+        maxzoom (int): mosaic Max zoom level. **READ ONLY attribute**. Defaults to TMS's maxzoom.
+        mosaic_def (MosaicJSON): mosaicJSON document. **READ ONLY attribute**.
+
+    """
 
     path: str = attr.ib()
-    mosaic_def: MosaicJSON = attr.ib(default=None)
+    mode: str = attr.ib("r")
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
     backend_options: Dict = attr.ib(factory=dict)
@@ -38,21 +52,34 @@ class BaseBackend(BaseReader):
     # works with WebMercator (mercantile) for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
 
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        init=False, default=WEB_MERCATOR_TMS.bbox
+    )
+    minzoom: int = attr.ib(init=False, default=WEB_MERCATOR_TMS.minzoom)
+    maxzoom: int = attr.ib(init=False, default=WEB_MERCATOR_TMS.maxzoom)
+
+    mosaic_def: MosaicJSON = attr.ib(init=False)
+
     _backend_name: str
     _file_byte_size: Optional[int] = 0
 
-    @mosaic_def.validator
-    def _check_mosaic_def(self, attribute, value):
-        if value is not None:
-            self.mosaic_def = MosaicJSON(**dict(value))
+    @mode.validator
+    def _check_mode(self, attribute, value):
+        if value not in ["r", "r+", "w"]:
+            raise ValueError(f"Invalid {value} mode. MUST be one of (r, r+, w).")
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
-        self.mosaic_def = self.mosaic_def or self._read(**self.backend_options)
+        # here we can warns if the mosaic already exists and is openned in `w` mode.
+        # if self.mode == "w" and self.mosaic_exits:
+        #     raise MosaicExistsError("Mosaic already exist, use `overwrite=True`.")
 
-        self.minzoom = self.mosaic_def.minzoom
-        self.maxzoom = self.mosaic_def.maxzoom
-        self.bounds = self.mosaic_def.bounds
+        if self.mode in ["r", "r+"]:
+            self.mosaic_def = self._read(**self.backend_options)
+
+            self.minzoom = self.mosaic_def.minzoom
+            self.maxzoom = self.mosaic_def.maxzoom
+            self.bounds = self.mosaic_def.bounds
 
     @property
     def center(self):
@@ -185,8 +212,8 @@ class BaseBackend(BaseReader):
         return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
 
     @abc.abstractmethod
-    def write(self, overwrite: bool = True):
-        """Upload new MosaicJSON to backend."""
+    def write(self, mosaic: MosaicJSON):
+        """Write mosaic."""
 
     def update(
         self,
@@ -196,6 +223,11 @@ class BaseBackend(BaseReader):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
+        if self.mode == "r":
+            raise ValueError(
+                "Can only update a mosaic opened in 'r+' or 'w' mode, not r."
+            )
+
         new_mosaic = MosaicJSON.from_features(
             features,
             self.mosaic_def.minzoom,
@@ -222,9 +254,8 @@ class BaseBackend(BaseReader):
             (bounds[1] + bounds[3]) / 2,
             self.mosaic_def.minzoom,
         )
+        self.bounds = self.mosaic_def.bounds
 
-        # We only write if path is set
-        if self.path:
-            self.write(overwrite=True)
+        self.write(self.mosaic_def)
 
         return
