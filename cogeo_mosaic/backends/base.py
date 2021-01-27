@@ -31,13 +31,13 @@ class BaseBackend(BaseReader):
     Attributes:
         path (str): mosaic path.
         mode (str, optional): Access mode. Available modes are: r (read-only), r+ (read and write), w (write). Defaults to read-only `r`.
-        reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to rio_tiler.io.COGReader.
+        reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.COGReader`.
         reader_options (dict): Options to forward to the reader config.
         backend_options (dict): Global backend options.
         tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
-        bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to TMS's bounds.
-        minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to TMS's minzoom.
-        maxzoom (int): mosaic Max zoom level. **READ ONLY attribute**. Defaults to TMS's maxzoom.
+        bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
+        minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to `0`.
+        maxzoom (int): mosaic Max zoom level. **READ ONLY attribute**. Defaults to `30`
         mosaic_def (MosaicJSON): mosaicJSON document. **READ ONLY attribute**.
 
     """
