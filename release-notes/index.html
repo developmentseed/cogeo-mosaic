@@ -1,0 +1,1457 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Create and use mosaics of Cloud Optimized GeoTIFF based on mosaicJSON specification.">
+      
+      
+      
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.2.6">
+    
+    
+      
+        <title>Release Notes - cogeo-mosaic</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.cb6bc1d0.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.39b8e14a.min.css">
+        
+          
+          
+          <meta name="theme-color" content="#4051b5">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.8.1/css/all.css">
+    
+      <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.8.1/css/v4-shims.css">
+    
+      <link rel="stylesheet" href="../css/mkapi-common.css">
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="">
+      
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#release-notes" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href=".." title="cogeo-mosaic" class="md-header-nav__button md-logo" aria-label="cogeo-mosaic">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      <div class="md-header-nav__ellipsis">
+        <div class="md-header-nav__topic">
+          <span class="md-ellipsis">
+            cogeo-mosaic
+          </span>
+        </div>
+        <div class="md-header-nav__topic">
+          <span class="md-ellipsis">
+            
+              Release Notes
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header-nav__source">
+        
+<a href="https://github.com/developmentseed/cogeo-mosaic/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    developmentseed/cogeo-mosaic
+  </div>
+</a>
+      </div>
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="cogeo-mosaic" class="md-nav__button md-logo" aria-label="cogeo-mosaic">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    cogeo-mosaic
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/developmentseed/cogeo-mosaic/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    developmentseed/cogeo-mosaic
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2" >
+      
+      <label class="md-nav__link" for="nav-2">
+        User Guide
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="User Guide" data-md-level="1">
+        <label class="md-nav__title" for="nav-2">
+          <span class="md-nav__icon md-icon"></span>
+          User Guide
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../intro/" class="md-nav__link">
+        Intro
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        CLI
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" >
+      
+      <label class="md-nav__link" for="nav-3">
+        Advanced User Guide
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Advanced User Guide" data-md-level="1">
+        <label class="md-nav__title" for="nav-3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced User Guide
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/backends/" class="md-nav__link">
+        Backends
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/readers/" class="md-nav__link">
+        Reader
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/custom/" class="md-nav__link">
+        Customization
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" >
+      
+      <label class="md-nav__link" for="nav-4">
+        API
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="API" data-md-level="1">
+        <label class="md-nav__title" for="nav-4">
+          <span class="md-nav__icon md-icon"></span>
+          API
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/mosaic/" class="md-nav__link">
+        MosaicJSON
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/cache/" class="md-nav__link">
+        Cache
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4-3" type="checkbox" id="nav-4-3" >
+      
+      <label class="md-nav__link" for="nav-4-3">
+        Backends
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Backends" data-md-level="2">
+        <label class="md-nav__title" for="nav-4-3">
+          <span class="md-nav__icon md-icon"></span>
+          Backends
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/backends/base/" class="md-nav__link">
+        BaseClass
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/backends/File/" class="md-nav__link">
+        File
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/backends/HTTP/" class="md-nav__link">
+        HTTP
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/backends/S3/" class="md-nav__link">
+        s3
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/backends/DynamoDB/" class="md-nav__link">
+        DynamoDB
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/backends/SQLite/" class="md-nav__link">
+        SQLite
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API/backends/STAC/" class="md-nav__link">
+        STAC
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v3_migration/" class="md-nav__link">
+        Migration to v3.0
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        Development - Contributing
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Release Notes
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Release Notes
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#next-tbd" class="md-nav__link">
+    NEXT (TBD)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300b1-2020-12-18" class="md-nav__link">
+    3.0.0b1 (2020-12-18)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a19-2020-12-14" class="md-nav__link">
+    3.0.0a19 (2020-12-14)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a18-2020-11-24" class="md-nav__link">
+    3.0.0a18 (2020-11-24)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a17-2020-11-09" class="md-nav__link">
+    3.0.0a17 (2020-11-09)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a16-2020-10-26" class="md-nav__link">
+    3.0.0a16 (2020-10-26)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a15-2020-10-22" class="md-nav__link">
+    3.0.0a15 (2020-10-22)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a14-2020-10-22" class="md-nav__link">
+    3.0.0a14 (2020-10-22)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0.0a14 (2020-10-22)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a13-2020-10-13" class="md-nav__link">
+    3.0.0a13 (2020-10-13)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a12-2020-10-07" class="md-nav__link">
+    3.0.0a12 (2020-10-07)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a11-2020-09-21" class="md-nav__link">
+    3.0a11 (2020-09-21)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a10-2020-08-24" class="md-nav__link">
+    3.0a10 (2020-08-24)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a9-2020-08-24" class="md-nav__link">
+    3.0a9 (2020-08-24)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a8-2020-08-21" class="md-nav__link">
+    3.0a8 (2020-08-21)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0a8 (2020-08-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_1" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a7-2020-07-31" class="md-nav__link">
+    3.0a7 (2020-07-31)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0a7 (2020-07-31)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_2" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a6-2020-07-31" class="md-nav__link">
+    3.0a6 (2020-07-31)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0a6 (2020-07-31)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_3" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a5-2020-06-29" class="md-nav__link">
+    3.0a5 (2020-06-29)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a4-2020-06-25" class="md-nav__link">
+    3.0a4 (2020-06-25)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a3-2020-05-01" class="md-nav__link">
+    3.0a3 (2020-05-01)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a2-2020-05-01" class="md-nav__link">
+    3.0a2 (2020-05-01)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a1-2020-05-01" class="md-nav__link">
+    3.0a1 (2020-05-01)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0a1 (2020-05-01)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_4" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#201-2020-01-28" class="md-nav__link">
+    2.0.1 (2020-01-28)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#200-2020-01-28-major-refactor" class="md-nav__link">
+    2.0.0 (2020-01-28) - Major refactor
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-2019-12-13" class="md-nav__link">
+    1.0.0 (2019-12-13)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030-2019-11-07" class="md-nav__link">
+    0.3.0 (2019-11-07)
+  </a>
+  
+    <nav class="md-nav" aria-label="0.3.0 (2019-11-07)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_5" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-2019-09-30" class="md-nav__link">
+    0.2.0 (2019-09-30)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2019-09-05" class="md-nav__link">
+    0.1.0 (2019-09-05)
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#next-tbd" class="md-nav__link">
+    NEXT (TBD)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300b1-2020-12-18" class="md-nav__link">
+    3.0.0b1 (2020-12-18)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a19-2020-12-14" class="md-nav__link">
+    3.0.0a19 (2020-12-14)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a18-2020-11-24" class="md-nav__link">
+    3.0.0a18 (2020-11-24)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a17-2020-11-09" class="md-nav__link">
+    3.0.0a17 (2020-11-09)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a16-2020-10-26" class="md-nav__link">
+    3.0.0a16 (2020-10-26)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a15-2020-10-22" class="md-nav__link">
+    3.0.0a15 (2020-10-22)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a14-2020-10-22" class="md-nav__link">
+    3.0.0a14 (2020-10-22)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0.0a14 (2020-10-22)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a13-2020-10-13" class="md-nav__link">
+    3.0.0a13 (2020-10-13)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#300a12-2020-10-07" class="md-nav__link">
+    3.0.0a12 (2020-10-07)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a11-2020-09-21" class="md-nav__link">
+    3.0a11 (2020-09-21)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a10-2020-08-24" class="md-nav__link">
+    3.0a10 (2020-08-24)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a9-2020-08-24" class="md-nav__link">
+    3.0a9 (2020-08-24)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a8-2020-08-21" class="md-nav__link">
+    3.0a8 (2020-08-21)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0a8 (2020-08-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_1" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a7-2020-07-31" class="md-nav__link">
+    3.0a7 (2020-07-31)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0a7 (2020-07-31)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_2" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a6-2020-07-31" class="md-nav__link">
+    3.0a6 (2020-07-31)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0a6 (2020-07-31)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_3" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a5-2020-06-29" class="md-nav__link">
+    3.0a5 (2020-06-29)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a4-2020-06-25" class="md-nav__link">
+    3.0a4 (2020-06-25)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a3-2020-05-01" class="md-nav__link">
+    3.0a3 (2020-05-01)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a2-2020-05-01" class="md-nav__link">
+    3.0a2 (2020-05-01)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30a1-2020-05-01" class="md-nav__link">
+    3.0a1 (2020-05-01)
+  </a>
+  
+    <nav class="md-nav" aria-label="3.0a1 (2020-05-01)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_4" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#201-2020-01-28" class="md-nav__link">
+    2.0.1 (2020-01-28)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#200-2020-01-28-major-refactor" class="md-nav__link">
+    2.0.0 (2020-01-28) - Major refactor
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-2019-12-13" class="md-nav__link">
+    1.0.0 (2019-12-13)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030-2019-11-07" class="md-nav__link">
+    0.3.0 (2019-11-07)
+  </a>
+  
+    <nav class="md-nav" aria-label="0.3.0 (2019-11-07)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes_5" class="md-nav__link">
+    Breaking changes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-2019-09-30" class="md-nav__link">
+    0.2.0 (2019-09-30)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2019-09-05" class="md-nav__link">
+    0.1.0 (2019-09-05)
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/developmentseed/cogeo-mosaic/edit/master/docs/release-notes.md" title="Edit this page" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                <h1 id="release-notes">Release Notes<a class="headerlink" href="#release-notes" title="Permanent link">&para;</a></h1>
+<h2 id="next-tbd">NEXT (TBD)<a class="headerlink" href="#next-tbd" title="Permanent link">&para;</a></h2>
+<ul>
+<li>add <code>SQLite</code> backend (<a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/148" title="GitHub Pull Request: developmentseed/cogeo-mosaic!148">developmentseed/cogeo-mosaic!148</a>)</li>
+<li>fix cached responsed after updating a mosaic (<a href="https://github.com/developmentseed/cogeo-mosaic/pull/148/files#r557020660">github.com/developmentseed/cogeo-mosaic/pull/148/files#r557020660</a>)</li>
+<li>update mosaicJSON.bounds type definition to match rio-tiler BaseReader definition (<a class="magiclink magiclink-github magiclink-issue" href="https://github.com/developmentseed/cogeo-mosaic/issues/158" title="GitHub Issue: developmentseed/cogeo-mosaic#158">developmentseed/cogeo-mosaic#158</a>)</li>
+</ul>
+<h2 id="300b1-2020-12-18">3.0.0b1 (2020-12-18)<a class="headerlink" href="#300b1-2020-12-18" title="Permanent link">&para;</a></h2>
+<ul>
+<li>remove <code>overview</code> command (<a href="https://github.com/developmentseed/cogeo-mosaic/issues/71#issuecomment-748265645">github.com/developmentseed/cogeo-mosaic/issues/71#issuecomment-748265645</a>)</li>
+<li>remove <code>rio-cogeo</code> dependencies</li>
+<li>update rio-tiler version (<code>2.0.0rc4</code>)</li>
+</ul>
+<h2 id="300a19-2020-12-14">3.0.0a19 (2020-12-14)<a class="headerlink" href="#300a19-2020-12-14" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Update to remove all calls to <code>rio_tiler.mercator</code> functions.</li>
+</ul>
+<h2 id="300a18-2020-11-24">3.0.0a18 (2020-11-24)<a class="headerlink" href="#300a18-2020-11-24" title="Permanent link">&para;</a></h2>
+<ul>
+<li>update Backend base class for rio-tiler 2.0.0rc3 (add <code>.feature()</code> method)</li>
+</ul>
+<h2 id="300a17-2020-11-09">3.0.0a17 (2020-11-09)<a class="headerlink" href="#300a17-2020-11-09" title="Permanent link">&para;</a></h2>
+<ul>
+<li>update for rio-tiler 2.0rc and add backend output models</li>
+</ul>
+<h2 id="300a16-2020-10-26">3.0.0a16 (2020-10-26)<a class="headerlink" href="#300a16-2020-10-26" title="Permanent link">&para;</a></h2>
+<ul>
+<li>raise <code>MosaicNotFoundError</code> when mosaic doesn't exists in the DynamoDB table.</li>
+</ul>
+<h2 id="300a15-2020-10-22">3.0.0a15 (2020-10-22)<a class="headerlink" href="#300a15-2020-10-22" title="Permanent link">&para;</a></h2>
+<ul>
+<li>fix typo in DynamoDB backend (<a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/134" title="GitHub Pull Request: developmentseed/cogeo-mosaic!134">developmentseed/cogeo-mosaic!134</a>)</li>
+<li>rename <code>cogeo_mosaic/backends/http.py</code> -&gt; <code>cogeo_mosaic/backends/web.py</code> to avoid conflicts (author @kylebarron, <a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/133" title="GitHub Pull Request: developmentseed/cogeo-mosaic!133">developmentseed/cogeo-mosaic!133</a>)</li>
+</ul>
+<h2 id="300a14-2020-10-22">3.0.0a14 (2020-10-22)<a class="headerlink" href="#300a14-2020-10-22" title="Permanent link">&para;</a></h2>
+<ul>
+<li>add logger (<code>cogeo_mosaic.logger.logger</code>)</li>
+<li>Update STACBackend to better handler paggination (ref: <a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/125" title="GitHub Pull Request: developmentseed/cogeo-mosaic!125">developmentseed/cogeo-mosaic!125</a>)</li>
+<li>with change from #125, <code>stac_next_link_key</code> has be specified if you know the STAC API is using the latest specs:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">with</span> <span class="n">MosaicBackend</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;stac+</span><span class="si">{</span><span class="n">stac_endpoint</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">query</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+    <span class="mi">11</span><span class="p">,</span>
+    <span class="mi">14</span><span class="p">,</span>
+    <span class="n">backend_options</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;accessor&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">feature</span><span class="p">:</span> <span class="n">feature</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;stac_next_link_key&quot;</span><span class="p">:</span> <span class="s2">&quot;next&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span> <span class="k">as</span> <span class="n">mosaic</span><span class="p">:</span>
+</code></pre></div>
+<ul>
+<li>add <code>to-geojson</code> CLI to create a GeoJSON from a mosaicJSON document (#128)</li>
+<li>refactor internal cache (<a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/131" title="GitHub Pull Request: developmentseed/cogeo-mosaic!131">developmentseed/cogeo-mosaic!131</a>)</li>
+<li>add progressbar for iterating over quadkeys when creating a mosaic (author @kylebarron, <a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/130" title="GitHub Pull Request: developmentseed/cogeo-mosaic!130">developmentseed/cogeo-mosaic!130</a>)</li>
+</ul>
+<h3 id="breaking-changes">Breaking changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>refactored DynamoDB backend to store multiple mosaics in one table (<a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/127" title="GitHub Pull Request: developmentseed/cogeo-mosaic!127">developmentseed/cogeo-mosaic!127</a>)</p>
+<ul>
+<li>new path schema <code>dynamodb://{REGION}?/{TABLE}:{MOSAIC}</code></li>
+</ul>
+</li>
+<li>
+<p>renamed exception <code>MosaicExists</code> to <code>MosaicExistsError</code></p>
+</li>
+<li>renamed option <code>fetch_quadkeys</code> to <code>quadkeys</code> in DynamoDBBackend.info() method</li>
+<li>add <code>quadkeys</code> option in <code>Backends.info()</code> to return (or not) the list of quadkeys (<a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/129" title="GitHub Pull Request: developmentseed/cogeo-mosaic!129">developmentseed/cogeo-mosaic!129</a>)</li>
+<li>moves <code>get_assets</code> to the base Backend (<a class="magiclink magiclink-github magiclink-pull" href="https://github.com/developmentseed/cogeo-mosaic/pull/131" title="GitHub Pull Request: developmentseed/cogeo-mosaic!131">developmentseed/cogeo-mosaic!131</a>)</li>
+<li>remove multi_level mosaic support (<a class="magiclink magiclink-github magiclink-issue" href="https://github.com/developmentseed/cogeo-mosaic/issues/122" title="GitHub Issue: developmentseed/cogeo-mosaic#122">developmentseed/cogeo-mosaic#122</a>)</li>
+</ul>
+<h2 id="300a13-2020-10-13">3.0.0a13 (2020-10-13)<a class="headerlink" href="#300a13-2020-10-13" title="Permanent link">&para;</a></h2>
+<ul>
+<li>add TMS in BaseBackend to align with rio-tiler BaseBackend.</li>
+</ul>
+<h2 id="300a12-2020-10-07">3.0.0a12 (2020-10-07)<a class="headerlink" href="#300a12-2020-10-07" title="Permanent link">&para;</a></h2>
+<ul>
+<li>remove pkg_resources (<a class="magiclink magiclink-github magiclink-issue" href="https://github.com/pypa/setuptools/issues/510" title="GitHub Issue: pypa/setuptools#510">pypa/setuptools#510</a>)</li>
+<li>raise error when <code>minimum_tile_cover</code> is &gt; 1 (<a class="magiclink magiclink-github magiclink-issue" href="https://github.com/developmentseed/cogeo-mosaic/issues/117" title="GitHub Issue: developmentseed/cogeo-mosaic#117">developmentseed/cogeo-mosaic#117</a>)</li>
+<li>fix wrong indices sorting in default_filter (<a class="magiclink magiclink-github magiclink-issue" href="https://github.com/developmentseed/cogeo-mosaic/issues/118" title="GitHub Issue: developmentseed/cogeo-mosaic#118">developmentseed/cogeo-mosaic#118</a>)</li>
+</ul>
+<p>Note: We changed the versioning scheme to {major}.{minor}.{path}{pre}{prenum}</p>
+<h2 id="30a11-2020-09-21">3.0a11 (2020-09-21)<a class="headerlink" href="#30a11-2020-09-21" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Raise Exception when trying to overwrite a mosaic (#112)</li>
+<li>Add <code>reverse</code> option in <code>.tile</code> and <code>.point</code> to get values from assets in reversed order.</li>
+</ul>
+<h2 id="30a10-2020-08-24">3.0a10 (2020-08-24)<a class="headerlink" href="#30a10-2020-08-24" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Allow PointOutsideBounds exception for <code>point</code> method (#108)</li>
+</ul>
+<h2 id="30a9-2020-08-24">3.0a9 (2020-08-24)<a class="headerlink" href="#30a9-2020-08-24" title="Permanent link">&para;</a></h2>
+<ul>
+<li>BaseBackend.center returns value from the mosaic definition (#105)</li>
+</ul>
+<h2 id="30a8-2020-08-21">3.0a8 (2020-08-21)<a class="headerlink" href="#30a8-2020-08-21" title="Permanent link">&para;</a></h2>
+<ul>
+<li>BaseBackend is now a subclass of rio-tiler.io.base.BaseReader (add minzoom, maxzoom, bounds properties and info method)</li>
+<li>use <code>attr</code> to define backend classes</li>
+</ul>
+<h3 id="breaking-changes_1">Breaking changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>backend_options</code> is now used to pass options (*kwargs) to the <code>_read</code> method</li>
+</ul>
+<h2 id="30a7-2020-07-31">3.0a7 (2020-07-31)<a class="headerlink" href="#30a7-2020-07-31" title="Permanent link">&para;</a></h2>
+<ul>
+<li>update to rio-tiler 2.0b5</li>
+</ul>
+<h3 id="breaking-changes_2">Breaking changes<a class="headerlink" href="#breaking-changes_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>'value' -&gt; 'values' in MosaicBackend.point output (#98)</li>
+</ul>
+<h2 id="30a6-2020-07-31">3.0a6 (2020-07-31)<a class="headerlink" href="#30a6-2020-07-31" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Use environement variable to set/disable cache (#93, autho @geospatial-jeff)</li>
+<li>Allow Threads configuration for overview command (author @kylebarron)</li>
+<li>add --in-memory/--no-in-memory to control temporary files creation for <code>overview</code> function.</li>
+<li>allow pixel_selection method options for <code>overview</code> function.</li>
+<li>update to rio-tiler 2.0b4</li>
+<li>use new COGReader and STACReader to add .tile and .point methods directly in the backends</li>
+</ul>
+<h3 id="breaking-changes_3">Breaking changes<a class="headerlink" href="#breaking-changes_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>backend.tile -&gt; backend.assets_for_tile</li>
+<li>backend.point -&gt; backend.assets_for_point</li>
+</ul>
+<h2 id="30a5-2020-06-29">3.0a5 (2020-06-29)<a class="headerlink" href="#30a5-2020-06-29" title="Permanent link">&para;</a></h2>
+<ul>
+<li>remove FTP from supported backend (#87, author @geospatial-jeff)</li>
+<li>add backend CRUD exceptions (#86, author @geospatial-jeff)</li>
+</ul>
+<h2 id="30a4-2020-06-25">3.0a4 (2020-06-25)<a class="headerlink" href="#30a4-2020-06-25" title="Permanent link">&para;</a></h2>
+<ul>
+<li>add STACBackend (#82)</li>
+<li>fix backends caching and switch to TTL cache (#83)</li>
+</ul>
+<h2 id="30a3-2020-05-01">3.0a3 (2020-05-01)<a class="headerlink" href="#30a3-2020-05-01" title="Permanent link">&para;</a></h2>
+<ul>
+<li>add Upload CLI (#74, author @kylebarron)</li>
+<li>fix boto3 dynamodb exception (#75)</li>
+</ul>
+<h2 id="30a2-2020-05-01">3.0a2 (2020-05-01)<a class="headerlink" href="#30a2-2020-05-01" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Better mosaicJSON model testing and default center from bounds (#73, author @geospatial-jeff)</li>
+</ul>
+<h2 id="30a1-2020-05-01">3.0a1 (2020-05-01)<a class="headerlink" href="#30a1-2020-05-01" title="Permanent link">&para;</a></h2>
+<p>This is a major version, meaning a lot of refactoring was done and may lead to breaking changes.</p>
+<ul>
+<li>add quadkey_zoom option in CLI (#41, author @kylebarron)</li>
+<li>use R-tree from pygeos for testing intersections (#43, author @kylebarron)</li>
+</ul>
+<h3 id="breaking-changes_4">Breaking changes<a class="headerlink" href="#breaking-changes_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>added BackendStorage for dynamodb, s3, file and http (with @kylebarron)</li>
+<li>added MosaicJSON pydantic model for internal mosaicjson representation (with @kylebarron and @geospatial-jeff)</li>
+</ul>
+<h2 id="201-2020-01-28">2.0.1 (2020-01-28)<a class="headerlink" href="#201-2020-01-28" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Bug fix, use pygeos from pypi instead of git repo</li>
+</ul>
+<h2 id="200-2020-01-28-major-refactor">2.0.0 (2020-01-28) - Major refactor<a class="headerlink" href="#200-2020-01-28-major-refactor" title="Permanent link">&para;</a></h2>
+<ul>
+<li>remove stack related code (lambda handler, serverless)</li>
+<li>switch to pygeos (#24)</li>
+<li>bug fixes</li>
+<li>add <code>last</code> pixel_method</li>
+</ul>
+<h2 id="100-2019-12-13">1.0.0 (2019-12-13)<a class="headerlink" href="#100-2019-12-13" title="Permanent link">&para;</a></h2>
+<ul>
+<li>add tif output</li>
+<li>fix overview creation</li>
+<li>add other Web templates</li>
+</ul>
+<h2 id="030-2019-11-07">0.3.0 (2019-11-07)<a class="headerlink" href="#030-2019-11-07" title="Permanent link">&para;</a></h2>
+<ul>
+<li>use aws lambda layer</li>
+<li>add <code>update_mosaic</code> utility function</li>
+<li>add <code>/tiles/point</code> endpoint to get points values from a mosaic</li>
+<li>add logs for mosaic creation</li>
+<li>add custom pixel methods</li>
+<li>add custom color maps</li>
+</ul>
+<h3 id="breaking-changes_5">Breaking changes<a class="headerlink" href="#breaking-changes_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>rename <code>/mosaic/info/&lt;mosaicid&gt;</code> to <code>/mosaic/&lt;mosaicid&gt;/info</code></li>
+</ul>
+<h2 id="020-2019-09-30">0.2.0 (2019-09-30)<a class="headerlink" href="#020-2019-09-30" title="Permanent link">&para;</a></h2>
+<ul>
+<li>update for lambda-proxy~=5.0 (#15)</li>
+<li>add <code>minimum_tile_cover</code> option for mosaic creation (#16)</li>
+<li>add <code>tile_cover_sort</code> option (#16)</li>
+<li>add verbosity for cli</li>
+</ul>
+<h2 id="010-2019-09-05">0.1.0 (2019-09-05)<a class="headerlink" href="#010-2019-09-05" title="Permanent link">&para;</a></h2>
+<ul>
+<li>add /create.html endpoint (#14)</li>
+<li>update to remotepixel/amazonlinux docker image</li>
+</ul>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href="../contributing/" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Development - Contributing
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+  <div class="md-footer-social">
+    
+      
+      
+        
+        
+      
+      <a href="https://github.com/developmentseed" target="_blank" rel="noopener" title="github.com" class="md-footer-social__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+      </a>
+    
+      
+      
+        
+        
+      
+      <a href="https://twitter.com/developmentseed" target="_blank" rel="noopener" title="twitter.com" class="md-footer-social__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+      </a>
+    
+      
+      
+        
+        
+      
+      <a href="https://medium.com/devseed" target="_blank" rel="noopener" title="medium.com" class="md-footer-social__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M0 32v448h448V32H0zm372.2 106.1l-24 23c-2.1 1.6-3.1 4.2-2.7 6.7v169.3c-.4 2.6.6 5.2 2.7 6.7l23.5 23v5.1h-118V367l24.3-23.6c2.4-2.4 2.4-3.1 2.4-6.7V199.8l-67.6 171.6h-9.1L125 199.8v115c-.7 4.8 1 9.7 4.4 13.2l31.6 38.3v5.1H71.2v-5.1l31.6-38.3c3.4-3.5 4.9-8.4 4.1-13.2v-133c.4-3.7-1-7.3-3.8-9.8L75 138.1V133h87.3l67.4 148L289 133.1h83.2v5z"/></svg>
+      </a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/vendor.53cc9318.min.js"></script>
+      <script src="../assets/javascripts/bundle.e9c9f54f.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
+      
+      <script>
+        app = initialize({
+          base: "..",
+          features: [],
+          search: Object.assign({
+            worker: "../assets/javascripts/worker/search.9c0e82ba.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+        <script src="../js/mkapi.js"></script>
+      
+    
+  </body>
+</html>
