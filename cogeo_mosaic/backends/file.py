@@ -21,6 +21,11 @@ class FileBackend(BaseBackend):
 
     def write(self, mosaic: MosaicJSON, gzip: bool = None):
         """Write mosaicjson document to a file."""
+        if self.mode == "r":
+            raise ValueError(
+                "Can only write a mosaic opened in 'r+' or 'w' mode, not r."
+            )
+
         body = mosaic.dict(exclude_none=True)
         with open(self.path, "wb") as f:
             try:
