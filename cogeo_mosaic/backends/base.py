@@ -53,10 +53,10 @@ class BaseBackend(BaseReader):
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
 
     bounds: Tuple[float, float, float, float] = attr.ib(
-        init=False, default=WEB_MERCATOR_TMS.bbox
+        init=False, default=(-180, -90, 180, 90)
     )
-    minzoom: int = attr.ib(init=False, default=WEB_MERCATOR_TMS.minzoom)
-    maxzoom: int = attr.ib(init=False, default=WEB_MERCATOR_TMS.maxzoom)
+    minzoom: int = attr.ib(init=False, default=0)
+    maxzoom: int = attr.ib(init=False, default=30)
 
     mosaic_def: MosaicJSON = attr.ib(init=False)
 
