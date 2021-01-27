@@ -275,7 +275,7 @@ def info(input, to_json):
 
         geo = {
             "TileMatrixSet": "WebMercatorQuad",
-            "BoundingBox": tuple(mosaic.mosaic_def.bounds),
+            "BoundingBox": mosaic.mosaic_def.bounds,
             "Center": mosaic.mosaic_def.center,
             "Min Zoom": mosaic.mosaic_def.minzoom,
             "Max Zoom": mosaic.mosaic_def.maxzoom,

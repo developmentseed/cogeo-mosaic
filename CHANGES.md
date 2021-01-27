@@ -1,9 +1,10 @@
 # Release Notes
 
-## 3.0.0b2 (TBD)
+## NEXT (TBD)
 
 * add `SQLite` backend (https://github.com/developmentseed/cogeo-mosaic/pull/148)
 * fix cached responsed after updating a mosaic (https://github.com/developmentseed/cogeo-mosaic/pull/148/files#r557020660)
+* update mosaicJSON.bounds type definition to match rio-tiler BaseReader definition (https://github.com/developmentseed/cogeo-mosaic/issues/158)
 
 ## 3.0.0b1 (2020-12-18)
 

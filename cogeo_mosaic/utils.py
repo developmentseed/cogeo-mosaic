@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from concurrent import futures
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Tuple
 
 import click
 import mercantile
@@ -101,7 +101,7 @@ def get_footprints(
     return list(_filter_futures(future_work))
 
 
-def tiles_to_bounds(tiles: List[mercantile.Tile]) -> List[float]:
+def tiles_to_bounds(tiles: List[mercantile.Tile]) -> Tuple[float, float, float, float]:
     """Get bounds from a set of mercator tiles."""
     zoom = tiles[0].z
     xyz = numpy.array([[t.x, t.y, t.z] for t in tiles])
@@ -111,7 +111,7 @@ def tiles_to_bounds(tiles: List[mercantile.Tile]) -> List[float]:
     }
     ulx, uly = mercantile.ul(extrema["x"]["min"], extrema["y"]["min"], zoom)
     lrx, lry = mercantile.ul(extrema["x"]["max"], extrema["y"]["max"], zoom)
-    return [ulx, lry, lrx, uly]
+    return (ulx, lry, lrx, uly)
 
 
 def _intersect_percent(tile, dataset_geoms):
@@ -120,11 +120,14 @@ def _intersect_percent(tile, dataset_geoms):
     return [inter_area / area(tile) for inter_area in inter_areas]
 
 
-def bbox_union(bbox_1: List[float], bbox_2: List[float]) -> List[float]:
+def bbox_union(
+    bbox_1: Tuple[float, float, float, float],
+    bbox_2: Tuple[float, float, float, float],
+) -> Tuple[float, float, float, float]:
     """Return the union of two bounding boxes."""
-    return [
+    return (
         min(bbox_1[0], bbox_2[0]),
         min(bbox_1[1], bbox_2[1]),
         max(bbox_1[2], bbox_2[2]),
         max(bbox_1[3], bbox_2[3]),
-    ]
+    )

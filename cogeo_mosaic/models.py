@@ -9,7 +9,7 @@ from rio_tiler.models import RioTilerBaseModel
 class Info(RioTilerBaseModel):
     """Mosaic info responses."""
 
-    bounds: List[float] = Field([-180, -90, 180, 90])
+    bounds: Tuple[float, float, float, float] = Field((-180, -90, 180, 90))
     center: Optional[Tuple[float, float, int]]
     minzoom: int = Field(0, ge=0, le=30)
     maxzoom: int = Field(30, ge=0, le=30)
@@ -32,7 +32,7 @@ class Metadata(RioTilerBaseModel):
     minzoom: int = Field(0, ge=0, le=30)
     maxzoom: int = Field(30, ge=0, le=30)
     quadkey_zoom: Optional[int]
-    bounds: List[float] = Field([-180, -90, 180, 90])
+    bounds: Tuple[float, float, float, float] = Field((-180, -90, 180, 90))
     center: Optional[Tuple[float, float, int]]
 
     class Config:
