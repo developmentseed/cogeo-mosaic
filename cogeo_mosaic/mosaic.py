@@ -66,7 +66,7 @@ class MosaicJSON(BaseModel):
     minzoom: int = Field(0, ge=0, le=30)
     maxzoom: int = Field(30, ge=0, le=30)
     quadkey_zoom: Optional[int]
-    bounds: List[float] = Field([-180, -90, 180, 90])
+    bounds: Tuple[float, float, float, float] = Field((-180, -90, 180, 90))
     center: Optional[Tuple[float, float, int]]
     tiles: Dict[str, List[str]]
 
@@ -143,7 +143,7 @@ class MosaicJSON(BaseModel):
                 polygons(feat["geometry"]["coordinates"][0]) for feat in features
             ]
 
-        bounds = list(total_bounds(dataset_geoms))
+        bounds = tuple(total_bounds(dataset_geoms))
 
         tiles = burntiles.burn(features, quadkey_zoom)
         tiles = [mercantile.Tile(*tile) for tile in tiles]
