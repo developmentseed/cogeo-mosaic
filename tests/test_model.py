@@ -13,6 +13,8 @@ mosaic_json = os.path.join(basepath, "mosaic.json")
 def test_model():
     with open(mosaic_json) as f:
         mosaic = MosaicJSON(**json.load(f))
+        assert isinstance(mosaic.bounds, tuple)
+        assert isinstance(mosaic.center, tuple)
         assert isinstance(mosaic, BaseModel)
 
 
