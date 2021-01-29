@@ -2,6 +2,7 @@
 
 import abc
 import itertools
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
 
 import attr
@@ -24,6 +25,14 @@ from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
 
+def update_zoom_and_bounds(instance, attribute, value):
+    """Update Zooms and Bounds attribute when mosaic_def is set."""
+    instance.minzoom = value.minzoom
+    instance.maxzoom = value.maxzoom
+    instance.bounds = value.bounds
+    return value
+
+
 @attr.s
 class BaseBackend(BaseReader):
     """Base Class for cogeo-mosaic backend storage.
@@ -43,14 +52,16 @@ class BaseBackend(BaseReader):
     """
 
     path: str = attr.ib()
-    mode: str = attr.ib("r")
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
     backend_options: Dict = attr.ib(factory=dict)
+    mode: str = attr.ib(default="r")
 
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
     # works with WebMercator (mercantile) for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
+
+    mosaic_def: MosaicJSON = attr.ib(init=False, on_setattr=update_zoom_and_bounds)  # type: ignore
 
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
@@ -58,28 +69,22 @@ class BaseBackend(BaseReader):
     minzoom: int = attr.ib(init=False, default=0)
     maxzoom: int = attr.ib(init=False, default=30)
 
-    mosaic_def: MosaicJSON = attr.ib(init=False)
-
     _backend_name: str
     _file_byte_size: Optional[int] = 0
 
+    _available_modes: List[str] = ["r", "r+", "w"]
+
     @mode.validator
     def _check_mode(self, attribute, value):
-        if value not in ["r", "r+", "w"]:
-            raise ValueError(f"Invalid {value} mode. MUST be one of (r, r+, w).")
+        if value not in self._available_modes:
+            raise ValueError(
+                f"Invalid '{value}' mode. MUST be one of {self._available_modes}."
+            )
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
-        # here we can warns if the mosaic already exists and is openned in `w` mode.
-        # if self.mode == "w" and self.mosaic_exits:
-        #     raise MosaicExistsError("Mosaic already exist, use `overwrite=True`.")
-
         if self.mode in ["r", "r+"]:
             self.mosaic_def = self._read(**self.backend_options)
-
-            self.minzoom = self.mosaic_def.minzoom
-            self.maxzoom = self.mosaic_def.maxzoom
-            self.bounds = self.mosaic_def.bounds
 
     @property
     def center(self):
@@ -212,7 +217,7 @@ class BaseBackend(BaseReader):
         return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
 
     @abc.abstractmethod
-    def write(self, mosaic: MosaicJSON):
+    def write(self, mosaic: MosaicJSON, overwrite: bool = False):
         """Write mosaic."""
 
     def update(
@@ -228,34 +233,31 @@ class BaseBackend(BaseReader):
                 "Can only update a mosaic opened in 'r+' or 'w' mode, not r."
             )
 
+        mosaic = deepcopy(self.mosaic_def)
         new_mosaic = MosaicJSON.from_features(
             features,
-            self.mosaic_def.minzoom,
-            self.mosaic_def.maxzoom,
+            mosaic.minzoom,
+            mosaic.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
             quiet=quiet,
             **kwargs,
         )
 
+        # Update Tiles
         for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = mercantile.quadkey_to_tile(quadkey)
-            assets = self.assets_for_tile(*tile)
+            assets = mosaic.tiles.get(quadkey, [])
             assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+            mosaic.tiles[quadkey] = assets
 
-            # add custom sorting algorithm (e.g based on path name)
-            self.mosaic_def.tiles[quadkey] = assets
+        # Update Metadata
+        bounds = bbox_union(new_mosaic.bounds, mosaic.bounds)
 
-        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
-
-        self.mosaic_def._increase_version()
-        self.mosaic_def.bounds = bounds
-        self.mosaic_def.center = (
+        mosaic._increase_version()
+        mosaic.bounds = bounds
+        mosaic.center = (
             (bounds[0] + bounds[2]) / 2,
             (bounds[1] + bounds[3]) / 2,
-            self.mosaic_def.minzoom,
+            mosaic.minzoom,
         )
-        self.bounds = self.mosaic_def.bounds
 
-        self.write(self.mosaic_def)
-
-        return
+        self.write(mosaic, overwrite=True)

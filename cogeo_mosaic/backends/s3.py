@@ -42,18 +42,34 @@ class S3Backend(BaseBackend):
         self.client = self.client or boto3_session().client("s3")
         super().__attrs_post_init__()
 
-    def write(self, overwrite: bool = False, gzip: bool = None, **kwargs: Any):
+    def write(
+        self,
+        mosaic: MosaicJSON,
+        overwrite: bool = False,
+        gzip: bool = None,
+        **kwargs: Any,
+    ):
         """Write mosaicjson document to AWS S3."""
-        mosaic_doc = self.mosaic_def.dict(exclude_none=True)
-        if gzip or (gzip is None and self.key.endswith(".gz")):
-            body = _compress_gz_json(mosaic_doc)
-        else:
-            body = json.dumps(mosaic_doc).encode("utf-8")
+        if self.mode == "r":
+            raise ValueError(
+                "Can only write a mosaic opened in 'r+' or 'w' mode, not r."
+            )
 
         if not overwrite and self._head_object(self.key, self.bucket):
             raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
 
+        if not isinstance(mosaic, MosaicJSON):
+            mosaic = MosaicJSON(**dict(mosaic))
+
+        body_dict = mosaic.dict(exclude_none=True)
+        if gzip or (gzip is None and self.key.endswith(".gz")):
+            body = _compress_gz_json(body_dict)
+        else:
+            body = json.dumps(body_dict).encode("utf-8")
+
         self._put_object(self.key, self.bucket, body, **kwargs)
+
+        self.mosaic_def = mosaic
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),

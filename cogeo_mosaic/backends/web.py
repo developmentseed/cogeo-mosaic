@@ -24,14 +24,15 @@ class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
     _backend_name = "HTTP"
+    _available_modes = ["r"]
 
-    def write(self):
+    def write(self, mosaic: MosaicJSON, overwrite: bool = False):
         """Write mosaicjson document."""
-        raise NotImplementedError
+        raise NotImplementedError("HttpBackend is a read-only backend")
 
     def update(self, *args, **kwargs: Any):
         """Update the mosaicjson document."""
-        raise NotImplementedError
+        raise NotImplementedError("HttpBackend is a read-only backend")
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),

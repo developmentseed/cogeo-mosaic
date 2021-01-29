@@ -97,8 +97,8 @@ def create(
         mosaicjson.attribution = attribution
 
     if output:
-        with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
-            mosaic.write(overwrite=True)
+        with MosaicBackend(output, mode="w") as mosaic:
+            mosaic.write(mosaicjson, overwrite=True)
     else:
         click.echo(mosaicjson.json(exclude_none=True))
 
@@ -112,8 +112,8 @@ def upload(file, url):
     """Upload mosaic definition file."""
     mosaicjson = json.load(file)
 
-    with MosaicBackend(url, mosaic_def=mosaicjson) as mosaic:
-        mosaic.write(overwrite=True)
+    with MosaicBackend(url, mode="w") as mosaic:
+        mosaic.write(mosaicjson, overwrite=True)
 
 
 @cogeo_cli.command(
@@ -177,8 +177,8 @@ def create_from_features(
         mosaicjson.attribution = attribution
 
     if output:
-        with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
-            mosaic.write(overwrite=True)
+        with MosaicBackend(output, mode="w") as mosaic:
+            mosaic.write(mosaicjson, overwrite=True)
     else:
         click.echo(mosaicjson.json(exclude_none=True))
 
@@ -210,7 +210,7 @@ def update(input_files, input_mosaic, min_tile_cover, add_first, threads, quiet)
     """Update mosaic definition file."""
     input_files = input_files.read().splitlines()
     features = get_footprints(input_files, max_threads=threads)
-    with MosaicBackend(input_mosaic) as mosaic:
+    with MosaicBackend(input_mosaic, mode="r+") as mosaic:
         mosaic.update(
             features,
             add_first=add_first,
@@ -257,7 +257,7 @@ def footprint(input_files, output, threads, quiet):
 )
 def info(input, to_json):
     """Return info about the mosaic."""
-    with MosaicBackend(input) as mosaic:
+    with MosaicBackend(input, mode="r") as mosaic:
         _info = {
             "Path": input,
             "Backend": mosaic._backend_name,
@@ -339,7 +339,7 @@ def info(input, to_json):
 def to_geojson(input, collect):
     """Read MosaicJSON document and create GeoJSON features."""
     features = []
-    with MosaicBackend(input) as mosaic:
+    with MosaicBackend(input, mode="r") as mosaic:
         for qk, assets in mosaic.mosaic_def.tiles.items():
             tile = mercantile.quadkey_to_tile(qk)
 

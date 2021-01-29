@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import warnings
+from copy import deepcopy
 from decimal import Decimal
 from typing import Any, Dict, List, Sequence
 from urllib.parse import urlparse
@@ -98,10 +99,11 @@ class DynamoDBBackend(BaseBackend):
             if item["quadkey"] != self._metadata_quadkey
         ]
 
-    def write(self, overwrite: bool = False, **kwargs: Any):
+    def write(self, mosaic: MosaicJSON, overwrite: bool = False, **kwargs: Any):
         """Write mosaicjson document to AWS DynamoDB.
 
         Args:
+            mosaic (MosaicJSON): mosaicJSON document to write.
             overwrite (bool): delete old mosaic items inthe Table.
             **kwargs (any): Options forwarded to `dynamodb.create_table`
 
@@ -112,6 +114,11 @@ class DynamoDBBackend(BaseBackend):
             MosaicExistsError: If mosaic already exists in the Table.
 
         """
+        if self.mode == "r":
+            raise ValueError(
+                "Can only write a mosaic opened in 'r+' or 'w' mode, not r."
+            )
+
         if not self._table_exists():
             self._create_table(**kwargs)
 
@@ -122,25 +129,22 @@ class DynamoDBBackend(BaseBackend):
                 )
             self.delete()
 
-        items = self._create_items()
+        if not isinstance(mosaic, MosaicJSON):
+            mosaic = MosaicJSON(**dict(mosaic))
+
+        items = self._create_items(mosaic)
         self._write_items(items)
+
+        # Update mosaic_def
+        meta = mosaic.dict()
+        meta["tiles"] = {}
+        self.mosaic_def = MosaicJSON(**meta)
 
     def _update_quadkey(self, quadkey: str, dataset: List[str]):
         """Update single quadkey in DynamoDB."""
         self.table.put_item(
             Item={"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": dataset}
         )
-
-    def _update_metadata(self):
-        """Update bounds and center.
-
-        Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be in Decimal type
-
-        """
-        meta = json.loads(self.metadata.json(), parse_float=Decimal)
-        meta["quadkey"] = self._metadata_quadkey
-        meta["mosaicId"] = self.mosaic_name
-        self.table.put_item(Item=meta)
 
     def update(
         self,
@@ -152,15 +156,27 @@ class DynamoDBBackend(BaseBackend):
         """Update existing MosaicJSON on backend."""
         logger.debug(f"Updating {self.mosaic_name}...")
 
+        mosaic = deepcopy(self.mosaic_def)
         new_mosaic = MosaicJSON.from_features(
             features,
-            self.mosaic_def.minzoom,
-            self.mosaic_def.maxzoom,
+            mosaic.minzoom,
+            mosaic.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
             quiet=quiet,
             **kwargs,
         )
 
+        bounds = bbox_union(new_mosaic.bounds, mosaic.bounds)
+
+        mosaic._increase_version()
+        mosaic.bounds = bounds
+        mosaic.center = (
+            (bounds[0] + bounds[2]) / 2,
+            (bounds[1] + bounds[3]) / 2,
+            mosaic.minzoom,
+        )
+
+        # Update Tiles
         fout = os.devnull if quiet else sys.stderr
         with click.progressbar(  # type: ignore
             new_mosaic.tiles.items(),
@@ -176,17 +192,18 @@ class DynamoDBBackend(BaseBackend):
                 # add custom sorting algorithm (e.g based on path name)
                 self._update_quadkey(quadkey, assets)
 
-        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
+        # Update Metadata
+        meta = json.loads(mosaic.json(exclude={"tiles"}), parse_float=Decimal)
+        meta["quadkey"] = self._metadata_quadkey
+        meta["mosaicId"] = self.mosaic_name
+        self.table.put_item(Item=meta)
 
-        self.mosaic_def._increase_version()
-        self.mosaic_def.bounds = bounds
-        self.mosaic_def.center = (
-            (bounds[0] + bounds[2]) / 2,
-            (bounds[1] + bounds[3]) / 2,
-            self.mosaic_def.minzoom,
-        )
-
-        self._update_metadata()
+        # Update mosaic_def
+        # By SQLiteBackend design `mosaic_def` should never have anything in tiles key
+        # but I think it's best to replicate here for code clarity.
+        meta = mosaic.dict()
+        meta["tiles"] = {}
+        self.mosaic_def = MosaicJSON(**meta)
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST", **kwargs: Any):
         """Create DynamoDB Table.
@@ -226,7 +243,7 @@ class DynamoDBBackend(BaseBackend):
             warnings.warn("Unable to create table.")
             return
 
-    def _create_items(self) -> List[Dict]:
+    def _create_items(self, mosaic: MosaicJSON) -> List[Dict]:
         """Create DynamoDB items from Mosaic defintion.
 
         Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be
@@ -234,11 +251,11 @@ class DynamoDBBackend(BaseBackend):
 
         """
         items = []
-        meta = json.loads(self.metadata.json(), parse_float=Decimal)
+        meta = json.loads(mosaic.json(exclude={"tiles"}), parse_float=Decimal)
         meta = {"quadkey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
         items.append(meta)
 
-        for quadkey, assets in self.mosaic_def.tiles.items():
+        for quadkey, assets in mosaic.tiles.items():
             item = {"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": assets}
             items.append(item)
 

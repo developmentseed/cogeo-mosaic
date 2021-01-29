@@ -9,7 +9,6 @@ from typing import Dict, List
 from unittest.mock import patch
 
 import boto3
-import numpy
 import pytest
 from click.testing import CliRunner
 from pydantic import ValidationError
@@ -25,12 +24,7 @@ from cogeo_mosaic.backends.stac import _fetch as stac_search
 from cogeo_mosaic.backends.stac import default_stac_accessor as stac_accessor
 from cogeo_mosaic.backends.utils import _decompress_gz
 from cogeo_mosaic.backends.web import HttpBackend
-from cogeo_mosaic.errors import (
-    MosaicError,
-    MosaicExistsError,
-    MosaicNotFoundError,
-    NoAssetFoundError,
-)
+from cogeo_mosaic.errors import MosaicError, MosaicExistsError, MosaicNotFoundError
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import get_footprints
 
@@ -50,8 +44,10 @@ with open(mosaic_json, "r") as f:
 
 def test_file_backend():
     """Test File backend."""
-    with MosaicBackend(mosaic_gz) as mosaic:
+    with MosaicBackend(mosaic_gz, mode="r") as mosaic:
         assert mosaic._backend_name == "File"
+        assert mosaic.center
+        assert mosaic._available_modes == ["r", "r+", "w"]
         assert isinstance(mosaic, FileBackend)
         assert (
             mosaic.mosaicid
@@ -88,7 +84,23 @@ def test_file_backend():
         assert len(mosaic.get_assets(150, 182, 9)) == 2
         assert len(mosaic.get_assets(147, 182, 12)) == 0
 
-    with MosaicBackend(mosaic_bin, backend_options={"gzip": True}) as mosaic:
+        with pytest.raises(NotImplementedError):
+            mosaic.stats()
+
+        with pytest.raises(NotImplementedError):
+            mosaic.preview()
+
+        with pytest.raises(NotImplementedError):
+            mosaic.part()
+
+        with pytest.raises(NotImplementedError):
+            mosaic.feature()
+
+    with pytest.raises(ValueError):
+        with MosaicBackend(mosaic_gz, mode="r") as mosaic:
+            mosaic.write({})
+
+    with MosaicBackend(mosaic_bin, mode="r", backend_options={"gzip": True}) as mosaic:
         assert isinstance(mosaic, FileBackend)
         assert (
             mosaic.mosaicid
@@ -96,11 +108,11 @@ def test_file_backend():
         )
         assert mosaic.quadkey_zoom == 7
 
-    with MosaicBackend(mosaic_json) as mosaic:
+    with MosaicBackend(mosaic_json, mode="r") as mosaic:
         assert isinstance(mosaic, FileBackend)
         assert mosaic.quadkey_zoom == 7
 
-    with MosaicBackend(mosaic_jsonV1) as mosaic:
+    with MosaicBackend(mosaic_jsonV1, mode="r") as mosaic:
         assert isinstance(mosaic, FileBackend)
         assert mosaic.quadkey_zoom == 7
         assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
@@ -113,28 +125,36 @@ def test_file_backend():
         ]
 
     with pytest.raises(ValidationError):
-        with MosaicBackend("afile.json", mosaic_def={}):
+        with MosaicBackend("afile.json", mode="w") as mosaic:
+            mosaic.write({})
             pass
 
     runner = CliRunner()
     with runner.isolated_filesystem():
-        with MosaicBackend("mosaic.json", mosaic_def=mosaic_content) as mosaic:
-            mosaic.write()
+        with MosaicBackend("mosaic.json", mode="w") as mosaic:
+            mosaic.write(mosaic_content)
+            # make sure the minzoom/maxzoom/bounds were updated
+            assert mosaic.minzoom == mosaic_content["minzoom"]
+            assert mosaic.maxzoom == mosaic_content["maxzoom"]
+            assert mosaic.bounds == tuple(mosaic_content["bounds"])
+
             with open("mosaic.json") as f:
                 m = json.loads(f.read())
                 assert m["quadkey_zoom"] == 7
-            with pytest.raises(MosaicExistsError):
-                mosaic.write()
-            mosaic.write(overwrite=True)
 
-        with MosaicBackend("mosaic.json.gz", mosaic_def=mosaic_content) as mosaic:
-            mosaic.write()
+            with pytest.raises(MosaicExistsError):
+                mosaic.write(mosaic_content)
+
+            mosaic.write(mosaic_content, overwrite=True)
+
+        with MosaicBackend("mosaic.json.gz", mode="w") as mosaic:
+            mosaic.write(mosaic_content)
             with open("mosaic.json.gz", "rb") as f:
                 m = json.loads(_decompress_gz(f.read()))
                 assert m["quadkey_zoom"] == 7
 
-        with MosaicBackend("abinaryfile.bin", mosaic_def=mosaic_content) as mosaic:
-            mosaic.write(gzip=True)
+        with MosaicBackend("abinaryfile.bin", mode="w") as mosaic:
+            mosaic.write(mosaic_content, gzip=True)
             with open("abinaryfile.bin", "rb") as f:
                 m = json.loads(_decompress_gz(f.read()))
                 assert m["quadkey_zoom"] == 7
@@ -160,8 +180,18 @@ def test_http_backend(requests):
         requests.exceptions.HTTPError = HTTPError
         requests.exceptions.RequestException = RequestException
 
-    with MosaicBackend("https://mymosaic.json") as mosaic:
+    # check access modes
+    with pytest.raises(ValueError):
+        with MosaicBackend("https://mymosaic.json", mode="w") as mosaic:
+            pass
+
+    with pytest.raises(ValueError):
+        with MosaicBackend("https://mymosaic.json", mode="r+") as mosaic:
+            pass
+
+    with MosaicBackend("https://mymosaic.json", mode="r") as mosaic:
         assert mosaic._backend_name == "HTTP"
+        assert mosaic._available_modes == ["r"]
         assert isinstance(mosaic, HttpBackend)
         assert (
             mosaic.mosaicid
@@ -192,10 +222,8 @@ def test_http_backend(requests):
         requests.mock_reset()
 
     with pytest.raises(NotImplementedError):
-        with MosaicBackend(
-            "https://mymosaic.json", mosaic_def=mosaic_content
-        ) as mosaic:
-            mosaic.write()
+        with MosaicBackend("https://mymosaic.json") as mosaic:
+            mosaic.write(mosaic_content)
         requests.get.assert_not_called()
         requests.mock_reset()
 
@@ -220,8 +248,9 @@ def test_s3_backend(session):
     session.return_value.client.return_value.put_object.return_value = True
     session.return_value.client.return_value.head_object.return_value = False
 
-    with MosaicBackend("s3://mybucket/mymosaic.json.gz") as mosaic:
+    with MosaicBackend("s3://mybucket/mymosaic.json.gz", mode="r") as mosaic:
         assert mosaic._backend_name == "AWS S3"
+        assert mosaic._available_modes == ["r", "r+", "w"]
         assert isinstance(mosaic, S3Backend)
         assert (
             mosaic.mosaicid
@@ -253,11 +282,10 @@ def test_s3_backend(session):
     session.return_value.client.return_value.put_object.return_value = True
     session.return_value.client.return_value.head_object.return_value = False
 
-    with MosaicBackend(
-        "s3://mybucket/mymosaic.json.gz", mosaic_def=mosaic_content
-    ) as mosaic:
+    with MosaicBackend("s3://mybucket/mymosaic.json.gz", mode="w") as mosaic:
         assert isinstance(mosaic, S3Backend)
-        mosaic.write()
+        mosaic.write(mosaic_content)
+        assert mosaic.minzoom == mosaic_content["minzoom"]
     session.return_value.client.return_value.get_object.assert_not_called()
     session.return_value.client.return_value.head_object.assert_called_once()
     kwargs = session.return_value.client.return_value.put_object.call_args[1]
@@ -266,10 +294,16 @@ def test_s3_backend(session):
     assert MosaicJSON(**json.loads(_decompress_gz(kwargs["Body"])))
     session.reset_mock()
 
+    with pytest.raises(ValueError):
+        with MosaicBackend("s3://mybucket/mymosaic.json.gz", mode="r") as mosaic:
+            assert isinstance(mosaic, S3Backend)
+            mosaic.write(mosaic_content)
+        session.reset_mock()
+
     session.return_value.client.return_value.head_object.return_value = False
-    with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
+    with MosaicBackend("s3://mybucket/00000", mode="w") as mosaic:
         assert isinstance(mosaic, S3Backend)
-        mosaic.write(gzip=True)
+        mosaic.write(mosaic_content, gzip=True)
     session.return_value.client.return_value.get_object.assert_not_called()
     session.return_value.client.return_value.head_object.assert_called_once()
     kwargs = session.return_value.client.return_value.put_object.call_args[1]
@@ -279,9 +313,9 @@ def test_s3_backend(session):
     session.reset_mock()
 
     session.return_value.client.return_value.head_object.return_value = False
-    with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
+    with MosaicBackend("s3://mybucket/00000", mode="w") as mosaic:
         assert isinstance(mosaic, S3Backend)
-        mosaic.write()
+        mosaic.write(mosaic_content)
     session.return_value.client.return_value.get_object.assert_not_called()
     session.return_value.client.return_value.head_object.assert_called_once()
     kwargs = session.return_value.client.return_value.put_object.call_args[1]
@@ -291,19 +325,19 @@ def test_s3_backend(session):
     session.reset_mock()
 
     session.return_value.client.return_value.head_object.return_value = True
-    with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
+    with MosaicBackend("s3://mybucket/00000", mode="w") as mosaic:
         assert isinstance(mosaic, S3Backend)
         with pytest.raises(MosaicExistsError):
-            mosaic.write()
+            mosaic.write(mosaic_content)
     session.return_value.client.return_value.get_object.assert_not_called()
     session.return_value.client.return_value.head_object.assert_called_once()
     kwargs = session.return_value.client.return_value.put_object.assert_not_called()
     session.reset_mock()
 
     session.return_value.client.return_value.head_object.return_value = True
-    with MosaicBackend("s3://mybucket/00000", mosaic_def=mosaic_content) as mosaic:
+    with MosaicBackend("s3://mybucket/00000", mode="w") as mosaic:
         assert isinstance(mosaic, S3Backend)
-        mosaic.write(overwrite=True)
+        mosaic.write(mosaic_content, overwrite=True)
     session.return_value.client.return_value.get_object.assert_not_called()
     session.return_value.client.return_value.head_object.assert_not_called()
     kwargs = session.return_value.client.return_value.put_object.assert_called_once()
@@ -403,8 +437,9 @@ def test_dynamoDB_backend(client):
     """Test DynamoDB backend."""
     client.return_value.Table = MockTable
 
-    with MosaicBackend("dynamodb:///thiswaskylebarronidea:mosaic") as mosaic:
+    with MosaicBackend("dynamodb:///thiswaskylebarronidea:mosaic", mode="r") as mosaic:
         assert mosaic._backend_name == "AWS DynamoDB"
+        assert mosaic._available_modes == ["r", "r+", "w"]
         assert isinstance(mosaic, DynamoDBBackend)
         assert mosaic.quadkey_zoom == 7
         assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
@@ -433,28 +468,28 @@ def test_dynamoDB_backend(client):
         info = mosaic.info(quadkeys=True)
         assert info["quadkeys"]
 
-    with MosaicBackend(
-        "dynamodb:///thiswaskylebarronidea:mosaic2", mosaic_def=mosaic_content
-    ) as mosaic:
-        assert isinstance(mosaic, DynamoDBBackend)
-        items = mosaic._create_items()
-        assert len(items) == 10
-        assert items[-1] == {
-            "mosaicId": "mosaic2",
-            "quadkey": "0302330",
-            "assets": ["cog1.tif", "cog2.tif"],
-        }
-        mosaic._create_table()
+    # with MosaicBackend(
+    #     "dynamodb:///thiswaskylebarronidea:mosaic2", mosaic_def=mosaic_content
+    # ) as mosaic:
+    #     assert isinstance(mosaic, DynamoDBBackend)
+    #     items = mosaic._create_items()
+    #     assert len(items) == 10
+    #     assert items[-1] == {
+    #         "mosaicId": "mosaic2",
+    #         "quadkey": "0302330",
+    #         "assets": ["cog1.tif", "cog2.tif"],
+    #     }
+    #     mosaic._create_table()
 
-    with MosaicBackend(
-        "dynamodb:///thiswaskylebarronidea:mosaic2", mosaic_def=mosaic_content
-    ) as mosaic:
-        items = mosaic._create_items()
-        assert len(items) == len(mosaic.mosaic_def.tiles.items()) + 1
-        assert "quadkey" in list(items[0])
-        assert "mosaicId" in list(items[0])
-        assert "bounds" in list(items[0])
-        assert "center" in list(items[0])
+    # with MosaicBackend(
+    #     "dynamodb:///thiswaskylebarronidea:mosaic2", mosaic_def=mosaic_content
+    # ) as mosaic:
+    #     items = mosaic._create_items()
+    #     assert len(items) == len(mosaic.mosaic_def.tiles.items()) + 1
+    #     assert "quadkey" in list(items[0])
+    #     assert "mosaicId" in list(items[0])
+    #     assert "bounds" in list(items[0])
+    #     assert "center" in list(items[0])
 
 
 class STACMockResponse(MockResponse):
@@ -475,9 +510,15 @@ def test_stac_backend(post):
         ]
 
     with STACBackend(
-        "https://a_stac.api/search", {}, 8, 14, backend_options={"max_items": 8}
+        "https://a_stac.api/search",
+        query={},
+        minzoom=8,
+        maxzoom=14,
+        backend_options={"max_items": 8},
+        mode="r",
     ) as mosaic:
         assert mosaic._backend_name == "STAC"
+        assert mosaic._available_modes == ["r"]
         assert isinstance(mosaic, STACBackend)
         assert post.call_count == 1
         assert mosaic.quadkey_zoom == 8
@@ -507,7 +548,12 @@ def test_stac_backend(post):
         ]
 
     with STACBackend(
-        "https://a_stac.api/search", {}, 8, 14, backend_options={"max_items": 15}
+        "https://a_stac.api/search",
+        query={},
+        minzoom=8,
+        maxzoom=14,
+        backend_options={"max_items": 15},
+        mode="r",
     ) as mosaic:
         assert mosaic._backend_name == "STAC"
         assert isinstance(mosaic, STACBackend)
@@ -524,20 +570,40 @@ def test_stac_backend(post):
         ]
     post.reset_mock()
 
-    with open(stac_page1, "r") as f1, open(stac_page2, "r") as f2:
-        post.side_effect = [
-            STACMockResponse(json.loads(f1.read())),
-            STACMockResponse(json.loads(f2.read())),
-        ]
-
     with STACBackend(
-        "https://a_stac.api/search", {}, 8, 14, backend_options={"max_items": 15}
+        "https://a_stac.api/search",
+        query={},
+        minzoom=8,
+        maxzoom=14,
+        backend_options={"max_items": 15},
     ) as mosaic:
         with pytest.raises(NotImplementedError):
-            mosaic.write()
+            mosaic.write({})
 
         with pytest.raises(NotImplementedError):
-            mosaic.update()
+            mosaic.update({})
+
+    with pytest.raises(ValueError):
+        with STACBackend(
+            "https://a_stac.api/search",
+            query={},
+            minzoom=8,
+            maxzoom=14,
+            backend_options={"max_items": 15},
+            mode="w",
+        ) as mosaic:
+            pass
+
+    with pytest.raises(ValueError):
+        with STACBackend(
+            "https://a_stac.api/search",
+            query={},
+            minzoom=8,
+            maxzoom=14,
+            backend_options={"max_items": 15},
+            mode="r+",
+        ) as mosaic:
+            pass
 
 
 @patch("cogeo_mosaic.backends.stac.requests.post")
@@ -608,82 +674,85 @@ def test_stac_accessor():
         # "s3://mybucket/amosaic.json",
         "https://mosaic.com/amosaic.json.gz",
         "https://mybucket.s3.amazonaws.com/mosaic.json",
+        "sqlite:///path/to/mosaic.db:test",
     ],
 )
 def test_mosaic_crud_error(mosaic_path):
     with pytest.raises(MosaicError):
-        with MosaicBackend(mosaic_path):
+        with MosaicBackend(mosaic_path, "r"):
             ...
 
 
-def test_BaseReader():
-    """Test BaseReader heritance methods."""
-    assets = [asset1, asset2]
-    mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
+# Will be replace by InMemoryBackend
+# def test_BaseReader():
+#     """Test BaseReader heritance methods."""
+#     assets = [asset1, asset2]
+#     mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
 
-    # add some offset to the center to make
-    # sure BaseBackend forward center from the mosaic definition
-    mosaicdef.center = [x + 1 for x in mosaicdef.center]
+#     # add some offset to the center to make
+#     # sure BaseBackend forward center from the mosaic definition
+#     mosaicdef.center = [x + 1 for x in mosaicdef.center]
 
-    with MosaicBackend(None, mosaic_def=mosaicdef) as mosaic:
-        (t, _), assets_used = mosaic.tile(150, 182, 9)
-        assert t.shape
+#     with MosaicBackend(None, mosaic_def=mosaicdef) as mosaic:
+#         (t, _), assets_used = mosaic.tile(150, 182, 9)
+#         assert t.shape
 
-        (tR, _), assets_usedR = mosaic.tile(150, 182, 9, reverse=True)
-        assert tR.shape
-        assert not numpy.array_equal(t, tR)
+#         (tR, _), assets_usedR = mosaic.tile(150, 182, 9, reverse=True)
+#         assert tR.shape
+#         assert not numpy.array_equal(t, tR)
 
-        assert assets_used[0] == assets_usedR[-1]
+#         assert assets_used[0] == assets_usedR[-1]
 
-        with pytest.raises(NoAssetFoundError):
-            mosaic.tile(200, 182, 9)
+#         with pytest.raises(NoAssetFoundError):
+#             mosaic.tile(200, 182, 9)
 
-        pts = mosaic.point(-73, 45)
-        assert len(pts) == 2
-        assert pts[0]["asset"]
-        assert pts[1]["values"]
+#         pts = mosaic.point(-73, 45)
+#         assert len(pts) == 2
+#         assert pts[0]["asset"]
+#         assert pts[1]["values"]
 
-        ptsR = mosaic.point(-73, 45, reverse=True)
-        assert len(ptsR) == 2
-        assert ptsR[0]["asset"] == pts[-1]["asset"]
+#         ptsR = mosaic.point(-73, 45, reverse=True)
+#         assert len(ptsR) == 2
+#         assert ptsR[0]["asset"] == pts[-1]["asset"]
 
-        pts = mosaic.point(-72.5, 46)
-        assert len(pts) == 1
+#         pts = mosaic.point(-72.5, 46)
+#         assert len(pts) == 1
 
-        with pytest.raises(NoAssetFoundError):
-            mosaic.point(-60, 45)
+#         with pytest.raises(NoAssetFoundError):
+#             mosaic.point(-60, 45)
 
-        assert mosaic.minzoom
-        assert mosaic.maxzoom
-        assert mosaic.bounds
-        assert mosaic.center == mosaicdef.center
+#         assert mosaic.minzoom
+#         assert mosaic.maxzoom
+#         assert mosaic.bounds
+#         assert mosaic.center == mosaicdef.center
 
-        with pytest.raises(NotImplementedError):
-            mosaic.stats()
+#         with pytest.raises(NotImplementedError):
+#             mosaic.stats()
 
-        with pytest.raises(NotImplementedError):
-            mosaic.preview()
+#         with pytest.raises(NotImplementedError):
+#             mosaic.preview()
 
-        with pytest.raises(NotImplementedError):
-            mosaic.part()
+#         with pytest.raises(NotImplementedError):
+#             mosaic.part()
 
-        info = mosaic.info()
-        assert list(info.dict()) == [
-            "bounds",
-            "center",
-            "minzoom",
-            "maxzoom",
-            "name",
-            "quadkeys",
-        ]
+#         info = mosaic.info()
+#         assert list(info.dict()) == [
+#             "bounds",
+#             "center",
+#             "minzoom",
+#             "maxzoom",
+#             "name",
+#             "quadkeys",
+#         ]
 
-        assert mosaic.spatial_info
+#         assert mosaic.spatial_info
 
 
 def test_sqlite_backend():
     """Test sqlite backend."""
-    with MosaicBackend(f"sqlite:///{mosaic_db}:test") as mosaic:
+    with MosaicBackend(f"sqlite:///{mosaic_db}:test", mode="r") as mosaic:
         assert mosaic._backend_name == "SQLite"
+        assert mosaic._available_modes == ["r", "r+", "w"]
         assert isinstance(mosaic, SQLiteBackend)
         assert (
             mosaic.mosaicid
@@ -723,53 +792,57 @@ def test_sqlite_backend():
 
     # Validation error, mosaic_def is empty
     with pytest.raises(ValidationError):
-        with MosaicBackend("sqlite:///:memory::test", mosaic_def={}):
-            pass
+        with MosaicBackend("sqlite:///:memory::test", mode="w") as mosaic:
+            mosaic.write({})
+
+    # Cannot write a mosaic opened in read mode
+    with pytest.raises(ValueError):
+        with MosaicBackend(f"sqlite:///{mosaic_db}:test", mode="r") as mosaic:
+            mosaic.write({})
 
     # invalid scheme `sqlit://`
     with pytest.raises(ValueError):
-        with SQLiteBackend("sqlit:///:memory::test"):
+        with SQLiteBackend("sqlit:///:memory::test", mode="r"):
             pass
 
     # `:` is an invalid character for mosaic name
     with pytest.raises(ValueError):
-        with SQLiteBackend("sqlite:///:memory::test:"):
+        with SQLiteBackend("sqlite:///:memory::test:", mode="r"):
             pass
 
     # `mosaicjson_metadata` is a reserved mosaic name
     with pytest.raises(AssertionError):
-        with MosaicBackend("sqlite:///:memory::mosaicjson_metadata"):
+        with MosaicBackend("sqlite:///:memory::mosaicjson_metadata", mode="r"):
             pass
 
     # Warns when changing name
     with pytest.warns(UserWarning):
         with MosaicBackend(mosaic_gz) as m:
-            with MosaicBackend("sqlite:///:memory::test", mosaic_def=m.mosaic_def) as d:
+            with MosaicBackend("sqlite:///:memory::test", mode="w") as d:
+                d.write(m.mosaic_def)
                 assert d.mosaic_def.name == "test"
 
     # need to set overwrite when mosaic already exists
-    with MosaicBackend("sqlite:///:memory::test", mosaic_def=mosaic_content) as mosaic:
-        mosaic.write()
+    with MosaicBackend("sqlite:///:memory::test", mode="w") as mosaic:
+        mosaic.write(mosaic_content)
         with pytest.raises(MosaicExistsError):
-            mosaic.write()
-        mosaic.write(overwrite=True)
+            mosaic.write(mosaic_content)
+        mosaic.write(mosaic_content, overwrite=True)
 
     # files doesn't exists
     with pytest.raises(MosaicNotFoundError):
-        with MosaicBackend("sqlite:///test.db:test2") as mosaic:
+        with MosaicBackend("sqlite:///test.db:test2", mode="r") as mosaic:
             pass
 
     # mosaic doesn't exists in DB
     with pytest.raises(MosaicNotFoundError):
-        with MosaicBackend(f"sqlite:///{mosaic_db}:test2") as mosaic:
+        with MosaicBackend(f"sqlite:///{mosaic_db}:test2", mode="r") as mosaic:
             pass
 
     # Test with `.` in mosaic name
     with pytest.warns(UserWarning):
-        with MosaicBackend(
-            "sqlite:///:memory::test.mosaic", mosaic_def=mosaic_content
-        ) as m:
-            m.write()
+        with MosaicBackend("sqlite:///:memory::test.mosaic", mode="w") as m:
+            m.write(mosaic_content)
             assert m._mosaic_exists()
             assert m.mosaic_def.name == "test.mosaic"
 
@@ -781,8 +854,8 @@ def test_sqlite_backend():
     features = get_footprints([asset2], quiet=True)
 
     # Test update methods
-    with MosaicBackend("sqlite:///:memory::test", mosaic_def=mosaic_oneasset) as m:
-        m.write()
+    with MosaicBackend("sqlite:///:memory::test", mode="w") as m:
+        m.write(mosaic_oneasset)
         meta = m.metadata
         assert len(m.get_assets(150, 182, 9)) == 1
 
@@ -795,8 +868,8 @@ def test_sqlite_backend():
         assert assets[1] == asset1
 
     # Test update with `add_first=False`
-    with MosaicBackend("sqlite:///:memory::test2", mosaic_def=mosaic_oneasset) as m:
-        m.write()
+    with MosaicBackend("sqlite:///:memory::test2", mode="w") as m:
+        m.write(mosaic_oneasset)
         meta = m.metadata
         assert len(m.get_assets(150, 182, 9)) == 1
 
@@ -807,6 +880,10 @@ def test_sqlite_backend():
         assert len(assets) == 2
         assert assets[0] == asset1
         assert assets[1] == asset2
+
+    with pytest.raises(ValueError):
+        with MosaicBackend(f"sqlite:///{mosaic_db}:test", mode="r") as mosaic:
+            mosaic.update(features)
 
     assert SQLiteBackend.list_mosaics_in_db(mosaic_db) == ["test"]
     assert SQLiteBackend.list_mosaics_in_db(f"sqlite:///{mosaic_db}") == ["test"]

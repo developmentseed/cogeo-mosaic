@@ -2,12 +2,14 @@
 
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 import attr
 import requests
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
+from morecantile import TileMatrixSet
+from rio_tiler.constants import WEB_MERCATOR_TMS
 from rio_tiler.io import STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
@@ -56,27 +58,42 @@ class STACBackend(BaseBackend):
     query: Dict = attr.ib()
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
-    mosaic_def: MosaicJSON = attr.ib(default=None)
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
     backend_options: Dict = attr.ib(factory=dict)
+    mode = attr.ib(default="r")
+
+    tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
+
+    mosaic_def: MosaicJSON = attr.ib(init=False)
+
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        init=False, default=(-180, -90, 180, 90)
+    )
 
     _backend_name = "STAC"
+    _available_modes = ["r"]
+
+    @mode.validator
+    def _check_mode(self, attribute, value):
+        if value not in self._available_modes:
+            raise ValueError(
+                f"Invalid '{value}' mode. MUST be one of {self._available_modes}."
+            )
 
     def __attrs_post_init__(self):
-        """Post Init: if not passed in init, try to read from self.path."""
-        self.mosaic_def = self.mosaic_def or self._read(
+        """Post Init: fetch STAC API and create mosaicJSON"""
+        self.mosaic_def = self._read(
             self.query, self.minzoom, self.maxzoom, **self.backend_options
         )
-        self.bounds = self.mosaic_def.bounds
 
-    def write(self):
+    def write(self, mosaic: MosaicJSON, overwrite: bool = False):
         """Write mosaicjson document."""
-        raise NotImplementedError
+        raise NotImplementedError("STACBackend is a read-only backend")
 
     def update(self, *args, **kwargs: Any):
         """Update the mosaicjson document."""
-        raise NotImplementedError
+        raise NotImplementedError("STACBackend is a read-only backend")
 
     def _read(  # type: ignore
         self,

@@ -5,6 +5,7 @@ import json
 import re
 import sqlite3
 import warnings
+from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Sequence
 from urllib.parse import urlparse
@@ -60,19 +61,14 @@ class SQLiteBackend(BaseBackend):
 
         self.db_path = uri_path.replace(f":{self.mosaic_name}", "")
 
-        # When mosaic_def is not passed, we have to make sure the db exists
-        if not self.mosaic_def and not Path(self.db_path).exists():
+        # When using "r or r+" mode, we have to make sure the db exists
+        if self.mode in ["r", "r+"] and not Path(self.db_path).exists():
             raise MosaicNotFoundError(
                 f"SQLite database not found at path {self.db_path}."
             )
 
         self.db = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         self.db.row_factory = sqlite3.Row
-
-        # Here we make sure the mosaicJSON.name is the same
-        if self.mosaic_def and self.mosaic_def.name != self.mosaic_name:
-            warnings.warn("Updating 'mosaic.name' to match table name.")
-            self.mosaic_def.name = self.mosaic_name
 
         logger.debug(f"Using SQLite backend: {self.db_path}")
         super().__attrs_post_init__()
@@ -94,25 +90,36 @@ class SQLiteBackend(BaseBackend):
             ).fetchall()
         return [r["quadkey"] for r in rows]
 
-    def write(self, overwrite: bool = False):
+    def write(self, mosaic: MosaicJSON, overwrite: bool = False):
         """Write mosaicjson document to an SQLite database.
 
         Args:
-            overwrite (bool): delete old mosaic items in the Table.
-
-        Returns:
-            dict: dictionary with metadata constructed from the sceneid.
+            mosaic (MosaicJSON): mosaicJSON document to write.
+            overwrite (bool): delete old mosaic items in the Table. Defaults to `False`.
 
         Raises:
             MosaicExistsError: If mosaic already exists in the Table.
 
         """
+        if self.mode == "r":
+            raise ValueError(
+                "Can only write a mosaic opened in 'r+' or 'w' mode, not r."
+            )
+
         if self._mosaic_exists():
             if not overwrite:
                 raise MosaicExistsError(
                     f"'{self.mosaic_name}' Table already exists in {self.db_path}, use `overwrite=True`."
                 )
             self.delete()
+
+        if not isinstance(mosaic, MosaicJSON):
+            mosaic = MosaicJSON(**dict(mosaic))
+
+        # Here we make sure the mosaicJSON.name is the same
+        if mosaic.name != self.mosaic_name:
+            warnings.warn("Updating 'mosaic.name' to match table name.", UserWarning)
+            mosaic.name = self.mosaic_name
 
         logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
         with self.db:
@@ -174,13 +181,18 @@ class SQLiteBackend(BaseBackend):
                         :center
                     );
                 """,
-                self.metadata.dict(),
+                mosaic.dict(),
             )
 
             self.db.executemany(
                 f'INSERT INTO "{self.mosaic_name}" (quadkey, assets) VALUES (?, ?);',
-                self.mosaic_def.tiles.items(),
+                mosaic.tiles.items(),
             )
+
+        # Update mosaic_def
+        meta = mosaic.dict()
+        meta["tiles"] = {}
+        self.mosaic_def = MosaicJSON(**meta)
 
     def update(
         self,
@@ -190,46 +202,35 @@ class SQLiteBackend(BaseBackend):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
+        if self.mode == "r":
+            raise ValueError(
+                "Can only update a mosaic opened in 'r+' or 'w' mode, not r."
+            )
+
         logger.debug(f"Updating {self.mosaic_name}...")
 
+        mosaic = deepcopy(self.mosaic_def)
         new_mosaic = MosaicJSON.from_features(
             features,
-            self.mosaic_def.minzoom,
-            self.mosaic_def.maxzoom,
+            mosaic.minzoom,
+            mosaic.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
             quiet=quiet,
             **kwargs,
         )
 
-        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
+        bounds = bbox_union(new_mosaic.bounds, mosaic.bounds)
 
-        self.mosaic_def._increase_version()
-        self.mosaic_def.bounds = bounds
-        self.mosaic_def.center = (
+        mosaic._increase_version()
+        mosaic.bounds = bounds
+        mosaic.center = (
             (bounds[0] + bounds[2]) / 2,
             (bounds[1] + bounds[3]) / 2,
-            self.mosaic_def.minzoom,
+            mosaic.minzoom,
         )
 
         with self.db:
-            self.db.execute(
-                f"""
-                    UPDATE {self._metadata_table}
-                    SET mosaicjson = :mosaicjson,
-                        name = :name,
-                        description = :description,
-                        version = :version,
-                        attribution = :attribution,
-                        minzoom = :minzoom,
-                        maxzoom = :maxzoom,
-                        quadkey_zoom = :quadkey_zoom,
-                        bounds = :bounds,
-                        center = :center
-                    WHERE name=:name
-                """,
-                self.mosaic_def.dict(),
-            )
-
+            # Update Tiles
             if add_first:
                 self.db.executemany(
                     f"""
@@ -263,6 +264,32 @@ class SQLiteBackend(BaseBackend):
                     """,
                     [(assets, qk) for qk, assets in new_mosaic.tiles.items()],
                 )
+
+            # Update Metadata
+            self.db.execute(
+                f"""
+                    UPDATE {self._metadata_table}
+                    SET mosaicjson = :mosaicjson,
+                        name = :name,
+                        description = :description,
+                        version = :version,
+                        attribution = :attribution,
+                        minzoom = :minzoom,
+                        maxzoom = :maxzoom,
+                        quadkey_zoom = :quadkey_zoom,
+                        bounds = :bounds,
+                        center = :center
+                    WHERE name=:name
+                """,
+                mosaic.dict(),
+            )
+
+        # Update mosaic_def
+        # By SQLiteBackend design `mosaic_def` should never have anything in tiles key
+        # but I think it's best to replicate here for code clarity.
+        meta = mosaic.dict()
+        meta["tiles"] = {}
+        self.mosaic_def = MosaicJSON(**meta)
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),

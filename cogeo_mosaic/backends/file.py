@@ -1,6 +1,7 @@
 """cogeo-mosaic File backend."""
 
 import json
+import pathlib
 
 import attr
 from cachetools import TTLCache, cached
@@ -9,7 +10,7 @@ from cachetools.keys import hashkey
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import _compress_gz_json, _decompress_gz
 from cogeo_mosaic.cache import cache_config
-from cogeo_mosaic.errors import _FILE_EXCEPTIONS, MosaicError
+from cogeo_mosaic.errors import _FILE_EXCEPTIONS, MosaicError, MosaicExistsError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
@@ -19,15 +20,21 @@ class FileBackend(BaseBackend):
 
     _backend_name = "File"
 
-    def write(self, mosaic: MosaicJSON, gzip: bool = None):
+    def write(self, mosaic: MosaicJSON, overwrite: bool = False, gzip: bool = None):
         """Write mosaicjson document to a file."""
         if self.mode == "r":
             raise ValueError(
                 "Can only write a mosaic opened in 'r+' or 'w' mode, not r."
             )
 
-        body = mosaic.dict(exclude_none=True)
+        if not overwrite and pathlib.Path(self.path).exists():
+            raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
+
+        if not isinstance(mosaic, MosaicJSON):
+            mosaic = MosaicJSON(**dict(mosaic))
+
         with open(self.path, "wb") as f:
+            body = mosaic.dict(exclude_none=True)
             try:
                 if gzip or (gzip is None and self.path.endswith(".gz")):
                     f.write(_compress_gz_json(body))
@@ -36,6 +43,8 @@ class FileBackend(BaseBackend):
             except Exception as e:
                 exc = _FILE_EXCEPTIONS.get(e, MosaicError)  # type: ignore
                 raise exc(str(e)) from e
+
+        self.mosaic_def = mosaic
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
