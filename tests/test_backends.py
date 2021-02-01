@@ -9,6 +9,7 @@ from typing import Dict, List
 from unittest.mock import patch
 
 import boto3
+import numpy
 import pytest
 from click.testing import CliRunner
 from pydantic import ValidationError
@@ -17,6 +18,7 @@ from requests.exceptions import HTTPError, RequestException
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
+from cogeo_mosaic.backends.memory import InMemoryBackend
 from cogeo_mosaic.backends.s3 import S3Backend
 from cogeo_mosaic.backends.sqlite import SQLiteBackend
 from cogeo_mosaic.backends.stac import STACBackend
@@ -28,6 +30,7 @@ from cogeo_mosaic.errors import (
     MosaicError,
     MosaicExistsError,
     MosaicNotFoundError,
+    NoAssetFoundError,
     UnsupportedOperation,
 )
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -667,69 +670,70 @@ def test_mosaic_crud_error(mosaic_path):
             ...
 
 
-# Memory
-# def test_BaseReader():
-#     """Test BaseReader heritance methods."""
-#     assets = [asset1, asset2]
-#     mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
+def test_InMemoryBackend():
+    """Test InMemoryBackend methods."""
+    assets = [asset1, asset2]
+    mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
 
-#     # add some offset to the center to make
-#     # sure BaseBackend forward center from the mosaic definition
-#     mosaicdef.center = [x + 1 for x in mosaicdef.center]
+    # add some offset to the center to make
+    # sure BaseBackend forward center from the mosaic definition
+    mosaicdef.center = [x + 1 for x in mosaicdef.center]
 
-#     with MosaicBackend(None, mosaic_def=mosaicdef) as mosaic:
-#         (t, _), assets_used = mosaic.tile(150, 182, 9)
-#         assert t.shape
+    with InMemoryBackend(mosaicdef) as mosaic:
+        assert mosaic._available_modes == ["w"]
+        assert mosaic._writable
+        (t, _), assets_used = mosaic.tile(150, 182, 9)
+        assert t.shape
 
-#         (tR, _), assets_usedR = mosaic.tile(150, 182, 9, reverse=True)
-#         assert tR.shape
-#         assert not numpy.array_equal(t, tR)
+        (tR, _), assets_usedR = mosaic.tile(150, 182, 9, reverse=True)
+        assert tR.shape
+        assert not numpy.array_equal(t, tR)
 
-#         assert assets_used[0] == assets_usedR[-1]
+        assert assets_used[0] == assets_usedR[-1]
 
-#         with pytest.raises(NoAssetFoundError):
-#             mosaic.tile(200, 182, 9)
+        with pytest.raises(NoAssetFoundError):
+            mosaic.tile(200, 182, 9)
 
-#         pts = mosaic.point(-73, 45)
-#         assert len(pts) == 2
-#         assert pts[0]["asset"]
-#         assert pts[1]["values"]
+        pts = mosaic.point(-73, 45)
+        assert len(pts) == 2
+        assert pts[0]["asset"]
+        assert pts[1]["values"]
 
-#         ptsR = mosaic.point(-73, 45, reverse=True)
-#         assert len(ptsR) == 2
-#         assert ptsR[0]["asset"] == pts[-1]["asset"]
+        ptsR = mosaic.point(-73, 45, reverse=True)
+        assert len(ptsR) == 2
+        assert ptsR[0]["asset"] == pts[-1]["asset"]
 
-#         pts = mosaic.point(-72.5, 46)
-#         assert len(pts) == 1
+        pts = mosaic.point(-72.5, 46)
+        assert len(pts) == 1
 
-#         with pytest.raises(NoAssetFoundError):
-#             mosaic.point(-60, 45)
+        with pytest.raises(NoAssetFoundError):
+            mosaic.point(-60, 45)
 
-#         assert mosaic.minzoom
-#         assert mosaic.maxzoom
-#         assert mosaic.bounds
-#         assert mosaic.center == mosaicdef.center
+        assert mosaic.minzoom
+        assert mosaic.maxzoom
+        assert mosaic.bounds
+        assert mosaic.center == mosaicdef.center
 
-#         with pytest.raises(NotImplementedError):
-#             mosaic.stats()
+        with pytest.raises(NotImplementedError):
+            mosaic.stats()
 
-#         with pytest.raises(NotImplementedError):
-#             mosaic.preview()
+        with pytest.raises(NotImplementedError):
+            mosaic.preview()
 
-#         with pytest.raises(NotImplementedError):
-#             mosaic.part()
+        with pytest.raises(NotImplementedError):
+            mosaic.part()
 
-#         info = mosaic.info()
-#         assert list(info.dict()) == [
-#             "bounds",
-#             "center",
-#             "minzoom",
-#             "maxzoom",
-#             "name",
-#             "quadkeys",
-#         ]
+        info = mosaic.info()
+        assert list(info.dict()) == [
+            "bounds",
+            "center",
+            "minzoom",
+            "maxzoom",
+            "name",
+            "quadkeys",
+        ]
 
-#         assert mosaic.spatial_info
+        assert mosaic.spatial_info
 
 
 def test_sqlite_backend():
