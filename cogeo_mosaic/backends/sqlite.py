@@ -5,6 +5,7 @@ import json
 import re
 import sqlite3
 import warnings
+from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Sequence
 from urllib.parse import urlparse
@@ -17,7 +18,11 @@ from cachetools.keys import hashkey
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import cache_config
-from cogeo_mosaic.errors import MosaicExistsError, MosaicNotFoundError
+from cogeo_mosaic.errors import (
+    MosaicExistsError,
+    MosaicNotFoundError,
+    UnsupportedOperation,
+)
 from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
@@ -61,18 +66,13 @@ class SQLiteBackend(BaseBackend):
         self.db_path = uri_path.replace(f":{self.mosaic_name}", "")
 
         # When mosaic_def is not passed, we have to make sure the db exists
-        if not self.mosaic_def and not Path(self.db_path).exists():
+        if self._readable and not Path(self.db_path).exists():
             raise MosaicNotFoundError(
                 f"SQLite database not found at path {self.db_path}."
             )
 
         self.db = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         self.db.row_factory = sqlite3.Row
-
-        # Here we make sure the mosaicJSON.name is the same
-        if self.mosaic_def and self.mosaic_def.name != self.mosaic_name:
-            warnings.warn("Updating 'mosaic.name' to match table name.")
-            self.mosaic_def.name = self.mosaic_name
 
         logger.debug(f"Using SQLite backend: {self.db_path}")
         super().__attrs_post_init__()
@@ -94,19 +94,44 @@ class SQLiteBackend(BaseBackend):
             ).fetchall()
         return [r["quadkey"] for r in rows]
 
-    def write(self, overwrite: bool = False):
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
+    )
+    def get_assets(self, x: int, y: int, z: int) -> List[str]:
+        """Find assets."""
+        mercator_tile = mercantile.Tile(x=x, y=y, z=z)
+        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
+        return list(itertools.chain.from_iterable([self._fetch(qk) for qk in quadkeys]))
+
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self: hashkey(self.path),
+    )
+    def _read(self) -> MosaicJSON:  # type: ignore
+        """Get Mosaic definition info."""
+        meta = self._fetch_metadata()
+        if not meta:
+            raise MosaicNotFoundError(f"Mosaic not found in {self.path}")
+
+        meta["tiles"] = {}
+        return MosaicJSON(**meta)
+
+    def write(self, mosaic: MosaicJSON, overwrite: bool = False):
         """Write mosaicjson document to an SQLite database.
 
         Args:
+            mosaic (MosaicJSON): mosaicJSON document to write.
             overwrite (bool): delete old mosaic items in the Table.
 
-        Returns:
-            dict: dictionary with metadata constructed from the sceneid.
-
         Raises:
+            UnsupportedOperation: If the backend is not opened in Write mode.
             MosaicExistsError: If mosaic already exists in the Table.
 
         """
+        if not self._writable:
+            raise UnsupportedOperation("not writable")
+
         if self._mosaic_exists():
             if not overwrite:
                 raise MosaicExistsError(
@@ -114,8 +139,18 @@ class SQLiteBackend(BaseBackend):
                 )
             self.delete()
 
-        logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
+        if not isinstance(mosaic, MosaicJSON):
+            mosaic = MosaicJSON(**dict(mosaic))
+        else:
+            mosaic = deepcopy(mosaic)
+
+        # Here we make sure the mosaicJSON.name is the same
+        if mosaic.name != self.mosaic_name:
+            warnings.warn("Updating 'mosaic.name' to match table name.")
+            mosaic.name = self.mosaic_name
+
         with self.db:
+            logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
             self.db.execute(
                 f"""
                     CREATE TABLE IF NOT EXISTS {self._metadata_table}
@@ -143,8 +178,7 @@ class SQLiteBackend(BaseBackend):
                 """
             )
 
-        logger.debug(f"Adding items in '{self.mosaic_name}' Table.")
-        with self.db:
+            logger.debug(f"Adding items in '{self.mosaic_name}' Table.")
             self.db.execute(
                 f"""
                     INSERT INTO {self._metadata_table}
@@ -174,13 +208,18 @@ class SQLiteBackend(BaseBackend):
                         :center
                     );
                 """,
-                self.metadata.dict(),
+                mosaic.dict(),
             )
 
             self.db.executemany(
                 f'INSERT INTO "{self.mosaic_name}" (quadkey, assets) VALUES (?, ?);',
-                self.mosaic_def.tiles.items(),
+                mosaic.tiles.items(),
             )
+
+        # Update mosaic_def
+        # A `tiles` key must exist but by design the assets are stored in the DB.
+        mosaic.tiles = {}
+        self.mosaic_def = mosaic
 
     def update(
         self,
@@ -190,25 +229,29 @@ class SQLiteBackend(BaseBackend):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
+        if not self._writable:
+            raise UnsupportedOperation("not writable")
+
         logger.debug(f"Updating {self.mosaic_name}...")
 
+        mosaic = deepcopy(self.mosaic_def)
         new_mosaic = MosaicJSON.from_features(
             features,
-            self.mosaic_def.minzoom,
-            self.mosaic_def.maxzoom,
+            mosaic.minzoom,
+            mosaic.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
             quiet=quiet,
             **kwargs,
         )
 
-        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
+        bounds = bbox_union(new_mosaic.bounds, mosaic.bounds)
 
-        self.mosaic_def._increase_version()
-        self.mosaic_def.bounds = bounds
-        self.mosaic_def.center = (
+        mosaic._increase_version()
+        mosaic.bounds = bounds
+        mosaic.center = (
             (bounds[0] + bounds[2]) / 2,
             (bounds[1] + bounds[3]) / 2,
-            self.mosaic_def.minzoom,
+            mosaic.minzoom,
         )
 
         with self.db:
@@ -227,7 +270,7 @@ class SQLiteBackend(BaseBackend):
                         center = :center
                     WHERE name=:name
                 """,
-                self.mosaic_def.dict(),
+                mosaic.dict(),
             )
 
             if add_first:
@@ -264,28 +307,10 @@ class SQLiteBackend(BaseBackend):
                     [(assets, qk) for qk, assets in new_mosaic.tiles.items()],
                 )
 
-    @cached(
-        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
-    )
-    def _read(self) -> MosaicJSON:  # type: ignore
-        """Get Mosaic definition info."""
-        meta = self._fetch_metadata()
-        if not meta:
-            raise MosaicNotFoundError(f"Mosaic not found in {self.path}")
-
-        meta["tiles"] = {}
-        return MosaicJSON(**meta)
-
-    @cached(
-        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
-    )
-    def get_assets(self, x: int, y: int, z: int) -> List[str]:
-        """Find assets."""
-        mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
-        return list(itertools.chain.from_iterable([self._fetch(qk) for qk in quadkeys]))
+        # Update mosaic_def
+        # A `tiles` key must exist but by design the assets are stored in the DB.
+        mosaic.tiles = {}
+        self.mosaic_def = mosaic
 
     def _fetch_metadata(self) -> Dict:
         with self.db:

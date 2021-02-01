@@ -5,7 +5,7 @@ lib module
 """
 
 import json
-from typing import Any
+from typing import Dict, List, Sequence
 
 import attr
 import requests
@@ -24,14 +24,21 @@ class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
     _backend_name = "HTTP"
+    _available_modes: List[str] = ["r"]
 
-    def write(self):
+    def write(self, mosaic: MosaicJSON, overwrite: bool = True):
         """Write mosaicjson document."""
-        raise NotImplementedError
+        raise NotImplementedError("HttpBackend is a Read-Only backend.")
 
-    def update(self, *args, **kwargs: Any):
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
         """Update the mosaicjson document."""
-        raise NotImplementedError
+        raise NotImplementedError("HttpBackend is a Read-Only backend.")
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),

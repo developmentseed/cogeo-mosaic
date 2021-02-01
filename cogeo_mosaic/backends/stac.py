@@ -2,15 +2,21 @@
 
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type
 
 import attr
 import requests
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
+from morecantile import TileMatrixSet
+from rio_tiler.constants import WEB_MERCATOR_TMS
 from rio_tiler.io import STACReader
 
-from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.base import (
+    BaseBackend,
+    mode_validator,
+    update_zoom_and_bounds,
+)
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.logger import logger
@@ -56,33 +62,44 @@ class STACBackend(BaseBackend):
     query: Dict = attr.ib()
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
-    mosaic_def: MosaicJSON = attr.ib(default=None)
+    mode: str = attr.ib(default="r", validator=mode_validator)
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
     backend_options: Dict = attr.ib(factory=dict)
 
+    tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
+
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        init=False, default=(-180, -90, 180, 90)
+    )
+
+    mosaic_def: MosaicJSON = attr.ib(init=False, on_setattr=update_zoom_and_bounds)  # type: ignore
+
     _backend_name = "STAC"
+    _available_modes: List[str] = ["r"]
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
-        self.mosaic_def = self.mosaic_def or self._read(
-            self.query, self.minzoom, self.maxzoom, **self.backend_options
-        )
-        self.bounds = self.mosaic_def.bounds
+        logger.debug(f"Using STAC backend: {self.path}")
+        self.mosaic_def = self._read(self.query, **self.backend_options)
 
-    def write(self):
+    def write(self, mosaic: MosaicJSON, overwrite: bool = True):
         """Write mosaicjson document."""
-        raise NotImplementedError
+        raise NotImplementedError("STACBackend is a Read-Only backend.")
 
-    def update(self, *args, **kwargs: Any):
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
         """Update the mosaicjson document."""
-        raise NotImplementedError
+        raise NotImplementedError("STACBackend is a Read-Only backend.")
 
     def _read(  # type: ignore
         self,
         query: Dict,
-        minzoom: int,
-        maxzoom: int,
         accessor: Callable = default_stac_accessor,
         max_items: Optional[int] = None,
         stac_query_limit: int = 500,
@@ -96,10 +113,6 @@ class STACBackend(BaseBackend):
         ----------
         query : Dict, required
             STAC API POST request query.
-        minzoom: int, required
-            mosaic min-zoom.
-        maxzoom: int, required
-            mosaic max-zoom.
         accessor: callable, required
             Function called on each feature to get its identifier.
         max_items: int, optional
@@ -117,8 +130,6 @@ class STACBackend(BaseBackend):
             Mosaic definition.
 
         """
-        logger.debug(f"Using STAC backend: {self.path}")
-
         features = _fetch(
             self.path,
             query,
@@ -129,7 +140,7 @@ class STACBackend(BaseBackend):
         logger.debug(f"Creating mosaic from {len(features)} features")
 
         return MosaicJSON.from_features(
-            features, minzoom, maxzoom, accessor=accessor, **kwargs
+            features, self.minzoom, self.maxzoom, accessor=accessor, **kwargs
         )
 
 

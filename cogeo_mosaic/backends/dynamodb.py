@@ -4,8 +4,8 @@ import itertools
 import json
 import os
 import re
-import sys
 import warnings
+from copy import deepcopy
 from decimal import Decimal
 from typing import Any, Dict, List, Sequence
 from urllib.parse import urlparse
@@ -24,6 +24,7 @@ from cogeo_mosaic.errors import (
     MosaicError,
     MosaicExistsError,
     MosaicNotFoundError,
+    UnsupportedOperation,
 )
 from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -98,20 +99,64 @@ class DynamoDBBackend(BaseBackend):
             if item["quadkey"] != self._metadata_quadkey
         ]
 
-    def write(self, overwrite: bool = False, **kwargs: Any):
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
+    )
+    def get_assets(self, x: int, y: int, z: int) -> List[str]:
+        """Find assets."""
+        mercator_tile = mercantile.Tile(x=x, y=y, z=z)
+        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
+        return list(
+            itertools.chain.from_iterable(
+                [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
+            )
+        )
+
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self: hashkey(self.path),
+    )
+    def _read(self) -> MosaicJSON:  # type: ignore
+        """Get Mosaic definition info."""
+        meta = self._fetch_dynamodb(self._metadata_quadkey)
+        if not meta:
+            raise MosaicNotFoundError(
+                f"Mosaic {self.mosaic_name} not found in table {self.table_name}"
+            )
+
+        # Numeric values are loaded from DynamoDB as Decimal types
+        # Convert maxzoom, minzoom, quadkey_zoom to int
+        for key in ["minzoom", "maxzoom", "quadkey_zoom"]:
+            if meta.get(key):
+                meta[key] = int(meta[key])
+
+        # Convert bounds, center to float
+        for key in ["bounds", "center"]:
+            if meta.get(key):
+                meta[key] = list(map(float, meta[key]))
+
+        # Create MosaicJSON object
+        # A `tiles` key must exist (but by design the assets are stored in the DB).
+        meta["tiles"] = {}
+        return MosaicJSON(**meta)
+
+    def write(self, mosaic: MosaicJSON, overwrite: bool = False, **kwargs: Any):
         """Write mosaicjson document to AWS DynamoDB.
 
         Args:
+            mosaic (MosaicJSON): mosaicJSON document to write.
             overwrite (bool): delete old mosaic items inthe Table.
             **kwargs (any): Options forwarded to `dynamodb.create_table`
 
-        Returns:
-            dict: dictionary with metadata constructed from the sceneid.
-
         Raises:
+            UnsupportedOperation: If the backend is not opened in Write mode.
             MosaicExistsError: If mosaic already exists in the Table.
 
         """
+        if not self._writable:
+            raise UnsupportedOperation("not writable")
+
         if not self._table_exists():
             self._create_table(**kwargs)
 
@@ -122,25 +167,32 @@ class DynamoDBBackend(BaseBackend):
                 )
             self.delete()
 
-        items = self._create_items()
-        self._write_items(items)
+        # Validation and Create a new instance
+        if not isinstance(mosaic, MosaicJSON):
+            mosaic = MosaicJSON(**dict(mosaic))
+        else:
+            mosaic = deepcopy(mosaic)
 
-    def _update_quadkey(self, quadkey: str, dataset: List[str]):
-        """Update single quadkey in DynamoDB."""
-        self.table.put_item(
-            Item={"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": dataset}
+        items: List[Dict[str, Any]] = []
+
+        # Create Metadata item
+        meta = json.loads(self.mosaic_def.json(exclude={"tiles"}), parse_float=Decimal)
+        items.append(
+            {"quadkey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
         )
 
-    def _update_metadata(self):
-        """Update bounds and center.
+        # Create Tile items
+        for quadkey, assets in self.mosaic_def.tiles.items():
+            items.append(
+                {"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": assets}
+            )
 
-        Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be in Decimal type
+        self._write_items(items)
 
-        """
-        meta = json.loads(self.metadata.json(), parse_float=Decimal)
-        meta["quadkey"] = self._metadata_quadkey
-        meta["mosaicId"] = self.mosaic_name
-        self.table.put_item(Item=meta)
+        # Update mosaic_def
+        # A `tiles` key must exist but by design the assets are stored in the DB.
+        mosaic.tiles = {}
+        self.mosaic_def = mosaic
 
     def update(
         self,
@@ -150,43 +202,54 @@ class DynamoDBBackend(BaseBackend):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
+        if not self._writable:
+            raise UnsupportedOperation("not writable")
+
         logger.debug(f"Updating {self.mosaic_name}...")
 
+        mosaic = deepcopy(self.mosaic_def)
         new_mosaic = MosaicJSON.from_features(
             features,
-            self.mosaic_def.minzoom,
-            self.mosaic_def.maxzoom,
+            mosaic.minzoom,
+            mosaic.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
             quiet=quiet,
             **kwargs,
         )
 
-        fout = os.devnull if quiet else sys.stderr
-        with click.progressbar(  # type: ignore
-            new_mosaic.tiles.items(),
-            file=fout,
-            show_percent=True,
-            label=f"Updating mosaic {self.table_name}:{self.mosaic_name}",
-        ) as items:
-            for quadkey, new_assets in items:
-                tile = mercantile.quadkey_to_tile(quadkey)
-                assets = self.assets_for_tile(*tile)
-                assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+        bounds = bbox_union(new_mosaic.bounds, mosaic.bounds)
 
-                # add custom sorting algorithm (e.g based on path name)
-                self._update_quadkey(quadkey, assets)
-
-        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
-
-        self.mosaic_def._increase_version()
-        self.mosaic_def.bounds = bounds
-        self.mosaic_def.center = (
+        mosaic._increase_version()
+        mosaic.bounds = bounds
+        mosaic.center = (
             (bounds[0] + bounds[2]) / 2,
             (bounds[1] + bounds[3]) / 2,
-            self.mosaic_def.minzoom,
+            mosaic.minzoom,
         )
 
-        self._update_metadata()
+        items: List[Dict[str, Any]] = []
+
+        # Create Metadata item
+        meta = json.loads(mosaic.json(exclude={"tiles"}), parse_float=Decimal)
+        items.append(
+            {"quadkey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
+        )
+
+        # Create Tile items
+        for quadkey, new_assets in new_mosaic.tiles.items():
+            tile = mercantile.quadkey_to_tile(quadkey)
+            assets = self.assets_for_tile(*tile)
+            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
+            items.append(
+                {"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": assets}
+            )
+
+        self._write_items(items)
+
+        # Update mosaic_def
+        # A `tiles` key must exist but by design the assets are stored in the DB.
+        mosaic.tiles = {}
+        self.mosaic_def = mosaic
 
     def _create_table(self, billing_mode: str = "PAY_PER_REQUEST", **kwargs: Any):
         """Create DynamoDB Table.
@@ -226,76 +289,17 @@ class DynamoDBBackend(BaseBackend):
             warnings.warn("Unable to create table.")
             return
 
-    def _create_items(self) -> List[Dict]:
-        """Create DynamoDB items from Mosaic defintion.
-
-        Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be
-            in Decimal type (ref: https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/)
-
-        """
-        items = []
-        meta = json.loads(self.metadata.json(), parse_float=Decimal)
-        meta = {"quadkey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
-        items.append(meta)
-
-        for quadkey, assets in self.mosaic_def.tiles.items():
-            item = {"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": assets}
-            items.append(item)
-
-        return items
-
     def _write_items(self, items: List[Dict]):
+        """Write Items usin Batch."""
         with self.table.batch_writer() as batch:
             with click.progressbar(
                 items,
                 length=len(items),
                 show_percent=True,
-                label=f"Uploading mosaic {self.table_name}:{self.mosaic_name} to DynamoDB",
+                label=f"Adding items to {self.path}:{self.mosaic_name}",
             ) as progitems:
                 for item in progitems:
                     batch.put_item(item)
-
-    @cached(
-        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
-    )
-    def _read(self) -> MosaicJSON:  # type: ignore
-        """Get Mosaic definition info."""
-        meta = self._fetch_dynamodb(self._metadata_quadkey)
-        if not meta:
-            raise MosaicNotFoundError(
-                f"Mosaic {self.mosaic_name} not found in table {self.table_name}"
-            )
-
-        # Numeric values are loaded from DynamoDB as Decimal types
-        # Convert maxzoom, minzoom, quadkey_zoom to int
-        for key in ["minzoom", "maxzoom", "quadkey_zoom"]:
-            if meta.get(key):
-                meta[key] = int(meta[key])
-
-        # Convert bounds, center to float
-        for key in ["bounds", "center"]:
-            if meta.get(key):
-                meta[key] = list(map(float, meta[key]))
-
-        # Create pydantic class
-        # For now, a tiles key must exist
-        meta["tiles"] = {}
-        return MosaicJSON(**meta)
-
-    @cached(
-        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
-    )
-    def get_assets(self, x: int, y: int, z: int) -> List[str]:
-        """Find assets."""
-        mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
-        return list(
-            itertools.chain.from_iterable(
-                [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
-            )
-        )
 
     def _fetch_dynamodb(self, quadkey: str) -> Dict:
         try:
