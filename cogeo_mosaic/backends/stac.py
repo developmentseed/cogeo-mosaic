@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type
 
 import attr
 import requests
@@ -56,33 +56,28 @@ class STACBackend(BaseBackend):
     query: Dict = attr.ib()
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
-    mosaic_def: MosaicJSON = attr.ib(default=None)
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
     backend_options: Dict = attr.ib(factory=dict)
+
+    # default values for bounds
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        init=False, default=(-180, -90, 180, 90)
+    )
+
+    # Because the STACBackend is a Read-Only backend, there is no need for
+    # mosaic_def to be in the init method.
+    mosaic_def: MosaicJSON = attr.ib(init=False)
 
     _backend_name = "STAC"
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
-        self.mosaic_def = self.mosaic_def or self._read(
-            self.query, self.minzoom, self.maxzoom, **self.backend_options
-        )
+        self.mosaic_def = self._read(**self.backend_options)
         self.bounds = self.mosaic_def.bounds
-
-    def write(self):
-        """Write mosaicjson document."""
-        raise NotImplementedError
-
-    def update(self, *args, **kwargs: Any):
-        """Update the mosaicjson document."""
-        raise NotImplementedError
 
     def _read(  # type: ignore
         self,
-        query: Dict,
-        minzoom: int,
-        maxzoom: int,
         accessor: Callable = default_stac_accessor,
         max_items: Optional[int] = None,
         stac_query_limit: int = 500,
@@ -94,12 +89,6 @@ class STACBackend(BaseBackend):
 
         Attributes
         ----------
-        query : Dict, required
-            STAC API POST request query.
-        minzoom: int, required
-            mosaic min-zoom.
-        maxzoom: int, required
-            mosaic max-zoom.
         accessor: callable, required
             Function called on each feature to get its identifier.
         max_items: int, optional
@@ -121,7 +110,7 @@ class STACBackend(BaseBackend):
 
         features = _fetch(
             self.path,
-            query,
+            self.query,
             max_items=max_items,
             limit=stac_query_limit,
             next_link_key=stac_next_link_key,
@@ -129,8 +118,22 @@ class STACBackend(BaseBackend):
         logger.debug(f"Creating mosaic from {len(features)} features")
 
         return MosaicJSON.from_features(
-            features, minzoom, maxzoom, accessor=accessor, **kwargs
+            features, self.minzoom, self.maxzoom, accessor=accessor, **kwargs
         )
+
+    def write(self, overwrite: bool = True):
+        """Write mosaicjson document."""
+        raise NotImplementedError
+
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
+        """Update the mosaicjson document."""
+        raise NotImplementedError
 
 
 def query_from_link(link: Dict, query: Dict):

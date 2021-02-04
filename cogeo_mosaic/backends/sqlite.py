@@ -85,23 +85,24 @@ class SQLiteBackend(BaseBackend):
         """Support using with Context Managers."""
         self.close()
 
-    @property
-    def _quadkeys(self) -> List[str]:
-        """Return the list of quadkey tiles."""
-        with self.db:
-            rows = self.db.execute(
-                f'SELECT quadkey FROM "{self.mosaic_name}";',
-            ).fetchall()
-        return [r["quadkey"] for r in rows]
+    @cached(
+        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
+        key=lambda self: hashkey(self.path),
+    )
+    def _read(self) -> MosaicJSON:  # type: ignore
+        """Get Mosaic definition info."""
+        meta = self._fetch_metadata()
+        if not meta:
+            raise MosaicNotFoundError(f"Mosaic not found in {self.path}")
+
+        meta["tiles"] = {}
+        return MosaicJSON(**meta)
 
     def write(self, overwrite: bool = False):
         """Write mosaicjson document to an SQLite database.
 
         Args:
             overwrite (bool): delete old mosaic items in the Table.
-
-        Returns:
-            dict: dictionary with metadata constructed from the sceneid.
 
         Raises:
             MosaicExistsError: If mosaic already exists in the Table.
@@ -114,8 +115,8 @@ class SQLiteBackend(BaseBackend):
                 )
             self.delete()
 
-        logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
         with self.db:
+            logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
             self.db.execute(
                 f"""
                     CREATE TABLE IF NOT EXISTS {self._metadata_table}
@@ -143,8 +144,7 @@ class SQLiteBackend(BaseBackend):
                 """
             )
 
-        logger.debug(f"Adding items in '{self.mosaic_name}' Table.")
-        with self.db:
+            logger.debug(f"Adding items in '{self.mosaic_name}' Table.")
             self.db.execute(
                 f"""
                     INSERT INTO {self._metadata_table}
@@ -174,7 +174,7 @@ class SQLiteBackend(BaseBackend):
                         :center
                     );
                 """,
-                self.metadata.dict(),
+                self.mosaic_def.dict(),
             )
 
             self.db.executemany(
@@ -210,6 +210,7 @@ class SQLiteBackend(BaseBackend):
             (bounds[1] + bounds[3]) / 2,
             self.mosaic_def.minzoom,
         )
+        self.bounds = bounds
 
         with self.db:
             self.db.execute(
@@ -266,19 +267,6 @@ class SQLiteBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
-    )
-    def _read(self) -> MosaicJSON:  # type: ignore
-        """Get Mosaic definition info."""
-        meta = self._fetch_metadata()
-        if not meta:
-            raise MosaicNotFoundError(f"Mosaic not found in {self.path}")
-
-        meta["tiles"] = {}
-        return MosaicJSON(**meta)
-
-    @cached(
-        TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
@@ -286,6 +274,15 @@ class SQLiteBackend(BaseBackend):
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
         return list(itertools.chain.from_iterable([self._fetch(qk) for qk in quadkeys]))
+
+    @property
+    def _quadkeys(self) -> List[str]:
+        """Return the list of quadkey tiles."""
+        with self.db:
+            rows = self.db.execute(
+                f'SELECT quadkey FROM "{self.mosaic_name}";',
+            ).fetchall()
+        return [r["quadkey"] for r in rows]
 
     def _fetch_metadata(self) -> Dict:
         with self.db:

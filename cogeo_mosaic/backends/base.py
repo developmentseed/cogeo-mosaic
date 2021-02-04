@@ -2,7 +2,7 @@
 
 import abc
 import itertools
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import attr
 import mercantile
@@ -24,12 +24,30 @@ from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
 
+def _convert_to_mosaicjson(value: Union[Dict, MosaicJSON]):
+    if value is not None:
+        return MosaicJSON(**dict(value))
+
+
 @attr.s
 class BaseBackend(BaseReader):
-    """Base Class for cogeo-mosaic backend storage."""
+    """Base Class for cogeo-mosaic backend storage.
+
+    Attributes:
+        path (str): mosaic path.
+        mosaic_def (MosaicJSON, optional): mosaicJSON document.
+        reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.COGReader`.
+        reader_options (dict): Options to forward to the reader config.
+        backend_options (dict): Global backend options.
+        tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
+        bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
+        minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to `0`.
+        maxzoom (int): mosaic Max zoom level. **READ ONLY attribute**. Defaults to `30`
+
+    """
 
     path: str = attr.ib()
-    mosaic_def: MosaicJSON = attr.ib(default=None)
+    mosaic_def: MosaicJSON = attr.ib(default=None, converter=_convert_to_mosaicjson)
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
     backend_options: Dict = attr.ib(factory=dict)
@@ -38,57 +56,67 @@ class BaseBackend(BaseReader):
     # works with WebMercator (mercantile) for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
 
+    # default values for bounds and zoom
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        init=False, default=(-180, -90, 180, 90)
+    )
+    minzoom: int = attr.ib(init=False, default=0)
+    maxzoom: int = attr.ib(init=False, default=30)
+
     _backend_name: str
     _file_byte_size: Optional[int] = 0
-
-    @mosaic_def.validator
-    def _check_mosaic_def(self, attribute, value):
-        if value is not None:
-            self.mosaic_def = MosaicJSON(**dict(value))
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
         self.mosaic_def = self.mosaic_def or self._read(**self.backend_options)
-
         self.minzoom = self.mosaic_def.minzoom
         self.maxzoom = self.mosaic_def.maxzoom
         self.bounds = self.mosaic_def.bounds
 
-    @property
-    def center(self):
-        """Return center from the mosaic definition."""
-        return self.mosaic_def.center
+    @abc.abstractmethod
+    def _read(self) -> MosaicJSON:
+        """Fetch mosaic definition"""
 
-    def info(self, quadkeys: bool = False) -> Info:  # type: ignore
-        """Mosaic info."""
-        return Info(
-            bounds=self.mosaic_def.bounds,
-            center=self.mosaic_def.center,
-            maxzoom=self.mosaic_def.maxzoom,
-            minzoom=self.mosaic_def.minzoom,
-            name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
-            quadkeys=[] if not quadkeys else self._quadkeys,
+    @abc.abstractmethod
+    def write(self, overwrite: bool = True):
+        """Upload new MosaicJSON to backend."""
+
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
+        """Update existing MosaicJSON on backend."""
+        new_mosaic = MosaicJSON.from_features(
+            features,
+            self.mosaic_def.minzoom,
+            self.mosaic_def.maxzoom,
+            quadkey_zoom=self.quadkey_zoom,
+            quiet=quiet,
+            **kwargs,
         )
 
-    @property
-    def _quadkeys(self) -> List[str]:
-        """Return the list of quadkey tiles."""
-        return list(self.mosaic_def.tiles)
+        for quadkey, new_assets in new_mosaic.tiles.items():
+            tile = mercantile.quadkey_to_tile(quadkey)
+            assets = self.assets_for_tile(*tile)
+            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
-    def stats(self):
-        """PlaceHolder for BaseReader.stats."""
-        raise NotImplementedError
+            # add custom sorting algorithm (e.g based on path name)
+            self.mosaic_def.tiles[quadkey] = assets
 
-    @property
-    def metadata(self) -> Metadata:  # type: ignore
-        """Retrieve Mosaic metadata
+        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
 
-        Returns
-        -------
-        MosaicJSON as dict without `tiles` key.
-
-        """
-        return Metadata(**self.mosaic_def.dict())
+        self.mosaic_def._increase_version()
+        self.mosaic_def.bounds = bounds
+        self.mosaic_def.center = (
+            (bounds[0] + bounds[2]) / 2,
+            (bounds[1] + bounds[3]) / 2,
+            self.mosaic_def.minzoom,
+        )
+        self.bounds = bounds
+        self.write(overwrite=True)
 
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
@@ -158,6 +186,55 @@ class BaseBackend(BaseReader):
             )
         ]
 
+    def info(self, quadkeys: bool = False) -> Info:  # type: ignore
+        """Mosaic info."""
+        return Info(
+            bounds=self.mosaic_def.bounds,
+            center=self.mosaic_def.center,
+            maxzoom=self.mosaic_def.maxzoom,
+            minzoom=self.mosaic_def.minzoom,
+            name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
+            quadkeys=[] if not quadkeys else self._quadkeys,
+        )
+
+    @property
+    def metadata(self) -> Metadata:  # type: ignore
+        """Retrieve Mosaic metadata
+
+        Returns
+        -------
+        MosaicJSON as dict without `tiles` key.
+
+        """
+        return Metadata(**self.mosaic_def.dict())
+
+    @property
+    def center(self):
+        """Return center from the mosaic definition."""
+        return self.mosaic_def.center
+
+    @property
+    def mosaicid(self) -> str:
+        """Return sha224 id of the mosaicjson document."""
+        return get_hash(**self.mosaic_def.dict(exclude_none=True))
+
+    @property
+    def _quadkeys(self) -> List[str]:
+        """Return the list of quadkey tiles."""
+        return list(self.mosaic_def.tiles)
+
+    @property
+    def quadkey_zoom(self) -> int:
+        """Return Quadkey zoom property."""
+        return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
+
+    ############################################################################
+    # Not Implemented methods
+    # BaseReader required those method to be implemented
+    def stats(self):
+        """PlaceHolder for BaseReader.stats."""
+        raise NotImplementedError
+
     def preview(self):
         """PlaceHolder for BaseReader.preview."""
         raise NotImplementedError
@@ -169,62 +246,3 @@ class BaseBackend(BaseReader):
     def feature(self):
         """PlaceHolder for BaseReader.feature."""
         raise NotImplementedError
-
-    @abc.abstractmethod
-    def _read(self) -> MosaicJSON:
-        """Fetch mosaic definition"""
-
-    @property
-    def mosaicid(self) -> str:
-        """Return sha224 id of the mosaicjson document."""
-        return get_hash(**self.mosaic_def.dict(exclude_none=True))
-
-    @property
-    def quadkey_zoom(self) -> int:
-        """Return Quadkey zoom property."""
-        return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
-
-    @abc.abstractmethod
-    def write(self, overwrite: bool = True):
-        """Upload new MosaicJSON to backend."""
-
-    def update(
-        self,
-        features: Sequence[Dict],
-        add_first: bool = True,
-        quiet: bool = False,
-        **kwargs,
-    ):
-        """Update existing MosaicJSON on backend."""
-        new_mosaic = MosaicJSON.from_features(
-            features,
-            self.mosaic_def.minzoom,
-            self.mosaic_def.maxzoom,
-            quadkey_zoom=self.quadkey_zoom,
-            quiet=quiet,
-            **kwargs,
-        )
-
-        for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = mercantile.quadkey_to_tile(quadkey)
-            assets = self.assets_for_tile(*tile)
-            assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
-
-            # add custom sorting algorithm (e.g based on path name)
-            self.mosaic_def.tiles[quadkey] = assets
-
-        bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
-
-        self.mosaic_def._increase_version()
-        self.mosaic_def.bounds = bounds
-        self.mosaic_def.center = (
-            (bounds[0] + bounds[2]) / 2,
-            (bounds[1] + bounds[3]) / 2,
-            self.mosaic_def.minzoom,
-        )
-
-        # We only write if path is set
-        if self.path:
-            self.write(overwrite=True)
-
-        return
