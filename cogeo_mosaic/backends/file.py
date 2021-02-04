@@ -1,7 +1,7 @@
 """cogeo-mosaic File backend."""
 
 import json
-import os
+import pathlib
 
 import attr
 from cachetools import TTLCache, cached
@@ -22,7 +22,7 @@ class FileBackend(BaseBackend):
 
     def write(self, overwrite: bool = False, gzip: bool = None):
         """Write mosaicjson document to a file."""
-        if not overwrite and os.path.exists(self.path):
+        if not overwrite and pathlib.Path(self.path).exists():
             raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
 
         body = self.mosaic_def.dict(exclude_none=True)

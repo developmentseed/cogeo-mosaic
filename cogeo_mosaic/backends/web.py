@@ -5,7 +5,7 @@ lib module
 """
 
 import json
-from typing import Any
+from typing import Dict, Sequence
 
 import attr
 import requests
@@ -23,15 +23,18 @@ from cogeo_mosaic.mosaic import MosaicJSON
 class HttpBackend(BaseBackend):
     """Http/Https Backend Adapter"""
 
+    # Because the HttpBackend is a Read-Only backend, there is no need for
+    # mosaic_def to be in the init method.
+    mosaic_def: MosaicJSON = attr.ib(init=False)
+
     _backend_name = "HTTP"
 
-    def write(self):
-        """Write mosaicjson document."""
-        raise NotImplementedError
-
-    def update(self, *args, **kwargs: Any):
-        """Update the mosaicjson document."""
-        raise NotImplementedError
+    def __attrs_post_init__(self):
+        """Post Init."""
+        self.mosaic_def = self._read(**self.backend_options)
+        self.minzoom = self.mosaic_def.minzoom
+        self.maxzoom = self.mosaic_def.maxzoom
+        self.bounds = self.mosaic_def.bounds
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
@@ -59,3 +62,17 @@ class HttpBackend(BaseBackend):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))
+
+    def write(self, overwrite: bool = True):
+        """Write mosaicjson document."""
+        raise NotImplementedError
+
+    def update(
+        self,
+        features: Sequence[Dict],
+        add_first: bool = True,
+        quiet: bool = False,
+        **kwargs,
+    ):
+        """Update the mosaicjson document."""
+        raise NotImplementedError

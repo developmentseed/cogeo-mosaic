@@ -2,9 +2,9 @@
 
 Starting in version `3.0.0`, we introduced specific backend storage for:
 
-- **File** (default, `file:///`)
+#### Read-Write Backends
 
-- **HTTP/HTTPS** (`http://`, `https://`)
+- **File** (default, `file:///`)
 
 - **AWS S3** (`s3://`)
 
@@ -12,9 +12,14 @@ Starting in version `3.0.0`, we introduced specific backend storage for:
 
 - **SQLite** (`sqlite:///{file.db}:{mosaic_name}`)
 
-#### Read Only Backend
+#### Read Only Backends
 
+Read only backend won't allow `mosaic_def` in there `__init__` method. `.write()` and `.update` methods will raise `NotImplementedError` error.
+
+- **HTTP/HTTPS** (`http://`, `https://`)
 - **STAC** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
+
+## MosaicBackend
 
 To ease the usage we added a helper function to use the right backend based on the uri schema: `cogeo_mosaic.backends.MosaicBackend`
 
@@ -23,9 +28,6 @@ from cogeo_mosaic.backends import MosaicBackend
 
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.s3.S3Backend)
-
-with MosaicBackend("https://mosaic.com/amosaic.json.gz") as mosaic:
-    assert isinstance(mosaic, cogeo_mosaic.backends.web.HttpBackend)
 
 with MosaicBackend("dynamodb://us-east-1/amosaic") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.dynamodb.DynamoDBBackend)
@@ -40,6 +42,9 @@ with MosaicBackend("amosaic.json.gz") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.file.FileBackend)
 
 # Read-Only
+with MosaicBackend("https://mosaic.com/amosaic.json.gz") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.web.HttpBackend)
+
 with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellite"]}, 10, 12) as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.stac.STACBackend)
 ```
