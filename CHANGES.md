@@ -7,6 +7,7 @@
 * update mosaicJSON.bounds type definition to match rio-tiler BaseReader definition (https://github.com/developmentseed/cogeo-mosaic/issues/158)
 * add default bounds/minzoom/maxzoom values matching the mosaicjson default in the backends (https://github.com/developmentseed/cogeo-mosaic/pull/162)
 * raise an error when trying to pass `mosaic_def` in read-only backend (https://github.com/developmentseed/cogeo-mosaic/pull/162)
+* add `InMemoryBackend` (https://github.com/developmentseed/cogeo-mosaic/pull/163)
 
 ## 3.0.0b1 (2020-12-18)
 
