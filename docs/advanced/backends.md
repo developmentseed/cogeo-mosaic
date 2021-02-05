@@ -19,9 +19,9 @@ Read only backend won't allow `mosaic_def` in there `__init__` method. `.write()
 - **HTTP/HTTPS** (`http://`, `https://`)
 - **STAC** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
 
-#### InMemory
+#### In-Memory
 
-If you have a mosaicjson document and want to use the different backend methods you can use the spetial `MemoryBackend`.
+If you have a mosaicjson document and want to use the different backend methods you can use the special `MemoryBackend`.
 
 ```python
 with MemoryBackend(mosaic_def=mosaicjson) as mosaic:
@@ -59,6 +59,7 @@ with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellit
     assert isinstance(mosaic, cogeo_mosaic.backends.stac.STACBackend)
 
 # In Memory (write)
+# You can pass either None or ':memory:' to define an in-memory backend
 with MosaicBackend(":memory:", mosaic_def=mosaic) as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.memory.MemoryBackend)
 
