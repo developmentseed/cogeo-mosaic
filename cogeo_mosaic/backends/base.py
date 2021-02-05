@@ -145,18 +145,18 @@ class BaseBackend(BaseReader):
         self, x: int, y: int, z: int, reverse: bool = False, **kwargs: Any,
     ) -> Tuple[ImageData, List[str]]:
         """Get Tile from multiple observation."""
-        assets = self.assets_for_tile(x, y, z)
-        if not assets:
+        mosaic_assets = self.assets_for_tile(x, y, z)
+        if not mosaic_assets:
             raise NoAssetFoundError(f"No assets found for tile {z}-{x}-{y}")
 
         if reverse:
-            assets = list(reversed(assets))
+            mosaic_assets = list(reversed(mosaic_assets))
 
         def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any) -> ImageData:
             with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.tile(x, y, z, **kwargs)
 
-        return mosaic_reader(assets, _reader, x, y, z, **kwargs)
+        return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
 
     def point(
         self,
@@ -167,18 +167,18 @@ class BaseBackend(BaseReader):
         **kwargs: Any,
     ) -> List[Dict]:
         """Get Point value from multiple observation."""
-        assets = self.assets_for_point(lon, lat)
-        if not assets:
+        mosaic_assets = self.assets_for_point(lon, lat)
+        if not mosaic_assets:
             raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
 
         if reverse:
-            assets = list(reversed(assets))
+            mosaic_assets = list(reversed(mosaic_assets))
 
         def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
             with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.point(lon, lat, **kwargs)
 
-        tasks = create_tasks(_reader, assets, threads, lon, lat, **kwargs)
+        tasks = create_tasks(_reader, mosaic_assets, threads, lon, lat, **kwargs)
         return [
             {"asset": asset, "values": pt}
             for pt, asset in filter_tasks(
