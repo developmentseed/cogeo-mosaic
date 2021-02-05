@@ -59,6 +59,7 @@ with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellit
     assert isinstance(mosaic, cogeo_mosaic.backends.stac.STACBackend)
 
 # In Memory (write)
+# You can pass either None or ':memory:' to define an in-memory backend
 with MosaicBackend(":memory:", mosaic_def=mosaic) as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.memory.InMemoryBackend)
 
