@@ -21,10 +21,10 @@ Read only backend won't allow `mosaic_def` in there `__init__` method. `.write()
 
 #### InMemory
 
-If you have a mosaicjson document and want to use the different backend methods you can use the spetial `InMemoryBackend`.
+If you have a mosaicjson document and want to use the different backend methods you can use the spetial `MemoryBackend`.
 
 ```python
-with InMemoryBackend(mosaic_def=mosaicjson) as mosaic:
+with MemoryBackend(mosaic_def=mosaicjson) as mosaic:
     img = mosaic.tile(1, 1, 1)
 ```
 
@@ -60,10 +60,10 @@ with MosaicBackend("stac+https://my-stac.api/search", {"collections": ["satellit
 
 # In Memory (write)
 with MosaicBackend(":memory:", mosaic_def=mosaic) as mosaic:
-    assert isinstance(mosaic, cogeo_mosaic.backends.memory.InMemoryBackend)
+    assert isinstance(mosaic, cogeo_mosaic.backends.memory.MemoryBackend)
 
 with MosaicBackend(None, mosaic_def=mosaic) as mosaic:
-    assert isinstance(mosaic, cogeo_mosaic.backends.stac.InMemoryBackend)
+    assert isinstance(mosaic, cogeo_mosaic.backends.memory.MemoryBackend)
 ```
 
 ## STAC Backend

@@ -1,4 +1,4 @@
-"""cogeo-mosaic InMemory backend."""
+"""cogeo-mosaic In-Memory backend."""
 
 from typing import Dict, Tuple, Type
 
@@ -12,10 +12,11 @@ from cogeo_mosaic.mosaic import MosaicJSON
 
 
 @attr.s
-class InMemoryBackend(BaseBackend):
+class MemoryBackend(BaseBackend):
     """InMemory Backend Adapter
+
     Examples:
-        >>> with InMemory(mosaicJSON) as mosaic:
+        >>> with MemoryBackend(mosaicJSON) as mosaic:
                 mosaic.tile(0, 0, 0)
     """
 

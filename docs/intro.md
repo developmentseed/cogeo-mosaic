@@ -118,20 +118,20 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.backends import MosaicBackend
 
-from cogeo_mosaic.backends.memory import InMemoryBackend
+from cogeo_mosaic.backends.memory import MemoryBackend
 
 mosaic_definition = MosaicJSON.from_urls(["1.tif", "2.tif"])
 
-# If set to None or :memory:, MosaicBackend will use the InMemoryBackend
+# If set to None or :memory:, MosaicBackend will use the MemoryBackend
 with MosaicBackend(":memory:", mosaic_def=mosaicdata) as mosaic:
-    assert isinstance(mosaic, InMemoryBackend)
+    assert isinstance(mosaic, MemoryBackend)
     img, assets_used = mosaic.tile(1, 2, 3)
 
 with MosaicBackend(None, mosaic_def=mosaicdata) as mosaic:
-    assert isinstance(mosaic, InMemoryBackend)
+    assert isinstance(mosaic, MemoryBackend)
     img, assets_used = mosaic.tile(1, 2, 3)
 
-with InMemoryBackend(mosaic_def=mosaicdata) as mosaic:
+with MemoryBackend(mosaic_def=mosaicdata) as mosaic:
     img, assets_used = mosaic.tile(1, 2, 3)
 ```
 

@@ -18,7 +18,7 @@ from requests.exceptions import HTTPError, RequestException
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
-from cogeo_mosaic.backends.memory import InMemoryBackend
+from cogeo_mosaic.backends.memory import MemoryBackend
 from cogeo_mosaic.backends.s3 import S3Backend
 from cogeo_mosaic.backends.sqlite import SQLiteBackend
 from cogeo_mosaic.backends.stac import STACBackend
@@ -641,21 +641,21 @@ def test_mosaic_crud_error(mosaic_path):
 
 
 def test_InMemoryReader():
-    """Test InMemoryBackend."""
+    """Test MemoryBackend."""
     assets = [asset1, asset2]
     mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
 
     with MosaicBackend(":memory:", mosaic_def=mosaicdef) as mosaic:
-        assert isinstance(mosaic, InMemoryBackend)
+        assert isinstance(mosaic, MemoryBackend)
         assert mosaic.path == ":memory:"
         mosaic.write()
         mosaic._read()
 
     with MosaicBackend(None, mosaic_def=mosaicdef) as mosaic:
-        assert isinstance(mosaic, InMemoryBackend)
+        assert isinstance(mosaic, MemoryBackend)
         assert mosaic.path == ":memory:"
 
-    with InMemoryBackend(mosaic_def=mosaicdef) as mosaic:
+    with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
         (t, _), assets_used = mosaic.tile(150, 182, 9)
         assert t.shape
 
@@ -713,8 +713,8 @@ def test_InMemoryReader():
         assert mosaic.spatial_info
 
     mosaic_oneasset = MosaicJSON.from_urls([asset1], quiet=True)
-    with InMemoryBackend(mosaic_def=mosaic_oneasset) as mosaic:
-        assert isinstance(mosaic, InMemoryBackend)
+    with MemoryBackend(mosaic_def=mosaic_oneasset) as mosaic:
+        assert isinstance(mosaic, MemoryBackend)
         assert len(mosaic.get_assets(150, 182, 9)) == 1
         features = get_footprints([asset2], quiet=True)
         mosaic.update(features)
