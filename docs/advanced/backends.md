@@ -21,7 +21,7 @@ Read only backend won't allow `mosaic_def` in there `__init__` method. `.write()
 
 #### InMemory
 
-If you have a mosaicjson document and want to use the different backend methods you can use the spetial `InMemoryBackend`.
+If you have a mosaicjson document and want to use the different backend methods you can use the special `InMemoryBackend`.
 
 ```python
 with InMemoryBackend(mosaic_def=mosaicjson) as mosaic:
