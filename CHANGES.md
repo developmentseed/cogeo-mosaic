@@ -1,6 +1,6 @@
 # Release Notes
 
-## NEXT (TBD)
+## 3.0.0rc1 (2021-02-11)
 
 * add `SQLite` backend (https://github.com/developmentseed/cogeo-mosaic/pull/148)
 * fix cached responsed after updating a mosaic (https://github.com/developmentseed/cogeo-mosaic/pull/148/files#r557020660)
