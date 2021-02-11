@@ -9,12 +9,12 @@ import mercantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from morecantile import TileMatrixSet
-from rio_tiler.constants import MAX_THREADS, WEB_MERCATOR_TMS
+from rio_tiler.constants import WEB_MERCATOR_TMS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, COGReader
 from rio_tiler.models import ImageData
 from rio_tiler.mosaic import mosaic_reader
-from rio_tiler.tasks import create_tasks, filter_tasks
+from rio_tiler.tasks import multi_values
 
 from cogeo_mosaic.backends.utils import find_quadkeys, get_hash
 from cogeo_mosaic.cache import cache_config
@@ -159,13 +159,8 @@ class BaseBackend(BaseReader):
         return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
 
     def point(
-        self,
-        lon: float,
-        lat: float,
-        threads=MAX_THREADS,
-        reverse: bool = False,
-        **kwargs: Any,
-    ) -> List[Dict]:
+        self, lon: float, lat: float, reverse: bool = False, **kwargs: Any,
+    ) -> List:
         """Get Point value from multiple observation."""
         mosaic_assets = self.assets_for_point(lon, lat)
         if not mosaic_assets:
@@ -178,13 +173,10 @@ class BaseBackend(BaseReader):
             with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.point(lon, lat, **kwargs)
 
-        tasks = create_tasks(_reader, mosaic_assets, threads, lon, lat, **kwargs)
-        return [
-            {"asset": asset, "values": pt}
-            for pt, asset in filter_tasks(
-                tasks, allowed_exceptions=(PointOutsideBounds,)
-            )
-        ]
+        if "allowed_exceptions" not in kwargs:
+            kwargs.update({"allowed_exceptions": (PointOutsideBounds,)})
+
+        return list(multi_values(mosaic_assets, _reader, lon, lat, **kwargs).items())
 
     def info(self, quadkeys: bool = False) -> Info:  # type: ignore
         """Mosaic info."""
