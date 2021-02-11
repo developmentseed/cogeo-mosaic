@@ -9,6 +9,10 @@
 * raise an error when trying to pass `mosaic_def` in read-only backend (https://github.com/developmentseed/cogeo-mosaic/pull/162)
 * add `MemoryBackend` (https://github.com/developmentseed/cogeo-mosaic/pull/163)
 
+**breaking**
+
+* Updated the backends `.point()` methods to return a list in form of `[(asset1, values)]` (https://github.com/developmentseed/cogeo-mosaic/pull/168)
+
 ## 3.0.0b1 (2020-12-18)
 
 * remove `overview` command (https://github.com/developmentseed/cogeo-mosaic/issues/71#issuecomment-748265645)
