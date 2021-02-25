@@ -1,6 +1,6 @@
 # Release Notes
 
-## 3.0.0rc2 (TBD)
+## 3.0.0rc2 (2021-02-25))
 
 **breaking**
 
