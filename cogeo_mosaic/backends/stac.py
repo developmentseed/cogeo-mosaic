@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type
+from typing import Dict, List, Optional, Sequence, Tuple, Type
 
 import attr
 import requests
@@ -58,7 +58,14 @@ class STACBackend(BaseBackend):
     maxzoom: int = attr.ib()
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
-    backend_options: Dict = attr.ib(factory=dict)
+
+    # STAC API related options
+    # max_items |  next_link_key | limit
+    stac_api_options: Dict = attr.ib(factory=dict)
+
+    # Mosaic Creation options
+    # e.g `accessor`
+    mosaic_options: Dict = attr.ib(factory=dict)
 
     # default values for bounds
     bounds: Tuple[float, float, float, float] = attr.ib(
@@ -73,53 +80,28 @@ class STACBackend(BaseBackend):
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
-        self.mosaic_def = self._read(**self.backend_options)
+        self.mosaic_def = self._read()
         self.bounds = self.mosaic_def.bounds
 
-    def _read(  # type: ignore
-        self,
-        accessor: Callable = default_stac_accessor,
-        max_items: Optional[int] = None,
-        stac_query_limit: int = 500,
-        stac_next_link_key: Optional[str] = None,
-        **kwargs: Any,
-    ) -> MosaicJSON:
+    def _read(self) -> MosaicJSON:
         """
         Fetch STAC API and construct the mosaicjson.
 
-        Attributes
-        ----------
-        accessor: callable, required
-            Function called on each feature to get its identifier.
-        max_items: int, optional
-            Limit the maximum of items returned by the API
-        stac_query_limit: int, optional
-            Add "limit" option to the POST Query, default is set to 500.
-        stac_next_link_key: str, optional
-            link's 'next' key.
-        kwargs: any
-            Options forwarded to `MosaicJSON.from_features`
-
-        Returns
-        -------
-        mosaic_definition : MosaicJSON
-            Mosaic definition.
+        Returns:
+            MosaicJSON: Mosaic definition.
 
         """
         logger.debug(f"Using STAC backend: {self.path}")
 
-        features = _fetch(
-            self.path,
-            self.query,
-            max_items=max_items,
-            limit=stac_query_limit,
-            next_link_key=stac_next_link_key,
-        )
+        features = _fetch(self.path, self.query, **self.stac_api_options,)
         logger.debug(f"Creating mosaic from {len(features)} features")
 
-        return MosaicJSON.from_features(
-            features, self.minzoom, self.maxzoom, accessor=accessor, **kwargs
-        )
+        # We need a specific accessor for STAC
+        options = self.mosaic_options.copy()
+        if "accessor" not in options:
+            options["accessor"] = default_stac_accessor
+
+        return MosaicJSON.from_features(features, self.minzoom, self.maxzoom, **options)
 
     def write(self, overwrite: bool = True):
         """Write mosaicjson document."""

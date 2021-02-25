@@ -1,5 +1,14 @@
 # Release Notes
 
+## 3.0.0rc2 (TBD)
+
+**breaking**
+
+* `gzip` is now only applied if the path endswith `.gz`
+* remove `backend_options` attribute in base backends. This attribute was used to pass optional `gzip` option and/or STAC related options
+* STAC backends has additional attributes (`stac_api_options` and `mosaic_options`)
+
+
 ## 3.0.0rc1 (2021-02-11)
 
 * add `SQLite` backend (https://github.com/developmentseed/cogeo-mosaic/pull/148)

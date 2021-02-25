@@ -42,13 +42,13 @@ class S3Backend(BaseBackend):
         self.client = self.client or boto3_session().client("s3")
         super().__attrs_post_init__()
 
-    def write(self, overwrite: bool = False, gzip: bool = None, **kwargs: Any):
+    def write(self, overwrite: bool = False, **kwargs: Any):
         """Write mosaicjson document to AWS S3."""
         if not overwrite and self._head_object(self.key, self.bucket):
             raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
 
         mosaic_doc = self.mosaic_def.dict(exclude_none=True)
-        if gzip or (gzip is None and self.key.endswith(".gz")):
+        if self.key.endswith(".gz"):
             body = _compress_gz_json(mosaic_doc)
         else:
             body = json.dumps(mosaic_doc).encode("utf-8")
@@ -57,15 +57,15 @@ class S3Backend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, gzip=None: hashkey(self.path, gzip),
+        key=lambda self: hashkey(self.path),
     )
-    def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
+    def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         body = self._get_object(self.key, self.bucket)
 
         self._file_byte_size = len(body)
 
-        if gzip or (gzip is None and self.key.endswith(".gz")):
+        if self.key.endswith(".gz"):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))

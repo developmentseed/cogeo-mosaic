@@ -23,9 +23,9 @@ with MosaicBackend(None, mosaid_def=mosaic_definition, reader=COGReader) as mosa
 # By default the STACbackend will store the Item url as assets, but STACReader (default reader) will know how to read them.
 with MosaicBackend(
   "stac+https://my-stac.api/search",
-  {"collections": ["satellite"]},
-  7,  # minzoom
-  12, # maxzoom
+  query={"collections": ["satellite"]},  # required
+  minzoom=7,  # required
+  maxzoom=12,  # required
 ) as mosaic:
     img, assets_used = mosaic.tile(1, 1, 1, assets="red")
 ```
@@ -40,11 +40,11 @@ def accessor(item):
 # The accessor will set the mosaic assets as a list of COG url so we can use the COGReader instead of the STACReader
 with MosaicBackend(
   "stac+https://my-stac.api/search",
-  {"collections": ["satellite"]},
-  7,  # minzoom
-  12, # maxzoom
+  query={"collections": ["satellite"]},  # required
+  minzoom=7,  # required
+  maxzoom=12,  # required
   reader=COGReader,
-  backend_options={"accessor": accessor},
+  mosaic_options={"accessor": accessor},
 ) as mosaic:
     img, assets_used = mosaic.tile(1, 1, 1)
 ```

@@ -31,16 +31,16 @@ class HttpBackend(BaseBackend):
 
     def __attrs_post_init__(self):
         """Post Init."""
-        self.mosaic_def = self._read(**self.backend_options)
+        self.mosaic_def = self._read()
         self.minzoom = self.mosaic_def.minzoom
         self.maxzoom = self.mosaic_def.maxzoom
         self.bounds = self.mosaic_def.bounds
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, gzip=None: hashkey(self.path, gzip),
+        key=lambda self: hashkey(self.path),
     )
-    def _read(self, gzip: bool = None) -> MosaicJSON:  # type: ignore
+    def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         try:
             r = requests.get(self.path)
@@ -58,7 +58,7 @@ class HttpBackend(BaseBackend):
 
         self._file_byte_size = len(body)
 
-        if gzip or (gzip is None and self.path.endswith(".gz")):
+        if self.path.endswith(".gz"):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))
