@@ -38,7 +38,6 @@ class BaseBackend(BaseReader):
         mosaic_def (MosaicJSON, optional): mosaicJSON document.
         reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.COGReader`.
         reader_options (dict): Options to forward to the reader config.
-        backend_options (dict): Global backend options.
         tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
         bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
         minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to `0`.
@@ -50,7 +49,6 @@ class BaseBackend(BaseReader):
     mosaic_def: MosaicJSON = attr.ib(default=None, converter=_convert_to_mosaicjson)
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
-    backend_options: Dict = attr.ib(factory=dict)
 
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
     # works with WebMercator (mercantile) for now.
@@ -68,7 +66,7 @@ class BaseBackend(BaseReader):
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.path."""
-        self.mosaic_def = self.mosaic_def or self._read(**self.backend_options)
+        self.mosaic_def = self.mosaic_def or self._read()
         self.minzoom = self.mosaic_def.minzoom
         self.maxzoom = self.mosaic_def.maxzoom
         self.bounds = self.mosaic_def.bounds

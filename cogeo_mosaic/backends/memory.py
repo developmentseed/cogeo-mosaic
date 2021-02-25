@@ -23,7 +23,6 @@ class MemoryBackend(BaseBackend):
     mosaic_def: MosaicJSON = attr.ib(converter=_convert_to_mosaicjson)
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
-    backend_options: Dict = attr.ib(factory=dict)
 
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
     # works with WebMercator (mercantile) for now.

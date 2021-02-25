@@ -139,9 +139,9 @@ query = {
 
 with STACBackend(
     "https://earth-search.aws.element84.com/v0/search",
-    query,
-    8,
-    15,
+    query=query,
+    minzoom=8,
+    maxzoom=15,
 ) as mosaic:
     print(mosaic.metadata)
 ```
@@ -155,17 +155,17 @@ The STACBackend rely on Spec version 1.0.0alpha.
 The returned object from the POST requests might not represent the whole results and thus
 we need to use the paggination.
 
-You can limit the pagination by using `max_items` or `stac_query_limit` options.
+You can limit the pagination by using `max_items` or `limit` stac-api options.
 
 - Limit the total result to 1000 items
 
 ```python
 with STACBackend(
     "https://earth-search.aws.element84.com/v0/search",
-    {},
-    8,
-    15,
-    max_items=1000,
+    query={},
+    minzoom=8,
+    maxzoom=15,
+    stac_api_options={"max_items": 1000},
 ) as mosaic:
     print(mosaic.metadata)
 ```
@@ -175,10 +175,10 @@ with STACBackend(
 ```python
 with STACBackend(
     "https://earth-search.aws.element84.com/v0/search",
-    {},
-    8,
-    15,
-    stac_query_limit=500,
+    query={},
+    minzoom=8,
+    maxzoom=15,
+    stac_api_options={"limit": 100},
 ) as mosaic:
     print(mosaic.metadata)
 ```
@@ -223,11 +223,11 @@ Here is an example of an accessor that will return the ulr for asset `B01`
 ```python
 with STACBackend(
     "https://earth-search.aws.element84.com/v0/search",
-    {},
-    8,
-    15,
-    stac_query_limit=500,
-    accessor=lambda x: x["assets"]["B01"]["href"],
+    query={},
+    minzoom=8,
+    maxzoom=15,
+    stac_api_options={"limit": 100},
+    mosaic_options={"accessor": lambda x: x["assets"]["B01"]["href"]},
 ) as mosaic:
     print(mosaic.metadata)
 ```
