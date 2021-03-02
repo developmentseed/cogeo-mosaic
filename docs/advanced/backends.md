@@ -1,33 +1,36 @@
 
 
-Starting in version `3.0.0`, we introduced specific backend storage for:
+Starting in version `3.0.0`, we introduced specific `backend` to abstract mosaicJSON storage.
 
 #### Read-Write Backends
 
-- **File** (default, `file:///`)
+- **FileBackend** (default, `file:///`)
 
-- **AWS S3** (`s3://`)
+- **S3Backend** (`s3://`)
 
-- **AWS DynamoDB** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
+- **DynamoDBBackend** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
 
-- **SQLite** (`sqlite:///{file.db}:{mosaic_name}`)
+- **SQLiteBackend** (`sqlite:///{file.db}:{mosaic_name}`)
 
 #### Read Only Backends
 
 Read only backend won't allow `mosaic_def` in there `__init__` method. `.write()` and `.update` methods will raise `NotImplementedError` error.
 
-- **HTTP/HTTPS** (`http://`, `https://`)
-- **STAC** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
+- **HttpBackend** (`http://`, `https://`)
+- **STACBackend** (`stac+:https://`). Based on [SpatioTemporal Asset Catalog](https://github.com/radiantearth/stac-spec) API.
 
 #### In-Memory
 
-If you have a mosaicjson document and want to use the different backend methods you can use the special `MemoryBackend`.
+If you have a mosaicjson document and want to use the different backend methods you can use the special **MemoryBackend**.
 
 ```python
 with MemoryBackend(mosaic_def=mosaicjson) as mosaic:
     img = mosaic.tile(1, 1, 1)
 ```
 
+### Absctract Class
+
+All backends are built from a `BaseBackend` which is a sub-class or `rio-tiler.io.BaseReader`.
 
 ## MosaicBackend
 

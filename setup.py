@@ -24,7 +24,7 @@ extra_reqs = {
     "aws": ["boto3"],
     "test": ["pytest", "pytest-cov"],
     "dev": ["pytest", "pytest-cov", "pre-commit"],
-    "docs": ["mkdocs", "mkdocs-material", "pygments", "mkapi"],
+    "docs": ["mkdocs", "mkdocs-material", "pygments", "mkapi", "mkdocs-jupyter"],
 }
 
 setup(

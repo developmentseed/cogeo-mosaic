@@ -21,10 +21,17 @@ nav:
   - User Guide:
     - Intro: "intro.md"
     - CLI: "cli.md"
+
   - Advanced User Guide:
     - Backends: "advanced/backends.md"
     - Reader: "advanced/readers.md"
     - Customization: "advanced/custom.md"
+    - Dynamic Backends: "advanced/dynamic.md"
+
+  - Examples:
+    - Dynamic RTree backend: "examples/Create_a_Dynamic_RtreeBackend.ipynb"
+    - Dynamic STAC backend: "examples/Create_a_Dynamic_StacBackend.ipynb"
+
   - API:
     - MosaicJSON: "API/mosaic.md"
     - Cache: "API/cache.md"
@@ -36,6 +43,7 @@ nav:
       - DynamoDB: "API/backends/DynamoDB.md"
       - SQLite: "API/backends/SQLite.md"
       - STAC: "API/backends/STAC.md"
+
   - Migration to v3.0: "v3_migration.md"
   - Development - Contributing: "contributing.md"
   - Release Notes: "release-notes.md"
@@ -44,6 +52,8 @@ plugins:
   - search
   - mkapi:
       src_dirs: [cogeo-mosaic]
+  - mkdocs-jupyter:
+      include_source: True
 
 theme:
   name: material
