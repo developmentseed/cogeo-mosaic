@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 import click
 import mercantile
 from pydantic import BaseModel, Field, root_validator
-from pygeos import STRtree, polygons, total_bounds
+from pygeos import STRtree, linearrings, polygons, total_bounds
 from supermercado import burntiles
 
 from cogeo_mosaic.errors import MosaicError
@@ -132,16 +132,9 @@ class MosaicJSON(BaseModel):
         if not quiet:
             click.echo(f"Get quadkey list for zoom: {quadkey_zoom}", err=True)
 
-        # If Pygeos throws an error, fall back to non-vectorized operation
-        # Ref: https://github.com/developmentseed/cogeo-mosaic/issues/81
-        try:
-            dataset_geoms = polygons(
-                [feat["geometry"]["coordinates"][0] for feat in features]
-            )
-        except TypeError:
-            dataset_geoms = [
-                polygons(feat["geometry"]["coordinates"][0]) for feat in features
-            ]
+        dataset_geoms = polygons(
+            [linearrings(feat["geometry"]["coordinates"][0]) for feat in features]
+        )
 
         bounds = tuple(total_bounds(dataset_geoms))
 

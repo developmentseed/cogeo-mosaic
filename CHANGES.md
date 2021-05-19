@@ -1,5 +1,10 @@
 # Release Notes
 
+## 3.0.0 (TBD)
+
+* update rio-tiler version dependencies
+* update pygeos dependency to >=0.10 which fix https://github.com/developmentseed/cogeo-mosaic/issues/81
+
 ## 3.0.0rc2 (2021-02-25))
 
 **breaking**
