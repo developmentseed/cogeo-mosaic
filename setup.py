@@ -9,13 +9,12 @@ with open("README.md") as f:
 inst_reqs = [
     "attrs",
     "mercantile",
-    "morecantile>=2.1,<2.2",
-    "pygeos>=0.7",
+    "morecantile>=2.1",
+    "pygeos>=0.10",
     "pydantic",
     "requests",
     "rasterio",
-    "requests",
-    "rio-tiler>=2.0.1,<2.1",
+    "rio-tiler>=2.0",
     "cachetools",
     "supermercado",
 ]

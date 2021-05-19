@@ -19,7 +19,9 @@ def test_create_valid():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with open("./list.txt", "w") as f:
+            f.write("\n")
             f.write("\n".join(assets))
+            f.write("\n")
 
         result = runner.invoke(cogeo_cli, ["create", "list.txt", "--quiet"])
         assert not result.exception
