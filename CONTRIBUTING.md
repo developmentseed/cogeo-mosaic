@@ -34,7 +34,7 @@ $ git push origin
 
 ```bash
 $ git clone https://github.com/developmentseed/cogeo-mosaic.git
-$ cd titiler
+$ cd cogeo-mosaic
 $ pip install -e .["docs"]
 ```
 
