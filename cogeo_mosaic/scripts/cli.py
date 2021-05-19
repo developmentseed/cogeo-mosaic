@@ -77,7 +77,7 @@ def create(
     quiet,
 ):
     """Create mosaic definition file."""
-    input_files = filter(None, input_files.read().splitlines())
+    input_files = input_files.read().strip().splitlines()
     mosaicjson = MosaicJSON.from_urls(
         input_files,
         minzoom=minzoom,
