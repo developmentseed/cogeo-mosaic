@@ -1,5 +1,9 @@
 # Release Notes
 
+## 3.0.1 (2021-06-22)
+
+* Make sure to pass an openned file to click.Progressbar (https://github.com/developmentseed/cogeo-mosaic/pull/178)
+
 ## 3.0.0 (2021-05-19)
 
 * update rio-tiler version dependencies

@@ -3,6 +3,7 @@
 import os
 import sys
 import warnings
+from contextlib import ExitStack
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import click
@@ -158,33 +159,39 @@ class MosaicJSON(BaseModel):
         # Create tree and find assets that overlap each tile
         tree = STRtree(dataset_geoms)
 
-        fout = os.devnull if quiet else sys.stderr
-        with click.progressbar(  # type: ignore
-            tiles, file=fout, show_percent=True, label="Iterate over quadkeys"
-        ) as bar:
-            for tile in bar:
-                quadkey = mercantile.quadkey(tile)
-                tile_geom = polygons(
-                    mercantile.feature(tile)["geometry"]["coordinates"][0]
-                )
+        with ExitStack() as ctx:
+            fout = ctx.enter_context(open(os.devnull, "w")) if quiet else sys.stderr
+            with click.progressbar(  # type: ignore
+                tiles, file=fout, show_percent=True, label="Iterate over quadkeys"
+            ) as bar:
+                for tile in bar:
+                    quadkey = mercantile.quadkey(tile)
+                    tile_geom = polygons(
+                        mercantile.feature(tile)["geometry"]["coordinates"][0]
+                    )
 
-                # Find intersections from rtree
-                intersections_idx = sorted(
-                    tree.query(tile_geom, predicate="intersects")
-                )
-                if len(intersections_idx) == 0:
-                    continue
+                    # Find intersections from rtree
+                    intersections_idx = sorted(
+                        tree.query(tile_geom, predicate="intersects")
+                    )
+                    if len(intersections_idx) == 0:
+                        continue
 
-                intersect_dataset, intersect_geoms = zip(
-                    *[(features[idx], dataset_geoms[idx]) for idx in intersections_idx]
-                )
+                    intersect_dataset, intersect_geoms = zip(
+                        *[
+                            (features[idx], dataset_geoms[idx])
+                            for idx in intersections_idx
+                        ]
+                    )
 
-                dataset = asset_filter(
-                    tile, intersect_dataset, intersect_geoms, **kwargs
-                )
+                    dataset = asset_filter(
+                        tile, intersect_dataset, intersect_geoms, **kwargs
+                    )
 
-                if dataset:
-                    mosaic_definition["tiles"][quadkey] = [accessor(f) for f in dataset]
+                    if dataset:
+                        mosaic_definition["tiles"][quadkey] = [
+                            accessor(f) for f in dataset
+                        ]
 
         return cls(**mosaic_definition)
 

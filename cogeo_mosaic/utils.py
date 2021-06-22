@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 from concurrent import futures
+from contextlib import ExitStack
 from typing import Dict, List, Sequence, Tuple
 
 import click
@@ -85,18 +86,21 @@ def get_footprints(
         tuple of footprint feature.
 
     """
-    fout = os.devnull if quiet else sys.stderr
-    with futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        future_work = [executor.submit(get_dataset_info, item) for item in dataset_list]
-        with click.progressbar(  # type: ignore
-            futures.as_completed(future_work),
-            file=fout,
-            length=len(future_work),
-            label="Get footprints",
-            show_percent=True,
-        ) as future:
-            for _ in future:
-                pass
+    with ExitStack() as ctx:
+        fout = ctx.enter_context(open(os.devnull, "w")) if quiet else sys.stderr
+        with futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_work = [
+                executor.submit(get_dataset_info, item) for item in dataset_list
+            ]
+            with click.progressbar(  # type: ignore
+                futures.as_completed(future_work),
+                file=fout,
+                length=len(future_work),
+                label="Get footprints",
+                show_percent=True,
+            ) as future:
+                for _ in future:
+                    pass
 
     return list(_filter_futures(future_work))
 
