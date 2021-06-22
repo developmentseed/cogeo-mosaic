@@ -97,7 +97,7 @@ def test_footprint_valid():
         with open("./list.txt", "w") as f:
             f.write("\n".join([asset1, asset2]))
 
-        result = runner.invoke(cogeo_cli, ["footprint", "list.txt"])
+        result = runner.invoke(cogeo_cli, ["footprint", "list.txt", "--quiet"])
         assert not result.exception
         assert result.exit_code == 0
         footprint = json.loads(result.output)

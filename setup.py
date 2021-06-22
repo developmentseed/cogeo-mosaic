@@ -32,7 +32,7 @@ setup(
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",
-    python_requires=">=3",
+    python_requires=">=3.6",
     classifiers=[
         "Intended Audience :: Information Technology",
         "Intended Audience :: Science/Research",
