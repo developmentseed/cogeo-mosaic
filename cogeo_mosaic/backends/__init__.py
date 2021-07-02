@@ -6,9 +6,9 @@ from urllib.parse import urlparse
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
+from cogeo_mosaic.backends.gs import GCSBackend
 from cogeo_mosaic.backends.memory import MemoryBackend
 from cogeo_mosaic.backends.s3 import S3Backend
-from cogeo_mosaic.backends.gs import GCSBackend
 from cogeo_mosaic.backends.sqlite import SQLiteBackend
 from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.web import HttpBackend

@@ -15,8 +15,8 @@ from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExistsError
 from cogeo_mosaic.mosaic import MosaicJSON
 
 try:
-    from google.cloud.storage import Client as gcp_session
     from google.auth.exceptions import GoogleAuthError
+    from google.cloud.storage import Client as gcp_session
 except ImportError:  # pragma: nocover
     gcp_session = None  # type: ignore
     GoogleAuthError = None  # type: ignore
@@ -34,7 +34,9 @@ class GCSBackend(BaseBackend):
 
     def __attrs_post_init__(self):
         """Post Init: parse path and create client."""
-        assert gcp_session is not None, "'google-cloud-storage' must be installed to use GCSBackend"
+        assert (
+            gcp_session is not None
+        ), "'google-cloud-storage' must be installed to use GCSBackend"
 
         parsed = urlparse(self.path)
         self.bucket = parsed.netloc
@@ -62,7 +64,6 @@ class GCSBackend(BaseBackend):
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         body = self._get_object(self.key, self.bucket)
-
         self._file_byte_size = len(body)
 
         if self.key.endswith(".gz"):
@@ -72,8 +73,8 @@ class GCSBackend(BaseBackend):
 
     def _get_object(self, key: str, bucket: str) -> bytes:
         try:
-            bucket = self.client.bucket(bucket)
-            response = bucket.blob(key).download_as_string()
+            gcs_bucket = self.client.bucket(bucket)
+            response = gcs_bucket.blob(key).download_as_bytes()
         except GoogleAuthError as e:
             status_code = e.response["ResponseMetadata"]["HTTPStatusCode"]
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
@@ -83,8 +84,8 @@ class GCSBackend(BaseBackend):
 
     def _put_object(self, key: str, bucket: str, body: bytes, **kwargs) -> str:
         try:
-            bucket = self.client.bucket(bucket)
-            blob = bucket.blob(key)
+            gcs_bucket = self.client.bucket(bucket)
+            blob = gcs_bucket.blob(key)
             blob.upload_from_string(body)
         except GoogleAuthError as e:
             status_code = e.response["ResponseMetadata"]["HTTPStatusCode"]
@@ -95,8 +96,8 @@ class GCSBackend(BaseBackend):
 
     def _head_object(self, key: str, bucket: str) -> bool:
         try:
-            bucket = self.client.bucket(bucket)
-            blob = bucket.blob(key)
+            gcs_bucket = self.client.bucket(bucket)
+            blob = gcs_bucket.blob(key)
             return blob.exists()
         except GoogleAuthError:
             return False
