@@ -1,5 +1,9 @@
 # Release Notes
 
+## 3.0.2 (2021-07-08)
+
+* Add Google Cloud Storage (`gs://...`) mosaic backend (author @AndreaGiardini, https://github.com/developmentseed/cogeo-mosaic/pull/179)
+
 ## 3.0.1 (2021-06-22)
 
 * Make sure to pass an openned file to click.Progressbar (https://github.com/developmentseed/cogeo-mosaic/pull/178)

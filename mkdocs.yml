@@ -43,6 +43,7 @@ nav:
       - DynamoDB: "API/backends/DynamoDB.md"
       - SQLite: "API/backends/SQLite.md"
       - STAC: "API/backends/STAC.md"
+      - GoogleCloud: "API/backends/GoogleCloudStorage.md"
 
   - Migration to v3.0: "v3_migration.md"
   - Development - Contributing: "contributing.md"
