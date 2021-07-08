@@ -21,6 +21,7 @@ inst_reqs = [
 
 extra_reqs = {
     "aws": ["boto3"],
+    "gcp": ["google-cloud-storage"],
     "test": ["pytest", "pytest-cov"],
     "dev": ["pytest", "pytest-cov", "pre-commit"],
     "docs": ["mkdocs", "mkdocs-material", "pygments", "mkapi", "mkdocs-jupyter"],

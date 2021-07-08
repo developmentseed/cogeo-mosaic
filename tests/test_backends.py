@@ -16,7 +16,7 @@ from pydantic import ValidationError
 from requests.exceptions import HTTPError, RequestException
 from rio_tiler.errors import PointOutsideBounds
 
-from cogeo_mosaic.backends import MosaicBackend
+from cogeo_mosaic.backends import GCSBackend, MosaicBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.backends.memory import MemoryBackend
@@ -304,6 +304,103 @@ def test_s3_backend(session):
     session.return_value.client.return_value.get_object.assert_not_called()
     session.return_value.client.return_value.head_object.assert_not_called()
     kwargs = session.return_value.client.return_value.put_object.assert_called_once()
+    session.reset_mock()
+
+
+@patch("cogeo_mosaic.backends.gs.gcp_session")
+def test_gs_backend(session):
+    """Test GS backend."""
+    with open(mosaic_gz, "rb") as f:
+        session.return_value.bucket.return_value.blob.return_value.download_as_bytes.return_value = (
+            f.read()
+        )
+
+    session.return_value.bucket.return_value.blob.return_value.upload_from_string.return_value = (
+        True
+    )
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
+        False
+    )
+
+    with MosaicBackend("gs://mybucket/mymosaic.json.gz") as mosaic:
+        assert mosaic._backend_name == "Google Cloud Storage"
+        assert isinstance(mosaic, GCSBackend)
+        assert (
+            mosaic.mosaicid
+            == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
+        )
+        assert mosaic.quadkey_zoom == 7
+        assert list(mosaic.metadata.dict(exclude_none=True).keys()) == [
+            "mosaicjson",
+            "version",
+            "minzoom",
+            "maxzoom",
+            "quadkey_zoom",
+            "bounds",
+            "center",
+        ]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        session.return_value.bucket.assert_called_once_with("mybucket")
+        session.return_value.bucket.return_value.blob.assert_called_once_with(
+            "mymosaic.json.gz"
+        )
+
+        session.return_value.bucket.return_value.blob.return_value.upload_from_string.assert_not_called()
+        session.return_value.bucket.return_value.blob.return_value.exists.assert_not_called()
+        session.reset_mock()
+
+    with open(mosaic_gz, "rb") as f:
+        session.return_value.bucket.return_value.blob.return_value.download_as_bytes.return_value = (
+            f.read()
+        )
+
+    session.return_value.bucket.return_value.blob.return_value.upload_from_string.return_value = (
+        True
+    )
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
+        False
+    )
+
+    with MosaicBackend(
+        "gs://mybucket/mymosaic.json.gz", mosaic_def=mosaic_content
+    ) as mosaic:
+        assert isinstance(mosaic, GCSBackend)
+        mosaic.write()
+    session.return_value.bucket.return_value.blob.return_value.download_as_bytes.assert_not_called()
+
+    session.return_value.bucket.return_value.blob.return_value.exists.assert_called_once()
+    session.reset_mock()
+
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
+        False
+    )
+    with MosaicBackend("gs://mybucket/00000.json", mosaic_def=mosaic_content) as mosaic:
+        assert isinstance(mosaic, GCSBackend)
+        mosaic.write()
+    session.return_value.bucket.return_value.blob.return_value.download_as_bytes.assert_not_called()
+    session.return_value.bucket.return_value.blob.return_value.exists.assert_called_once()
+    session.reset_mock()
+
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
+        True
+    )
+    with MosaicBackend("gs://mybucket/00000.json", mosaic_def=mosaic_content) as mosaic:
+        assert isinstance(mosaic, GCSBackend)
+        with pytest.raises(MosaicExistsError):
+            mosaic.write()
+    session.return_value.client.return_value.get_object.assert_not_called()
+    session.return_value.bucket.return_value.blob.return_value.exists.assert_called_once()
+    session.reset_mock()
+
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
+        True
+    )
+    with MosaicBackend("gs://mybucket/00000.json", mosaic_def=mosaic_content) as mosaic:
+        assert isinstance(mosaic, GCSBackend)
+        mosaic.write(overwrite=True)
+    session.return_value.client.return_value.get_object.assert_not_called()
+    session.return_value.client.return_value.head_object.assert_not_called()
     session.reset_mock()
 
 

@@ -8,6 +8,8 @@ Starting in version `3.0.0`, we introduced specific `backend` to abstract mosaic
 
 - **S3Backend** (`s3://`)
 
+- **GCSBackend** (`gs://`)
+
 - **DynamoDBBackend** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
 
 - **SQLiteBackend** (`sqlite:///{file.db}:{mosaic_name}`)
@@ -28,7 +30,7 @@ with MemoryBackend(mosaic_def=mosaicjson) as mosaic:
     img = mosaic.tile(1, 1, 1)
 ```
 
-### Absctract Class
+### Abstract Class
 
 All backends are built from a `BaseBackend` which is a sub-class or `rio-tiler.io.BaseReader`.
 
@@ -41,6 +43,9 @@ from cogeo_mosaic.backends import MosaicBackend
 
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.s3.S3Backend)
+
+with MosaicBackend("gs://mybucket/amosaic.json") as mosaic:
+    assert isinstance(mosaic, cogeo_mosaic.backends.gs.GCSBackend)
 
 with MosaicBackend("dynamodb://us-east-1/amosaic") as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.dynamodb.DynamoDBBackend)
@@ -69,6 +74,18 @@ with MosaicBackend(":memory:", mosaic_def=mosaic) as mosaic:
 with MosaicBackend(None, mosaic_def=mosaic) as mosaic:
     assert isinstance(mosaic, cogeo_mosaic.backends.memory.MemoryBackend)
 ```
+
+## GCS Backend
+
+The GCS Backend allows read and write operations from Google Cloud Storage.
+
+When using this backend is necessary to set the appropriate roles and IAM
+permissions to let cogeo-mosaic access the files. For example:
+
+* Read-only bucket - IAM Role `roles/storage.objectViewer`. It is possible
+  to restrict the read-only operation to a single bucket by using the
+  following condition: `resource.type == "storage.googleapis.com/Object"
+  && resource.name.startsWith("projects/_/buckets/mybucket")`
 
 ## STAC Backend
 
