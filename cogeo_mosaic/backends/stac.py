@@ -8,6 +8,7 @@ import attr
 import requests
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
+from rasterio.crs import CRS
 from rio_tiler.io import STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
@@ -71,6 +72,7 @@ class STACBackend(BaseBackend):
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
+    crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
 
     # Because the STACBackend is a Read-Only backend, there is no need for
     # mosaic_def to be in the init method.

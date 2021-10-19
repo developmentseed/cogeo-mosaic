@@ -4,6 +4,7 @@ from typing import Dict, Tuple, Type
 
 import attr
 from morecantile import TileMatrixSet
+from rasterio.crs import CRS
 from rio_tiler.constants import WEB_MERCATOR_TMS
 from rio_tiler.io import BaseReader, COGReader
 
@@ -27,13 +28,14 @@ class MemoryBackend(BaseBackend):
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
     # works with WebMercator (mercantile) for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
+    minzoom: int = attr.ib(init=False)
+    maxzoom: int = attr.ib(init=False)
 
-    # default values for bounds and zoom
+    # default values for bounds
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
-    minzoom: int = attr.ib(init=False, default=0)
-    maxzoom: int = attr.ib(init=False, default=30)
+    crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
 
     path: str = attr.ib(init=False, default=":memory:")
 

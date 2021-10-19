@@ -9,6 +9,7 @@ import mercantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from morecantile import TileMatrixSet
+from rasterio.crs import CRS
 from rio_tiler.constants import WEB_MERCATOR_TMS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, COGReader
@@ -19,7 +20,7 @@ from rio_tiler.tasks import multi_values
 from cogeo_mosaic.backends.utils import find_quadkeys, get_hash
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import NoAssetFoundError
-from cogeo_mosaic.models import Info, Metadata
+from cogeo_mosaic.models import Info
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -53,13 +54,14 @@ class BaseBackend(BaseReader):
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
     # works with WebMercator (mercantile) for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
+    minzoom: int = attr.ib(init=False)
+    maxzoom: int = attr.ib(init=False)
 
-    # default values for bounds and zoom
+    # default values for bounds
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
-    minzoom: int = attr.ib(init=False, default=0)
-    maxzoom: int = attr.ib(init=False, default=30)
+    crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
 
     _backend_name: str
     _file_byte_size: Optional[int] = 0
@@ -151,7 +153,7 @@ class BaseBackend(BaseReader):
             mosaic_assets = list(reversed(mosaic_assets))
 
         def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any) -> ImageData:
-            with self.reader(asset, **self.reader_options) as src_dst:
+            with self.reader(asset, **self.reader_options) as src_dst:  # type: ignore
                 return src_dst.tile(x, y, z, **kwargs)
 
         return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
@@ -168,7 +170,7 @@ class BaseBackend(BaseReader):
             mosaic_assets = list(reversed(mosaic_assets))
 
         def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
-            with self.reader(asset, **self.reader_options) as src_dst:
+            with self.reader(asset, **self.reader_options) as src_dst:  # type: ignore
                 return src_dst.point(lon, lat, **kwargs)
 
         if "allowed_exceptions" not in kwargs:
@@ -186,17 +188,6 @@ class BaseBackend(BaseReader):
             name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
             quadkeys=[] if not quadkeys else self._quadkeys,
         )
-
-    @property
-    def metadata(self) -> Metadata:  # type: ignore
-        """Retrieve Mosaic metadata
-
-        Returns
-        -------
-        MosaicJSON as dict without `tiles` key.
-
-        """
-        return Metadata(**self.mosaic_def.dict())
 
     @property
     def center(self):
@@ -221,8 +212,8 @@ class BaseBackend(BaseReader):
     ############################################################################
     # Not Implemented methods
     # BaseReader required those method to be implemented
-    def stats(self):
-        """PlaceHolder for BaseReader.stats."""
+    def statistics(self):
+        """PlaceHolder for BaseReader.statistics."""
         raise NotImplementedError
 
     def preview(self):
