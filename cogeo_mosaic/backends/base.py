@@ -128,6 +128,25 @@ class BaseBackend(BaseReader):
         tile = mercantile.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
+    def assets_for_bbox(
+        self, xmin: float, ymin: float, xmax: float, ymax: float
+    ) -> List[str]:
+        """Retrieve assets for bbox."""
+        tl_tile = mercantile.tile(xmin, ymax, self.quadkey_zoom)
+        br_tile = mercantile.tile(xmax, ymin, self.quadkey_zoom)
+
+        tiles = [
+            (x, y, self.quadkey_zoom)
+            for x in range(tl_tile.x, br_tile.x + 1)
+            for y in range(tl_tile.y, br_tile.y + 1)
+        ]
+
+        return list(
+            dict.fromkeys(
+                itertools.chain.from_iterable([self.assets_for_tile(*t) for t in tiles])
+            )
+        )
+
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
@@ -137,8 +156,10 @@ class BaseBackend(BaseReader):
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
         return list(
-            itertools.chain.from_iterable(
-                [self.mosaic_def.tiles.get(qk, []) for qk in quadkeys]
+            dict.fromkeys(
+                itertools.chain.from_iterable(
+                    [self.mosaic_def.tiles.get(qk, []) for qk in quadkeys]
+                )
             )
         )
 

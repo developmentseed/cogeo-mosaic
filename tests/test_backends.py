@@ -86,11 +86,18 @@ def test_file_backend():
             "bounds",
             "center",
         ]
+        # make sure we do not return asset twice (e.g for parent tile)
+        assert mosaic.assets_for_tile(18, 22, 6) == ["cog1.tif", "cog2.tif"]
+
         assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
         assert len(mosaic.get_assets(150, 182, 9)) == 2
         assert len(mosaic.get_assets(147, 182, 12)) == 0
+
+        assert mosaic.assets_for_bbox(
+            -74.53125, 45.583289756006316, -73.828125, 46.07323062540836
+        ) == ["cog1.tif", "cog2.tif"]
 
     with MosaicBackend(mosaic_json) as mosaic:
         assert isinstance(mosaic, FileBackend)

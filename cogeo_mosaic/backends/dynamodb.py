@@ -212,8 +212,10 @@ class DynamoDBBackend(BaseBackend):
         mercator_tile = mercantile.Tile(x=x, y=y, z=z)
         quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
         return list(
-            itertools.chain.from_iterable(
-                [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
+            dict.fromkeys(
+                itertools.chain.from_iterable(
+                    [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
+                )
             )
         )
 

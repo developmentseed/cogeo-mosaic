@@ -1,9 +1,7 @@
 """cogeo-mosaic.backends utility functions."""
 
 import hashlib
-import itertools
 import json
-import warnings
 import zlib
 from typing import Any, Dict, List
 
@@ -45,20 +43,6 @@ def find_quadkeys(mercator_tile: mercantile.Tile, quadkey_zoom: int) -> List[str
         return [mercantile.quadkey(*tile) for tile in mercator_tiles]
     else:
         return [mercantile.quadkey(*mercator_tile)]
-
-
-def get_assets_from_json(
-    tiles: Dict, quadkey_zoom: int, x: int, y: int, z: int
-) -> List[str]:
-    """Find assets."""
-    warnings.warn(
-        "get_assets_from_json will be deprecated in 3.0.0, and is now part of the backends.",
-        DeprecationWarning,
-    )
-
-    mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-    quadkeys = find_quadkeys(mercator_tile, quadkey_zoom)
-    return list(itertools.chain.from_iterable([tiles.get(qk, []) for qk in quadkeys]))
 
 
 def _compress_gz_json(data: Dict) -> bytes:
