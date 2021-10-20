@@ -50,15 +50,17 @@ from cogeo_mosaic.backends import MosaicBackend
 
 # Read
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
-    mosaic.mosaic_def                  # property - MosaicJSON document, wrapped in a Pydantic Model
-    mosaic.metadata                    # property - Return mosaic metadata
+    mosaic.input                       # attribute - MosaicJSON path
+    mosaic.mosaic_def                  # attribute - MosaicJSON document, wrapped in a Pydantic Model
+
     mosaic.mosaicid                    # property - Return sha224 id from the mosaicjson doc
     mosaic.quadkey_zoom                # property - Return Quadkey zoom of the mosaic
-
     mosaic.minzoom                     # property - Mosaic minzoom
     mosaic.maxzoom                     # property - Mosaic maxzoom
+    mosaic.center                      # property - Mosaic center
     mosaic.bounds                      # property - Mosaic bounds
-    mosaic.spatial_info                # property - zooms and bounds info
+    mosaic.crs                         # property - Mosaic bounds
+    mosaic.geographic_bounds           # property - Mosaic bounds in WGS84
 
     mosaic.info(quadkeys=True/False)   # method -  spatial_info, list of quadkeys and mosaic name
 
