@@ -4,6 +4,7 @@
 
 * update morecantile requirement to >= 3.0
 * update rio-tiler requirement to >= 3.0 and update Backend's properties
+* switch from `requests` to `httpx`
 
 **breaking changes**
 

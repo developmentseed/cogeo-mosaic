@@ -5,7 +5,7 @@ import os
 from typing import Dict, List, Optional, Sequence, Tuple, Type
 
 import attr
-import requests
+import httpx
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from rasterio.crs import CRS
@@ -160,14 +160,14 @@ def _fetch(
 
     def _stac_search(url: str, q: Dict):
         try:
-            r = requests.post(url, headers=headers, json=q)
+            r = httpx.post(url, headers=headers, json=q)
             r.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             # post-flight errors
             status_code = e.response.status_code
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
             raise exc(e.response.content) from e
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             # pre-flight errors
             raise MosaicError(e.args[0].reason) from e
         return r.json()
