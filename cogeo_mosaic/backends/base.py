@@ -9,6 +9,7 @@ import mercantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from morecantile import TileMatrixSet
+from rasterio.crs import CRS
 from rio_tiler.constants import WEB_MERCATOR_TMS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, COGReader
@@ -19,7 +20,7 @@ from rio_tiler.tasks import multi_values
 from cogeo_mosaic.backends.utils import find_quadkeys, get_hash
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import NoAssetFoundError
-from cogeo_mosaic.models import Info, Metadata
+from cogeo_mosaic.models import Info
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
@@ -34,7 +35,7 @@ class BaseBackend(BaseReader):
     """Base Class for cogeo-mosaic backend storage.
 
     Attributes:
-        path (str): mosaic path.
+        input (str): mosaic path.
         mosaic_def (MosaicJSON, optional): mosaicJSON document.
         reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.COGReader`.
         reader_options (dict): Options to forward to the reader config.
@@ -45,27 +46,29 @@ class BaseBackend(BaseReader):
 
     """
 
-    path: str = attr.ib()
+    input: str = attr.ib()
     mosaic_def: MosaicJSON = attr.ib(default=None, converter=_convert_to_mosaicjson)
+
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
 
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
     # works with WebMercator (mercantile) for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
+    minzoom: int = attr.ib(init=False)
+    maxzoom: int = attr.ib(init=False)
 
-    # default values for bounds and zoom
+    # default values for bounds
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
-    minzoom: int = attr.ib(init=False, default=0)
-    maxzoom: int = attr.ib(init=False, default=30)
+    crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
 
     _backend_name: str
     _file_byte_size: Optional[int] = 0
 
     def __attrs_post_init__(self):
-        """Post Init: if not passed in init, try to read from self.path."""
+        """Post Init: if not passed in init, try to read from self.input."""
         self.mosaic_def = self.mosaic_def or self._read()
         self.minzoom = self.mosaic_def.minzoom
         self.maxzoom = self.mosaic_def.maxzoom
@@ -127,7 +130,7 @@ class BaseBackend(BaseReader):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
+        key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
@@ -188,17 +191,6 @@ class BaseBackend(BaseReader):
         )
 
     @property
-    def metadata(self) -> Metadata:  # type: ignore
-        """Retrieve Mosaic metadata
-
-        Returns
-        -------
-        MosaicJSON as dict without `tiles` key.
-
-        """
-        return Metadata(**self.mosaic_def.dict())
-
-    @property
     def center(self):
         """Return center from the mosaic definition."""
         return self.mosaic_def.center
@@ -221,8 +213,8 @@ class BaseBackend(BaseReader):
     ############################################################################
     # Not Implemented methods
     # BaseReader required those method to be implemented
-    def stats(self):
-        """PlaceHolder for BaseReader.stats."""
+    def statistics(self):
+        """PlaceHolder for BaseReader.statistics."""
         raise NotImplementedError
 
     def preview(self):

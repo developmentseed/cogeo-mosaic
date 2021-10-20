@@ -38,7 +38,7 @@ class GCSBackend(BaseBackend):
             gcp_session is not None
         ), "'google-cloud-storage' must be installed to use GCSBackend"
 
-        parsed = urlparse(self.path)
+        parsed = urlparse(self.input)
         self.bucket = parsed.netloc
         self.key = parsed.path.strip("/")
         self.client = self.client or gcp_session()
@@ -59,7 +59,7 @@ class GCSBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
+        key=lambda self: hashkey(self.input),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""

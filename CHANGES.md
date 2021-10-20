@@ -1,5 +1,17 @@
 # Release Notes
 
+## 4.0.0a0 (TBD)
+
+* update morecantile requirement to >= 3.0
+* update rio-tiler requirement to >= 3.0 and update Backend's properties
+
+**breaking changes**
+
+* remove `BaseBackend.metadata()` method (can be replaced by `BaseBackend.mosaic_def.dict(exclude={"tiles"})`)
+* remove `cogeo_mosaic.models.Metadata` model
+* remove python 3.6 support
+* `BaseBackend.path` -> `BaseBackend.input` attribute (`input` was added in rio-tiler BaseReader)
+
 ## 3.0.2 (2021-07-08)
 
 * Add Google Cloud Storage (`gs://...`) mosaic backend (author @AndreaGiardini, https://github.com/developmentseed/cogeo-mosaic/pull/179)

@@ -47,10 +47,10 @@ class SQLiteBackend(BaseBackend):
         sqlite:///{db_path}:{mosaic_name}
 
         """
-        if not re.match(r"^sqlite:///.+\:[a-zA-Z0-9\_\-\.]+$", self.path,):
-            raise ValueError(f"Invalid SQLite path: {self.path}")
+        if not re.match(r"^sqlite:///.+\:[a-zA-Z0-9\_\-\.]+$", self.input,):
+            raise ValueError(f"Invalid SQLite path: {self.input}")
 
-        parsed = urlparse(self.path)
+        parsed = urlparse(self.input)
         uri_path = parsed.path[1:]  # remove `/` on the left
 
         self.mosaic_name = uri_path.split(":")[-1]
@@ -87,13 +87,13 @@ class SQLiteBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
+        key=lambda self: hashkey(self.input),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
         meta = self._fetch_metadata()
         if not meta:
-            raise MosaicNotFoundError(f"Mosaic not found in {self.path}")
+            raise MosaicNotFoundError(f"Mosaic not found in {self.input}")
 
         meta["tiles"] = {}
         return MosaicJSON(**meta)
@@ -267,7 +267,7 @@ class SQLiteBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
+        key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""

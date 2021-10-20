@@ -22,13 +22,13 @@ class FileBackend(BaseBackend):
 
     def write(self, overwrite: bool = False):
         """Write mosaicjson document to a file."""
-        if not overwrite and pathlib.Path(self.path).exists():
+        if not overwrite and pathlib.Path(self.input).exists():
             raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
 
         body = self.mosaic_def.dict(exclude_none=True)
-        with open(self.path, "wb") as f:
+        with open(self.input, "wb") as f:
             try:
-                if self.path.endswith(".gz"):
+                if self.input.endswith(".gz"):
                     f.write(_compress_gz_json(body))
                 else:
                     f.write(json.dumps(body).encode("utf-8"))
@@ -38,12 +38,12 @@ class FileBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
+        key=lambda self: hashkey(self.input),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         try:
-            with open(self.path, "rb") as f:
+            with open(self.input, "rb") as f:
                 body = f.read()
         except Exception as e:
             exc = _FILE_EXCEPTIONS.get(e, MosaicError)  # type: ignore
@@ -51,7 +51,7 @@ class FileBackend(BaseBackend):
 
         self._file_byte_size = len(body)
 
-        if self.path.endswith(".gz"):
+        if self.input.endswith(".gz"):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))

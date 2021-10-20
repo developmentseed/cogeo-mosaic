@@ -9,12 +9,12 @@ with open("README.md") as f:
 inst_reqs = [
     "attrs",
     "mercantile",
-    "morecantile>=2.1",
+    "morecantile>=3.0,<4.0",
     "pygeos>=0.10",
     "pydantic",
     "requests",
     "rasterio",
-    "rio-tiler>=2.0",
+    "rio-tiler>=3.0.0a1,<3.1",
     "cachetools",
     "supermercado",
 ]
@@ -33,12 +33,11 @@ setup(
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     classifiers=[
         "Intended Audience :: Information Technology",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",

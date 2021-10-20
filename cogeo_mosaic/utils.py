@@ -42,7 +42,7 @@ def _filter_futures(tasks):
 def get_dataset_info(src_path: str) -> Dict:
     """Get rasterio dataset meta."""
     with COGReader(src_path) as cog:
-        bounds = cog.bounds
+        bounds = cog.geographic_bounds
         return {
             "geometry": {
                 "type": "Polygon",
@@ -58,7 +58,7 @@ def get_dataset_info(src_path: str) -> Dict:
             },
             "properties": {
                 "path": src_path,
-                "bounds": cog.bounds,
+                "bounds": cog.geographic_bounds,
                 "minzoom": cog.minzoom,
                 "maxzoom": cog.maxzoom,
                 "datatype": cog.dataset.meta["dtype"],

@@ -44,6 +44,7 @@ class DynamoDBBackend(BaseBackend):
 
     client: Any = attr.ib(default=None)
     region: str = attr.ib(default=os.getenv("AWS_REGION", "us-east-1"))
+
     table_name: str = attr.ib(init=False)
     mosaic_name: str = attr.ib(init=False)
     table: Any = attr.ib(init=False)
@@ -62,15 +63,15 @@ class DynamoDBBackend(BaseBackend):
         """
         assert boto3 is not None, "'boto3' must be installed to use DynamoDBBackend"
 
-        logger.debug(f"Using DynamoDB backend: {self.path}")
+        logger.debug(f"Using DynamoDB backend: {self.input}")
 
         if not re.match(
             r"^dynamodb://([a-z]{2}\-[a-z]+\-[0-9])?\/[a-zA-Z0-9\_\-\.]+\:[a-zA-Z0-9\_\-\.]+$",
-            self.path,
+            self.input,
         ):
-            raise ValueError(f"Invalid DynamoDB path: {self.path}")
+            raise ValueError(f"Invalid DynamoDB path: {self.input}")
 
-        parsed = urlparse(self.path)
+        parsed = urlparse(self.input)
 
         mosaic_info = parsed.path.lstrip("/").split(":")
         self.table_name = mosaic_info[0]
@@ -86,7 +87,7 @@ class DynamoDBBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
+        key=lambda self: hashkey(self.input),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
@@ -204,7 +205,7 @@ class DynamoDBBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
+        key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""

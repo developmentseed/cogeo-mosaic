@@ -8,6 +8,7 @@ import attr
 import requests
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
+from rasterio.crs import CRS
 from rio_tiler.io import STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
@@ -52,7 +53,7 @@ class STACBackend(BaseBackend):
 
     """
 
-    path: str = attr.ib()
+    input: str = attr.ib()
     query: Dict = attr.ib()
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
@@ -71,6 +72,7 @@ class STACBackend(BaseBackend):
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
+    crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
 
     # Because the STACBackend is a Read-Only backend, there is no need for
     # mosaic_def to be in the init method.
@@ -79,7 +81,7 @@ class STACBackend(BaseBackend):
     _backend_name = "STAC"
 
     def __attrs_post_init__(self):
-        """Post Init: if not passed in init, try to read from self.path."""
+        """Post Init: if not passed in init, try to read from self.input."""
         self.mosaic_def = self._read()
         self.bounds = self.mosaic_def.bounds
 
@@ -91,9 +93,9 @@ class STACBackend(BaseBackend):
             MosaicJSON: Mosaic definition.
 
         """
-        logger.debug(f"Using STAC backend: {self.path}")
+        logger.debug(f"Using STAC backend: {self.input}")
 
-        features = _fetch(self.path, self.query, **self.stac_api_options,)
+        features = _fetch(self.input, self.query, **self.stac_api_options,)
         logger.debug(f"Creating mosaic from {len(features)} features")
 
         # We need a specific accessor for STAC

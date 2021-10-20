@@ -132,7 +132,7 @@ def update(
     )
 
     # Write the mosaic
-    if self.path:
+    if self.input:
         self.write()
 
     return

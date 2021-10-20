@@ -44,10 +44,17 @@ from cogeo_mosaic.mosaic import MosaicJSON
 class DynamicStacBackend(BaseBackend):
     """Like a STAC backend but dynamic"""
 
-    reader: Type[BaseReader] = attr.ib(default=STACReader)
+    # input should be the STAC-API url
+    input: str = attr.ib()
 
     # Addition required attribute (STAC Query)
     query: Dict = attr.ib(factory=dict)
+
+    minzoom: int = attr.ib(default=None)
+    maxzoom: int = attr.ib(default=None)
+
+    reader: Type[BaseReader] = attr.ib(default=STACReader)
+    reader_options: Dict = attr.ib(factory=dict)
 
     # STAC API related options
     # max_items |  next_link_key | limit
@@ -65,8 +72,8 @@ class DynamicStacBackend(BaseBackend):
         self.mosaic_def = MosaicJSON(
             mosaicjson="0.0.2",
             name="it's fake but it's ok",
-            minzoom=self.minzoom,
-            maxzoom=self.maxzoom,
+            minzoom=self.minzoom or self.tms.minzoom,
+            maxzoom=self.maxzoom or self.tms.maxzoom,
             tiles=[]  # we set `tiles` to an empty list.
         )
 
@@ -125,7 +132,7 @@ class DynamicStacBackend(BaseBackend):
         query["intersects"] = geom
 
         features = _fetch(
-            self.path,
+            self.input,
             query,
             **self.stac_api_options,
         )

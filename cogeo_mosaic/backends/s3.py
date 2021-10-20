@@ -36,7 +36,7 @@ class S3Backend(BaseBackend):
         """Post Init: parse path and create client."""
         assert boto3_session is not None, "'boto3' must be installed to use S3Backend"
 
-        parsed = urlparse(self.path)
+        parsed = urlparse(self.input)
         self.bucket = parsed.netloc
         self.key = parsed.path.strip("/")
         self.client = self.client or boto3_session().client("s3")
@@ -57,7 +57,7 @@ class S3Backend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
+        key=lambda self: hashkey(self.input),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
