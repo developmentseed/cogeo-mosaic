@@ -8,7 +8,7 @@ import json
 from typing import Dict, Sequence
 
 import attr
-import requests
+import httpx
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
@@ -43,14 +43,14 @@ class HttpBackend(BaseBackend):
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         try:
-            r = requests.get(self.input)
+            r = httpx.get(self.input)
             r.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             # post-flight errors
             status_code = e.response.status_code
             exc = _HTTP_EXCEPTIONS.get(status_code, MosaicError)
             raise exc(e.response.content) from e
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             # pre-flight errors
             raise MosaicError(e.args[0].reason) from e
 

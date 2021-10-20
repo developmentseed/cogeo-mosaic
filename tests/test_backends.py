@@ -12,8 +12,8 @@ import boto3
 import numpy
 import pytest
 from click.testing import CliRunner
+from httpx import HTTPStatusError, RequestError
 from pydantic import ValidationError
-from requests.exceptions import HTTPError, RequestException
 from rio_tiler.errors import PointOutsideBounds
 
 from cogeo_mosaic.backends import GCSBackend, MosaicBackend
@@ -153,13 +153,13 @@ class MockResponse:
         return self.data
 
 
-@patch("cogeo_mosaic.backends.web.requests")
-def test_http_backend(requests):
+@patch("cogeo_mosaic.backends.web.httpx")
+def test_http_backend(httpx):
     """Test HTTP backend."""
     with open(mosaic_json, "r") as f:
-        requests.get.return_value = MockResponse(f.read())
-        requests.exceptions.HTTPError = HTTPError
-        requests.exceptions.RequestException = RequestException
+        httpx.get.return_value = MockResponse(f.read())
+        httpx.HTTPStatusError = HTTPStatusError
+        httpx.RequestError = RequestError
 
     with MosaicBackend("https://mymosaic.json") as mosaic:
         assert mosaic._backend_name == "HTTP"
@@ -182,23 +182,23 @@ def test_http_backend(requests):
         ]
         assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
-    requests.get.assert_called_once()
-    requests.mock_reset()
+    httpx.get.assert_called_once()
+    httpx.mock_reset()
 
     with open(mosaic_json, "r") as f:
-        requests.get.return_value = MockResponse(f.read())
+        httpx.get.return_value = MockResponse(f.read())
 
     with pytest.raises(NotImplementedError):
         with MosaicBackend("https://mymosaic.json") as mosaic:
             mosaic.write()
-        requests.get.assert_called_once()
-        requests.mock_reset()
+        httpx.get.assert_called_once()
+        httpx.mock_reset()
 
     with pytest.raises(NotImplementedError):
         with MosaicBackend("https://mymosaic.json") as mosaic:
             mosaic.update([])
-        requests.get.assert_called_once()
-        requests.mock_reset()
+        httpx.get.assert_called_once()
+        httpx.mock_reset()
 
     # The HttpBackend is Read-Only, you can't pass mosaic_def
     with pytest.raises(TypeError):
@@ -208,7 +208,7 @@ def test_http_backend(requests):
             pass
 
     with open(mosaic_gz, "rb") as f:
-        requests.get.return_value = MockResponse(f.read())
+        httpx.get.return_value = MockResponse(f.read())
 
     with MosaicBackend("https://mymosaic.json.gz") as mosaic:
         assert isinstance(mosaic, HttpBackend)
@@ -565,7 +565,7 @@ class STACMockResponse(MockResponse):
         return self.data
 
 
-@patch("cogeo_mosaic.backends.stac.requests.post")
+@patch("cogeo_mosaic.backends.stac.httpx.post")
 def test_stac_backend(post):
     """Test STAC backend."""
     with open(stac_page1, "r") as f1, open(stac_page2, "r") as f2:
@@ -644,7 +644,7 @@ def test_stac_backend(post):
             mosaic.update([])
 
 
-@patch("cogeo_mosaic.backends.stac.requests.post")
+@patch("cogeo_mosaic.backends.stac.httpx.post")
 def test_stac_search(post):
     """Test stac_search."""
     post.side_effect = [

@@ -12,7 +12,7 @@ inst_reqs = [
     "morecantile>=3.0,<4.0",
     "pygeos>=0.10",
     "pydantic",
-    "requests",
+    "httpx",
     "rasterio",
     "rio-tiler>=3.0.0a1,<3.1",
     "cachetools",
