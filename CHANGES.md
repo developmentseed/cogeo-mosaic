@@ -5,6 +5,7 @@
 * update morecantile requirement to >= 3.0
 * update rio-tiler requirement to >= 3.0 and update Backend's properties
 * switch from `requests` to `httpx`
+* add `BaseBackend.assets_for_bbox()` method (https://github.com/developmentseed/cogeo-mosaic/pull/184)
 
 **breaking changes**
 
