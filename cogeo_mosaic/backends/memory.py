@@ -37,7 +37,8 @@ class MemoryBackend(BaseBackend):
     )
     crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
 
-    path: str = attr.ib(init=False, default=":memory:")
+    # We put input outside the init method
+    input: str = attr.ib(init=False, default=":memory:")
 
     _backend_name = "MEM"
 

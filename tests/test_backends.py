@@ -727,13 +727,13 @@ def test_InMemoryReader():
 
     with MosaicBackend(":memory:", mosaic_def=mosaicdef) as mosaic:
         assert isinstance(mosaic, MemoryBackend)
-        assert mosaic.path == ":memory:"
+        assert mosaic.input == ":memory:"
         mosaic.write()
         mosaic._read()
 
     with MosaicBackend(None, mosaic_def=mosaicdef) as mosaic:
         assert isinstance(mosaic, MemoryBackend)
-        assert mosaic.path == ":memory:"
+        assert mosaic.input == ":memory:"
 
     with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
         (t, _), assets_used = mosaic.tile(150, 182, 9)

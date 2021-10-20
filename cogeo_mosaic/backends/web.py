@@ -38,12 +38,12 @@ class HttpBackend(BaseBackend):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self: hashkey(self.path),
+        key=lambda self: hashkey(self.input),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""
         try:
-            r = requests.get(self.path)
+            r = requests.get(self.input)
             r.raise_for_status()
         except requests.exceptions.HTTPError as e:
             # post-flight errors
@@ -58,7 +58,7 @@ class HttpBackend(BaseBackend):
 
         self._file_byte_size = len(body)
 
-        if self.path.endswith(".gz"):
+        if self.input.endswith(".gz"):
             body = _decompress_gz(body)
 
         return MosaicJSON(**json.loads(body))

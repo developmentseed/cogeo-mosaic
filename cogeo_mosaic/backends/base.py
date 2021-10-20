@@ -35,7 +35,7 @@ class BaseBackend(BaseReader):
     """Base Class for cogeo-mosaic backend storage.
 
     Attributes:
-        path (str): mosaic path.
+        input (str): mosaic path.
         mosaic_def (MosaicJSON, optional): mosaicJSON document.
         reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.COGReader`.
         reader_options (dict): Options to forward to the reader config.
@@ -46,8 +46,9 @@ class BaseBackend(BaseReader):
 
     """
 
-    path: str = attr.ib()
+    input: str = attr.ib()
     mosaic_def: MosaicJSON = attr.ib(default=None, converter=_convert_to_mosaicjson)
+
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
 
@@ -67,7 +68,7 @@ class BaseBackend(BaseReader):
     _file_byte_size: Optional[int] = 0
 
     def __attrs_post_init__(self):
-        """Post Init: if not passed in init, try to read from self.path."""
+        """Post Init: if not passed in init, try to read from self.input."""
         self.mosaic_def = self.mosaic_def or self._read()
         self.minzoom = self.mosaic_def.minzoom
         self.maxzoom = self.mosaic_def.maxzoom
@@ -129,7 +130,7 @@ class BaseBackend(BaseReader):
 
     @cached(
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.path, x, y, z, self.mosaicid),
+        key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
@@ -153,7 +154,7 @@ class BaseBackend(BaseReader):
             mosaic_assets = list(reversed(mosaic_assets))
 
         def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any) -> ImageData:
-            with self.reader(asset, **self.reader_options) as src_dst:  # type: ignore
+            with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.tile(x, y, z, **kwargs)
 
         return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
@@ -170,7 +171,7 @@ class BaseBackend(BaseReader):
             mosaic_assets = list(reversed(mosaic_assets))
 
         def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
-            with self.reader(asset, **self.reader_options) as src_dst:  # type: ignore
+            with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.point(lon, lat, **kwargs)
 
         if "allowed_exceptions" not in kwargs:

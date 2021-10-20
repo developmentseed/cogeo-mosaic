@@ -10,6 +10,7 @@
 * remove `BaseBackend.metadata()` method (can be replaced by `BaseBackend.mosaic_def.dict(exclude={"tiles"})`)
 * remove `cogeo_mosaic.models.Metadata` model
 * remove python 3.6 support
+* `BaseBackend.path` -> `BaseBackend.input` attribute (`input` was added in rio-tiler BaseReader)
 
 ## 3.0.2 (2021-07-08)
 
