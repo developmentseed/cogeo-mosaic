@@ -1,11 +1,10 @@
 """cogeo-mosaic In-Memory backend."""
 
-from typing import Dict, Tuple, Type
+from typing import Dict, Type
 
 import attr
-from morecantile import TileMatrixSet
 from rasterio.crs import CRS
-from rio_tiler.constants import WEB_MERCATOR_TMS
+from rio_tiler.constants import WGS84_CRS
 from rio_tiler.io import BaseReader, COGReader
 
 from cogeo_mosaic.backends.base import BaseBackend, _convert_to_mosaicjson
@@ -22,22 +21,13 @@ class MemoryBackend(BaseBackend):
     """
 
     mosaic_def: MosaicJSON = attr.ib(converter=_convert_to_mosaicjson)
+
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
 
-    # TMS is outside the init because mosaicJSON and cogeo-mosaic only
-    # works with WebMercator (mercantile) for now.
-    tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
-    minzoom: int = attr.ib(init=False)
-    maxzoom: int = attr.ib(init=False)
+    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
 
-    # default values for bounds
-    bounds: Tuple[float, float, float, float] = attr.ib(
-        init=False, default=(-180, -90, 180, 90)
-    )
-    crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
-
-    # We put input outside the init method
+    # We put `input` outside the init method
     input: str = attr.ib(init=False, default=":memory:")
 
     _backend_name = "MEM"

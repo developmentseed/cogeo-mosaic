@@ -14,37 +14,37 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.web import HttpBackend
 
 
-def MosaicBackend(url: str, *args: Any, **kwargs: Any) -> BaseBackend:
-    """Select mosaic backend for url."""
-    parsed = urlparse(url)
+def MosaicBackend(input: str, *args: Any, **kwargs: Any) -> BaseBackend:
+    """Select mosaic backend for input."""
+    parsed = urlparse(input)
 
-    if not url or url == ":memory:":
+    if not input or input == ":memory:":
         return MemoryBackend(*args, **kwargs)
 
     # `stac+https//{hostname}/{path}`
     elif parsed.scheme and parsed.scheme.startswith("stac+"):
-        url = url.replace("stac+", "")
-        return STACBackend(url, *args, **kwargs)
+        input = input.replace("stac+", "")
+        return STACBackend(input, *args, **kwargs)
 
     # `s3:///{bucket}{key}`
     elif parsed.scheme == "s3":
-        return S3Backend(url, *args, **kwargs)
+        return S3Backend(input, *args, **kwargs)
 
     # `gs://{bucket}/{key}`
     elif parsed.scheme == "gs":
-        return GCSBackend(url, *args, **kwargs)
+        return GCSBackend(input, *args, **kwargs)
 
     # `dynamodb://{region}/{table}:{mosaic}`
     elif parsed.scheme == "dynamodb":
-        return DynamoDBBackend(url, *args, **kwargs)
+        return DynamoDBBackend(input, *args, **kwargs)
 
     # `sqlite:///{path.db}:{mosaic}`
     elif parsed.scheme == "sqlite":
-        return SQLiteBackend(url, *args, **kwargs)
+        return SQLiteBackend(input, *args, **kwargs)
 
     # https://{hostname}/{path}
     elif parsed.scheme in ["https", "http"]:
-        return HttpBackend(url, *args, **kwargs)
+        return HttpBackend(input, *args, **kwargs)
 
     # file:///{path}
     elif parsed.scheme == "file":
@@ -56,4 +56,4 @@ def MosaicBackend(url: str, *args: Any, **kwargs: Any) -> BaseBackend:
 
     # fallback to FileBackend
     else:
-        return FileBackend(url, *args, **kwargs)
+        return FileBackend(input, *args, **kwargs)

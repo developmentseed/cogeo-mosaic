@@ -1,5 +1,10 @@
 # Release Notes
 
+## 4.0.0a1 (2021-11-18)
+
+* update rio-tiler requirement (`>=3.0.0a5`)
+* fix `MosaicBackend` to match Backend input names.
+
 ## 4.0.0a0 (2021-10-20)
 
 * update morecantile requirement to >= 3.0

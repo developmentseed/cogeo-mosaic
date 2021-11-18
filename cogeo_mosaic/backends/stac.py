@@ -2,13 +2,14 @@
 
 import json
 import os
-from typing import Dict, List, Optional, Sequence, Tuple, Type
+from typing import Dict, List, Optional, Sequence, Type
 
 import attr
 import httpx
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from rasterio.crs import CRS
+from rio_tiler.constants import WGS84_CRS
 from rio_tiler.io import STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
@@ -55,8 +56,10 @@ class STACBackend(BaseBackend):
 
     input: str = attr.ib()
     query: Dict = attr.ib()
+
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
+
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
 
@@ -68,11 +71,7 @@ class STACBackend(BaseBackend):
     # e.g `accessor`
     mosaic_options: Dict = attr.ib(factory=dict)
 
-    # default values for bounds
-    bounds: Tuple[float, float, float, float] = attr.ib(
-        init=False, default=(-180, -90, 180, 90)
-    )
-    crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
+    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
 
     # Because the STACBackend is a Read-Only backend, there is no need for
     # mosaic_def to be in the init method.
@@ -95,7 +94,11 @@ class STACBackend(BaseBackend):
         """
         logger.debug(f"Using STAC backend: {self.input}")
 
-        features = _fetch(self.input, self.query, **self.stac_api_options,)
+        features = _fetch(
+            self.input,
+            self.query,
+            **self.stac_api_options,
+        )
         logger.debug(f"Creating mosaic from {len(features)} features")
 
         # We need a specific accessor for STAC

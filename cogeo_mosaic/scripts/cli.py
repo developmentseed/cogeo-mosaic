@@ -253,7 +253,11 @@ def footprint(input_files, output, threads, quiet):
 @cogeo_cli.command(short_help="Return info about the mosaic")
 @click.argument("input", type=click.Path())
 @click.option(
-    "--json", "to_json", default=False, is_flag=True, help="Print as JSON.",
+    "--json",
+    "to_json",
+    default=False,
+    is_flag=True,
+    help="Print as JSON.",
 )
 def info(input, to_json):
     """Return info about the mosaic."""
@@ -370,4 +374,8 @@ def to_geojson(input, collect):
                 click.echo(json.dumps(feature))
 
         if collect and features:
-            click.echo(json.dumps({"type": "FeatureCollection", "features": features},))
+            click.echo(
+                json.dumps(
+                    {"type": "FeatureCollection", "features": features},
+                )
+            )
