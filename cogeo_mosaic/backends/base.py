@@ -10,7 +10,7 @@ from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from morecantile import TileMatrixSet
 from rasterio.crs import CRS
-from rio_tiler.constants import WEB_MERCATOR_TMS
+from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, COGReader
 from rio_tiler.models import ImageData
@@ -39,6 +39,7 @@ class BaseBackend(BaseReader):
         mosaic_def (MosaicJSON, optional): mosaicJSON document.
         reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.COGReader`.
         reader_options (dict): Options to forward to the reader config.
+        geographic_crs (rasterio.crs.CRS, optional): CRS to use as geographic coordinate system. Defaults to WGS84.
         tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
         bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
         minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to `0`.
@@ -52,6 +53,8 @@ class BaseBackend(BaseReader):
     reader: Type[BaseReader] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
 
+    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
+
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
     # works with WebMercator (mercantile) for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
@@ -62,7 +65,7 @@ class BaseBackend(BaseReader):
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
-    crs: CRS = attr.ib(init=False, default=CRS.from_epsg(4326))
+    crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     _backend_name: str
     _file_byte_size: Optional[int] = 0
@@ -164,7 +167,12 @@ class BaseBackend(BaseReader):
         )
 
     def tile(  # type: ignore
-        self, x: int, y: int, z: int, reverse: bool = False, **kwargs: Any,
+        self,
+        x: int,
+        y: int,
+        z: int,
+        reverse: bool = False,
+        **kwargs: Any,
     ) -> Tuple[ImageData, List[str]]:
         """Get Tile from multiple observation."""
         mosaic_assets = self.assets_for_tile(x, y, z)
@@ -181,7 +189,11 @@ class BaseBackend(BaseReader):
         return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
 
     def point(
-        self, lon: float, lat: float, reverse: bool = False, **kwargs: Any,
+        self,
+        lon: float,
+        lat: float,
+        reverse: bool = False,
+        **kwargs: Any,
     ) -> List:
         """Get Point value from multiple observation."""
         mosaic_assets = self.assets_for_point(lon, lat)

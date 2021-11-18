@@ -47,7 +47,10 @@ class SQLiteBackend(BaseBackend):
         sqlite:///{db_path}:{mosaic_name}
 
         """
-        if not re.match(r"^sqlite:///.+\:[a-zA-Z0-9\_\-\.]+$", self.input,):
+        if not re.match(
+            r"^sqlite:///.+\:[a-zA-Z0-9\_\-\.]+$",
+            self.input,
+        ):
             raise ValueError(f"Invalid SQLite path: {self.input}")
 
         parsed = urlparse(self.input)
@@ -324,7 +327,10 @@ class SQLiteBackend(BaseBackend):
             self.db.execute(f'DROP TABLE IF EXISTS "{self.mosaic_name}";')
 
     @classmethod
-    def list_mosaics_in_db(cls, db_path: str,) -> List[str]:
+    def list_mosaics_in_db(
+        cls,
+        db_path: str,
+    ) -> List[str]:
         """List Mosaic tables in SQLite database.
 
         Args:
