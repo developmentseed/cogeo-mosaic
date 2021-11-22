@@ -1,11 +1,11 @@
 """cogeo-mosaic In-Memory backend."""
 
-from typing import Dict, Type
+from typing import Dict, Type, Union
 
 import attr
 from rasterio.crs import CRS
 from rio_tiler.constants import WGS84_CRS
-from rio_tiler.io import BaseReader, COGReader
+from rio_tiler.io import BaseReader, COGReader, MultiBandReader, MultiBaseReader
 
 from cogeo_mosaic.backends.base import BaseBackend, _convert_to_mosaicjson
 from cogeo_mosaic.mosaic import MosaicJSON
@@ -22,7 +22,11 @@ class MemoryBackend(BaseBackend):
 
     mosaic_def: MosaicJSON = attr.ib(converter=_convert_to_mosaicjson)
 
-    reader: Type[BaseReader] = attr.ib(default=COGReader)
+    reader: Union[
+        Type[BaseReader],
+        Type[MultiBaseReader],
+        Type[MultiBandReader],
+    ] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
 
     geographic_crs: CRS = attr.ib(default=WGS84_CRS)

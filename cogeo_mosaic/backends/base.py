@@ -12,7 +12,7 @@ from morecantile import TileMatrixSet
 from rasterio.crs import CRS
 from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.errors import PointOutsideBounds
-from rio_tiler.io import BaseReader, COGReader
+from rio_tiler.io import BaseReader, COGReader, MultiBandReader, MultiBaseReader
 from rio_tiler.models import ImageData
 from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.tasks import multi_values
@@ -50,7 +50,11 @@ class BaseBackend(BaseReader):
     input: str = attr.ib()
     mosaic_def: MosaicJSON = attr.ib(default=None, converter=_convert_to_mosaicjson)
 
-    reader: Type[BaseReader] = attr.ib(default=COGReader)
+    reader: Union[
+        Type[BaseReader],
+        Type[MultiBaseReader],
+        Type[MultiBandReader],
+    ] = attr.ib(default=COGReader)
     reader_options: Dict = attr.ib(factory=dict)
 
     geographic_crs: CRS = attr.ib(default=WGS84_CRS)

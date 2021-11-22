@@ -14,7 +14,7 @@ inst_reqs = [
     "pydantic",
     "httpx",
     "rasterio",
-    "rio-tiler>=3.0.0a5,<3.1",
+    "rio-tiler>=3.0.0a6,<3.1",
     "cachetools",
     "supermercado",
 ]
