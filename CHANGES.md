@@ -1,5 +1,9 @@
 # Release Notes
 
+## 4.0.0 (2021-11-30)
+
+* no change since `4.0.0a2`
+
 ## 4.0.0a2 (2021-11-22)
 
 * update rio-tiler requirement (`>=3.0.0a6`) and update backend reader type information
