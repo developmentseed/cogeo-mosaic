@@ -9,6 +9,7 @@ from typing import Dict, List
 from unittest.mock import patch
 
 import boto3
+import morecantile
 import numpy
 import pytest
 from click.testing import CliRunner
@@ -146,6 +147,19 @@ def test_file_backend():
             assert len(assets) == 2
             assert assets[0] == asset2
             assert assets[1] == asset1
+
+        with MosaicBackend("umosaic.json.gz") as mosaic:
+            tile = morecantile.Tile(150, 182, 9)
+            assert mosaic.find_quadkeys(tile, 8) == ["03023033"]
+            assert mosaic.find_quadkeys(tile, 9) == ["030230330"]
+            assert sorted(mosaic.find_quadkeys(tile, 10)) == sorted(
+                [
+                    "0302303300",
+                    "0302303301",
+                    "0302303303",
+                    "0302303302",
+                ]
+            )
 
 
 class MockResponse:

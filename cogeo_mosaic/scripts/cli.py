@@ -6,7 +6,7 @@ import os
 
 import click
 import cligj
-import mercantile
+import morecantile
 from click_plugins import with_plugins
 from pkg_resources import iter_entry_points
 
@@ -14,6 +14,8 @@ from cogeo_mosaic import __version__ as cogeo_mosaic_version
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import get_footprints
+
+tms = morecantile.tms.get("WebMercatorQuad")
 
 
 @with_plugins(iter_entry_points("cogeo_mosaic.plugins"))
@@ -345,9 +347,8 @@ def to_geojson(input, collect):
     features = []
     with MosaicBackend(input) as mosaic:
         for qk, assets in mosaic.mosaic_def.tiles.items():
-            tile = mercantile.quadkey_to_tile(qk)
-
-            west, south, east, north = mercantile.bounds(tile)
+            tile = tms.quadkey_to_tile(qk)
+            west, south, east, north = tms.bounds(tile)
 
             geom = {
                 "type": "Polygon",

@@ -80,7 +80,7 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
 from cogeo_mosaic.backends import MosaicBackend
 
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
-    assets: List = mosaic.assets_for_tile(1, 2, 3) # get assets for mercantile.Tile(1, 2, 3)
+    assets: List = mosaic.assets_for_tile(1, 2, 3) # get assets for morecantile.Tile(1, 2, 3)
 ```
 
 ##### Read Tile Data (mosaic tile)

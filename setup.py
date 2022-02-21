@@ -8,13 +8,12 @@ with open("README.md") as f:
 # Runtime requirements.
 inst_reqs = [
     "attrs",
-    "mercantile",
-    "morecantile>=3.0,<4.0",
+    "morecantile>=3.1,<4.0",
     "pygeos>=0.10",
     "pydantic",
     "httpx",
     "rasterio",
-    "rio-tiler>=3.0,<3.1",
+    "rio-tiler>=3.1,<4.0",
     "cachetools",
     "supermercado",
 ]
@@ -29,7 +28,6 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    version="4.0.0",
     description=u"Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -48,7 +46,7 @@ setup(
     author_email="vincent@developmentseed.org",
     url="https://github.com/developmentseed/cogeo-mosaic",
     license="MIT",
-    packages=find_packages(exclude=["ez_setup", "examples", "tests"]),
+    packages=find_packages(exclude=["tests"]),
     include_package_data=True,
     zip_safe=False,
     install_requires=inst_reqs,
