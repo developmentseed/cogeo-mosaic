@@ -7,13 +7,15 @@ from contextlib import ExitStack
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import click
-import mercantile
+import morecantile
 from pydantic import BaseModel, Field, root_validator
 from pygeos import STRtree, linearrings, polygons, total_bounds
 from supermercado import burntiles
 
 from cogeo_mosaic.errors import MosaicError
 from cogeo_mosaic.utils import _intersect_percent, get_footprints
+
+tms = morecantile.tms.get("WebMercatorQuad")
 
 
 def default_accessor(feature: Dict):
@@ -22,7 +24,7 @@ def default_accessor(feature: Dict):
 
 
 def default_filter(
-    tile: mercantile.Tile,
+    tile: morecantile.Tile,
     dataset: Sequence[Dict],
     geoms: Sequence[polygons],
     minimum_tile_cover: float = None,
@@ -33,7 +35,7 @@ def default_filter(
     indices = list(range(len(dataset)))
 
     if minimum_tile_cover or tile_cover_sort:
-        tile_geom = polygons(mercantile.feature(tile)["geometry"]["coordinates"][0])
+        tile_geom = polygons(tms.feature(tile)["geometry"]["coordinates"][0])
         int_pcts = _intersect_percent(tile_geom, geoms)
 
         if minimum_tile_cover:
@@ -140,7 +142,7 @@ class MosaicJSON(BaseModel):
         bounds = tuple(total_bounds(dataset_geoms))
 
         tiles = burntiles.burn(features, quadkey_zoom)
-        tiles = [mercantile.Tile(*tile) for tile in tiles]
+        tiles = [morecantile.Tile(*tile) for tile in tiles]
 
         mosaic_definition: Dict[str, Any] = dict(
             mosaicjson=version,
@@ -165,9 +167,9 @@ class MosaicJSON(BaseModel):
                 tiles, file=fout, show_percent=True, label="Iterate over quadkeys"
             ) as bar:
                 for tile in bar:
-                    quadkey = mercantile.quadkey(tile)
+                    quadkey = tms.quadkey(tile)
                     tile_geom = polygons(
-                        mercantile.feature(tile)["geometry"]["coordinates"][0]
+                        tms.feature(tile)["geometry"]["coordinates"][0]
                     )
 
                     # Find intersections from rtree

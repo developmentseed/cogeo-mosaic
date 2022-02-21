@@ -3,7 +3,7 @@
 import os
 from concurrent import futures
 
-import mercantile
+import morecantile
 import pytest
 
 from cogeo_mosaic import utils
@@ -50,5 +50,5 @@ def test_footprint():
 
 def test_tiles_to_bounds():
     """Get tiles bounds for zoom level."""
-    tiles = [mercantile.Tile(x=150, y=182, z=9), mercantile.Tile(x=151, y=182, z=9)]
+    tiles = [morecantile.Tile(x=150, y=182, z=9), morecantile.Tile(x=151, y=182, z=9)]
     assert len(utils.tiles_to_bounds(tiles)) == 4

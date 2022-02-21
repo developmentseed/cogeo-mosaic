@@ -8,13 +8,15 @@ from contextlib import ExitStack
 from typing import Dict, List, Sequence, Tuple
 
 import click
-import mercantile
+import morecantile
 import numpy
 from pygeos import area, intersection
 from rio_tiler.io import COGReader
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+tms = morecantile.tms.get("WebMercatorQuad")
 
 
 def _filter_futures(tasks):
@@ -58,7 +60,7 @@ def get_dataset_info(src_path: str) -> Dict:
             },
             "properties": {
                 "path": src_path,
-                "bounds": cog.geographic_bounds,
+                "bounds": bounds,
                 "minzoom": cog.minzoom,
                 "maxzoom": cog.maxzoom,
                 "datatype": cog.dataset.meta["dtype"],
@@ -105,7 +107,7 @@ def get_footprints(
     return list(_filter_futures(future_work))
 
 
-def tiles_to_bounds(tiles: List[mercantile.Tile]) -> Tuple[float, float, float, float]:
+def tiles_to_bounds(tiles: List[morecantile.Tile]) -> Tuple[float, float, float, float]:
     """Get bounds from a set of mercator tiles."""
     zoom = tiles[0].z
     xyz = numpy.array([[t.x, t.y, t.z] for t in tiles])
@@ -113,8 +115,8 @@ def tiles_to_bounds(tiles: List[mercantile.Tile]) -> Tuple[float, float, float, 
         "x": {"min": xyz[:, 0].min(), "max": xyz[:, 0].max() + 1},
         "y": {"min": xyz[:, 1].min(), "max": xyz[:, 1].max() + 1},
     }
-    ulx, uly = mercantile.ul(extrema["x"]["min"], extrema["y"]["min"], zoom)
-    lrx, lry = mercantile.ul(extrema["x"]["max"], extrema["y"]["max"], zoom)
+    ulx, uly = tms.ul(extrema["x"]["min"], extrema["y"]["min"], zoom)
+    lrx, lry = tms.ul(extrema["x"]["max"], extrema["y"]["max"], zoom)
     return (ulx, lry, lrx, uly)
 
 

@@ -11,12 +11,11 @@ from urllib.parse import urlparse
 
 import attr
 import click
-import mercantile
+import morecantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
-from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import (
     _HTTP_EXCEPTIONS,
@@ -194,7 +193,7 @@ class DynamoDBBackend(BaseBackend):
 
         # Create Tile items
         for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = mercantile.quadkey_to_tile(quadkey)
+            tile = self.tms.quadkey_to_tile(quadkey)
             assets = self.assets_for_tile(*tile)
             assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
             items.append(
@@ -209,8 +208,8 @@ class DynamoDBBackend(BaseBackend):
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
-        mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
+        mercator_tile = morecantile.Tile(x=x, y=y, z=z)
+        quadkeys = self.find_quadkeys(mercator_tile, self.quadkey_zoom)
         return list(
             dict.fromkeys(
                 itertools.chain.from_iterable(

@@ -10,12 +10,11 @@ from typing import Dict, List, Sequence
 from urllib.parse import urlparse
 
 import attr
-import mercantile
+import morecantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic.backends.base import BaseBackend
-from cogeo_mosaic.backends.utils import find_quadkeys
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import MosaicExistsError, MosaicNotFoundError
 from cogeo_mosaic.logger import logger
@@ -274,8 +273,8 @@ class SQLiteBackend(BaseBackend):
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
-        mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
+        mercator_tile = morecantile.Tile(x=x, y=y, z=z)
+        quadkeys = self.find_quadkeys(mercator_tile, self.quadkey_zoom)
         return list(
             dict.fromkeys(
                 itertools.chain.from_iterable([self._fetch(qk) for qk in quadkeys])

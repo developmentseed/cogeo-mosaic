@@ -1,5 +1,9 @@
 # Release Notes
 
+## 4.1.0 (2022-02-22)
+
+* remove `mercantile` and switch to morecantile>=3.1
+
 ## 4.0.0 (2021-11-30)
 
 * no change since `4.0.0a2`

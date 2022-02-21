@@ -5,7 +5,7 @@ import itertools
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import attr
-import mercantile
+import morecantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from morecantile import TileMatrixSet
@@ -17,7 +17,7 @@ from rio_tiler.models import ImageData
 from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.tasks import multi_values
 
-from cogeo_mosaic.backends.utils import find_quadkeys, get_hash
+from cogeo_mosaic.backends.utils import get_hash
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import NoAssetFoundError
 from cogeo_mosaic.models import Info
@@ -60,7 +60,7 @@ class BaseBackend(BaseReader):
     geographic_crs: CRS = attr.ib(default=WGS84_CRS)
 
     # TMS is outside the init because mosaicJSON and cogeo-mosaic only
-    # works with WebMercator (mercantile) for now.
+    # works with WebMercator for now.
     tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
     minzoom: int = attr.ib(init=False)
     maxzoom: int = attr.ib(init=False)
@@ -107,7 +107,7 @@ class BaseBackend(BaseReader):
         )
 
         for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = mercantile.quadkey_to_tile(quadkey)
+            tile = self.tms.quadkey_to_tile(quadkey)
             assets = self.assets_for_tile(*tile)
             assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
@@ -132,15 +132,15 @@ class BaseBackend(BaseReader):
 
     def assets_for_point(self, lng: float, lat: float) -> List[str]:
         """Retrieve assets for point."""
-        tile = mercantile.tile(lng, lat, self.quadkey_zoom)
+        tile = self.tms.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
     def assets_for_bbox(
         self, xmin: float, ymin: float, xmax: float, ymax: float
     ) -> List[str]:
         """Retrieve assets for bbox."""
-        tl_tile = mercantile.tile(xmin, ymax, self.quadkey_zoom)
-        br_tile = mercantile.tile(xmax, ymin, self.quadkey_zoom)
+        tl_tile = self.tms.tile(xmin, ymax, self.quadkey_zoom)
+        br_tile = self.tms.tile(xmax, ymin, self.quadkey_zoom)
 
         tiles = [
             (x, y, self.quadkey_zoom)
@@ -160,8 +160,8 @@ class BaseBackend(BaseReader):
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
-        mercator_tile = mercantile.Tile(x=x, y=y, z=z)
-        quadkeys = find_quadkeys(mercator_tile, self.quadkey_zoom)
+        mercator_tile = morecantile.Tile(x=x, y=y, z=z)
+        quadkeys = self.find_quadkeys(mercator_tile, self.quadkey_zoom)
         return list(
             dict.fromkeys(
                 itertools.chain.from_iterable(
@@ -169,6 +169,44 @@ class BaseBackend(BaseReader):
                 )
             )
         )
+
+    def find_quadkeys(
+        self, mercator_tile: morecantile.Tile, quadkey_zoom: int
+    ) -> List[str]:
+        """
+        Find quadkeys at desired zoom for tile
+
+        Attributes
+        ----------
+        mercator_tile: morecantile.Tile
+            Input tile to use when searching for quadkeys
+        quadkey_zoom: int
+            Zoom level
+
+        Returns
+        -------
+        list
+            List[str] of quadkeys
+
+        """
+        # get parent
+        if mercator_tile.z > quadkey_zoom:
+            depth = mercator_tile.z - quadkey_zoom
+            for _ in range(depth):
+                mercator_tile = self.tms.parent(mercator_tile)[0]
+            return [self.tms.quadkey(*mercator_tile)]
+
+        # get child
+        elif mercator_tile.z < quadkey_zoom:
+            depth = quadkey_zoom - mercator_tile.z
+            mercator_tiles = [mercator_tile]
+            for _ in range(depth):
+                mercator_tiles = sum([self.tms.children(t) for t in mercator_tiles], [])
+
+            mercator_tiles = list(filter(lambda t: t.z == quadkey_zoom, mercator_tiles))
+            return [self.tms.quadkey(*tile) for tile in mercator_tiles]
+        else:
+            return [self.tms.quadkey(*mercator_tile)]
 
     def tile(  # type: ignore
         self,

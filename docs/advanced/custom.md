@@ -50,7 +50,7 @@ mosaicjson = MosaicJSON.from_features(
 On **mosaicjson** creation ones would want to perform more advanced assets filtering or sorting. To enable this, users can define their own `filter` method and pass it using the `asset_filter` options.
 
 **!!!** In the current implementation, `asset_filter` method **have to** allow at least 3 arguments:
-- **tile** - mercantile.Tile: Mercantile tile
+- **tile** - morecantile.Tile: Morecantile tile
 - **dataset** - Sequence[Dict]: GeoJSON Feature list intersecting with the `tile`
 - **geoms** - Sequence[polygons]: Geos Polygon list for the features
 
@@ -114,7 +114,7 @@ def update(
 
     # Loop through the new `quadkeys` and edit `old` mosaic assets
     for quadkey, new_assets in new_mosaic.tiles.items():
-        tile = mercantile.quadkey_to_tile(quadkey)
+        tile = self.tms.quadkey_to_tile(quadkey)
         assets = self.tile(*tile)
         assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
@@ -165,7 +165,7 @@ class CustomS3Backend(S3Backend):
         )
 
         for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = mercantile.quadkey_to_tile(quadkey)
+            tile = self.tms.quadkey_to_tile(quadkey)
             assets = self.tile(*tile)
             assets = [*new_assets, *assets]
 

@@ -93,7 +93,7 @@ The STACBackend is a **read-only** backend, meaning it can't be used to write a 
 
 ```python
 import datetime
-import mercantile
+import morecantile
 from cogeo_mosaic.backends.stac import STACBackend
 
 
