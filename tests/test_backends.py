@@ -18,6 +18,7 @@ from pydantic import ValidationError
 from rio_tiler.errors import PointOutsideBounds
 
 from cogeo_mosaic.backends import GCSBackend, MosaicBackend
+from cogeo_mosaic.backends.az import ABSBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.backends.memory import MemoryBackend
@@ -425,6 +426,117 @@ def test_gs_backend(session):
         mosaic.write(overwrite=True)
     session.return_value.client.return_value.get_object.assert_not_called()
     session.return_value.client.return_value.head_object.assert_not_called()
+    session.reset_mock()
+
+
+@patch("cogeo_mosaic.backends.az.BlobServiceClient")
+def test_abs_backend(session):
+    """Test ABS backend."""
+    with open(mosaic_gz, "rb") as f:
+        session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.return_value.readall.return_value = (
+            f.read()
+        )
+
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.upload_blob.return_value = (
+        True
+    )
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
+        False
+    )
+
+    with MosaicBackend(
+        "https://storage_account.blob.core.windows.net/container/mymosaic.json.gz"
+    ) as mosaic:
+        assert mosaic._backend_name == "Azure Blob Storage"
+        assert isinstance(mosaic, ABSBackend)
+        assert (
+            mosaic.mosaicid
+            == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
+        )
+        assert mosaic.quadkey_zoom == 7
+        assert list(
+            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+        ) == [
+            "mosaicjson",
+            "version",
+            "minzoom",
+            "maxzoom",
+            "quadkey_zoom",
+            "bounds",
+            "center",
+        ]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
+        session.return_value.get_container_client.assert_called_once_with("container")
+        session.return_value.get_container_client.return_value.get_blob_client.assert_called_once_with(
+            "mymosaic.json.gz"
+        )
+
+        session.return_value.get_container_client.return_value.get_blob_client.return_value.upload_blob.assert_not_called()
+        session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.assert_not_called()
+        session.reset_mock()
+
+    with open(mosaic_gz, "rb") as f:
+        session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.return_value.readall.return_value = (
+            f.read()
+        )
+
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.upload_blob.return_value = (
+        True
+    )
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
+        False
+    )
+
+    with MosaicBackend(
+        "https://storage_account.blob.core.windows.net/container/mymosaic.json.gz",
+        mosaic_def=mosaic_content,
+    ) as mosaic:
+        assert isinstance(mosaic, ABSBackend)
+        mosaic.write()
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.assert_not_called()
+
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.assert_called_once()
+    session.reset_mock()
+
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
+        False
+    )
+    with MosaicBackend(
+        "https://storage_account.blob.core.windows.net/container/00000.json",
+        mosaic_def=mosaic_content,
+    ) as mosaic:
+        assert isinstance(mosaic, ABSBackend)
+        mosaic.write()
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.assert_not_called()
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.assert_called_once()
+    session.reset_mock()
+
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
+        True
+    )
+    with MosaicBackend(
+        "https://storage_account.blob.core.windows.net/container/00000.json",
+        mosaic_def=mosaic_content,
+    ) as mosaic:
+        assert isinstance(mosaic, ABSBackend)
+        with pytest.raises(MosaicExistsError):
+            mosaic.write()
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.assert_not_called()
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.assert_called_once()
+    session.reset_mock()
+
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
+        True
+    )
+    with MosaicBackend(
+        "https://storage_account.blob.core.windows.net/container/00000.json",
+        mosaic_def=mosaic_content,
+    ) as mosaic:
+        assert isinstance(mosaic, ABSBackend)
+        mosaic.write(overwrite=True)
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.assert_not_called()
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.assert_not_called()
     session.reset_mock()
 
 
