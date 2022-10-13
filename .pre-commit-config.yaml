@@ -12,7 +12,7 @@ repos:
         language_version: python
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 3.8.3
+    rev: 4.0.1
     hooks:
       - id: flake8
         language_version: python
