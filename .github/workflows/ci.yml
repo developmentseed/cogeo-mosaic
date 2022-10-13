@@ -32,7 +32,7 @@ jobs:
           python -m pip install pre-commit codecov
 
       - name: Install module
-        run: python -m pip install -e .["test"]
+        run: python -m pip install -e .["test,az"]
 
       - name: Run pre-commit
         run: pre-commit run --all-files
