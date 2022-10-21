@@ -10,6 +10,7 @@ on:
       - 'CHANGES.md'
       - 'CONTRIBUTING.md'
       - 'docs/**'
+      - '.github/workflows/deploy_mkdocs.yml'
 
 jobs:
   build:
@@ -31,4 +32,4 @@ jobs:
           python -m pip install -e .["docs"]
 
       - name: Deploy docs
-        run: mkdocs gh-deploy --force
+        run: mkdocs gh-deploy -f docs/mkdocs.yml --force

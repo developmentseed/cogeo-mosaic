@@ -53,5 +53,5 @@ To manually deploy docs (note you should never need to do this because Github
 Actions deploys automatically for new commits.):
 
 ```bash
-$ mkdocs gh-deploy
+$ mkdocs gh-deploy -f docs/mkdocs.yml
 ```
