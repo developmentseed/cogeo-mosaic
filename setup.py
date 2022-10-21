@@ -20,6 +20,7 @@ inst_reqs = [
 
 extra_reqs = {
     "aws": ["boto3"],
+    "az": ["azure-identity", "azure-storage-blob"],
     "gcp": ["google-cloud-storage"],
     "test": ["pytest", "pytest-cov"],
     "dev": ["pytest", "pytest-cov", "pre-commit"],
@@ -28,7 +29,7 @@ extra_reqs = {
 
 setup(
     name="cogeo-mosaic",
-    description=u"Create mosaicJSON.",
+    description="Create mosaicJSON.",
     long_description=readme,
     long_description_content_type="text/markdown",
     python_requires=">=3.7",
@@ -42,7 +43,7 @@ setup(
         "Topic :: Scientific/Engineering :: GIS",
     ],
     keywords="COG Mosaic GIS",
-    author=u"Vincent Sarago",
+    author="Vincent Sarago",
     author_email="vincent@developmentseed.org",
     url="https://github.com/developmentseed/cogeo-mosaic",
     license="MIT",

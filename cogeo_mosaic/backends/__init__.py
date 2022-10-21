@@ -3,6 +3,7 @@
 from typing import Any
 from urllib.parse import urlparse
 
+from cogeo_mosaic.backends.az import ABSBackend
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
@@ -33,6 +34,10 @@ def MosaicBackend(input: str, *args: Any, **kwargs: Any) -> BaseBackend:
     # `gs://{bucket}/{key}`
     elif parsed.scheme == "gs":
         return GCSBackend(input, *args, **kwargs)
+
+    # `https://{storageaccount}.blob.core.windows.net/{container}/{key}`
+    elif parsed.scheme == "https" and parsed.netloc.endswith(".blob.core.windows.net"):
+        return ABSBackend(input, *args, **kwargs)
 
     # `dynamodb://{region}/{table}:{mosaic}`
     elif parsed.scheme == "dynamodb":

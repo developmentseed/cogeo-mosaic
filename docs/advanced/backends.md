@@ -10,6 +10,8 @@ Starting in version `3.0.0`, we introduced specific `backend` to abstract mosaic
 
 - **GCSBackend** (`gs://`)
 
+- **ABSBackend** (`https://{storageaccount}.blob.core.windows.net/{container}/{key}`)
+
 - **DynamoDBBackend** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
 
 - **SQLiteBackend** (`sqlite:///{file.db}:{mosaic_name}`)
@@ -86,6 +88,18 @@ permissions to let cogeo-mosaic access the files. For example:
   to restrict the read-only operation to a single bucket by using the
   following condition: `resource.type == "storage.googleapis.com/Object"
   && resource.name.startsWith("projects/_/buckets/mybucket")`
+
+## ABS Backend
+
+The ABS Backend allows read and write operations from/to Azure Blob Storage.
+
+The backend uses DefaultAzureCredential for authorization, see
+[here](https://learn.microsoft.com/en-us/python/api/overview/azure/identity-readme?view=azure-python#defaultazurecredential)
+for details on how to authenticate.
+
+When using this backend is necessary to set the appropriate roles and IAM
+permissions to let cogeo-mosaic access the files. See the Azure standard
+roles; Storage Blob Data Contributor/Owner/Reader.
 
 ## STAC Backend
 
