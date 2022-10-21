@@ -1,0 +1,121 @@
+[project]
+name = "cogeo-mosaic"
+description = 'CLI and Backends to work with MosaicJSON.'
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+  { name = "Vincent Sarago", email = "vincent@developmentseed.com" },
+]
+keywords = ["COG", "MosaicJSON"]
+classifiers = [
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Scientific/Engineering :: GIS",
+]
+dynamic = ["version", "readme"]
+dependencies = [
+  "attrs",
+  "morecantile>=3.1,<4.0",
+  "pygeos>=0.10",
+  "pydantic",
+  "httpx",
+  "rasterio",
+  "rio-tiler>=4.0.0a0,<5.0",
+  "cachetools",
+  "supermercado",
+]
+
+[project.optional-dependencies]
+aws = [
+  "boto3",
+]
+az = [
+  "azure-identity", "azure-storage-blob",
+]
+gcp = [
+  "google-cloud-storage"
+]
+test = [
+  "pytest", "pytest-cov"
+]
+dev = [
+  "pytest", "pytest-cov", "pre-commit"
+]
+docs = [
+  "mkdocs", "mkdocs-material", "pygments", "mkapi", "mkdocs-jupyter"
+]
+
+[project.urls]
+Homepage = 'https://github.com/developmentseed/cogeo-mosaic'
+Documentation = "https://developmentseed.org/cogeo-mosaic/"
+Issues = "https://github.com/developmentseed/cogeo-mosaic/issues"
+Source = "https://github.com/developmentseed/cogeo-mosaic"
+Changelog = "https://developmentseed.org/cogeo-mosaic/release-notes/"
+
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = 'text/markdown'
+# construct the PyPI readme from README.md and HISTORY.md
+fragments = [
+    {path = "README.md"},
+    {text = "\n## Changelog\n\n"},
+    {path = "CHANGES.md"},
+]
+# convert GitHUB issue/PR numbers and handles to links
+substitutions = [
+    {pattern = '(\s+)#(\d+)', replacement = '\1[#\2](https://github.com/developmentseed/cogeo-mosaic/issues/\2)'},
+    {pattern = '(\s+)@([\w\-]+)', replacement = '\1[@\2](https://github.com/\2)'},
+    {pattern = '@@', replacement = '@'},
+]
+
+[tool.hatch.version]
+path = "cogeo_mosaic/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/tests",
+  "/docs",
+]
+
+[build-system]
+requires = ["hatchling", "hatch-fancy-pypi-readme>=22.5.0"]
+build-backend = "hatchling.build"
+
+[tool.coverage.run]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["cogeo_mosaic"]
+known_third_party = [
+    "rasterio",
+    "rio_tiler",
+    "morecantile",
+    "supermercatdo",
+    "pygeos",
+]
+default_section = "THIRDPARTY"
+
+[tool.mypy]
+no_strict_optional = "True"
+
+[tool.pydocstyle]
+select = "D1"
+match = "(?!test).*.py"
+
+[project.scripts]
+cogeo-mosaic = "cogeo_mosaic.scripts.cli:cogeo_cli"

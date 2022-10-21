@@ -17,10 +17,11 @@ from httpx import HTTPStatusError, RequestError
 from pydantic import ValidationError
 from rio_tiler.errors import PointOutsideBounds
 
-from cogeo_mosaic.backends import GCSBackend, MosaicBackend
+from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.az import ABSBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
+from cogeo_mosaic.backends.gs import GCSBackend
 from cogeo_mosaic.backends.memory import MemoryBackend
 from cogeo_mosaic.backends.s3 import S3Backend
 from cogeo_mosaic.backends.sqlite import SQLiteBackend
@@ -884,7 +885,7 @@ def test_InMemoryReader():
         pts = mosaic.point(-73, 45)
         assert len(pts) == 2
         assert pts[0][0].endswith(".tif")
-        assert len(pts[0][1]) == 3
+        assert len(pts[0][1].data) == 3
 
         ptsR = mosaic.point(-73, 45, reverse=True)
         assert len(ptsR) == 2

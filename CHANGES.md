@@ -1,4 +1,9 @@
-# Release Notes
+## 4.2.0 (2022-10-21)
+
+* remove python 3.7 support
+* add python 3.10 support
+* switch to hatch build-system
+* update rio-tiler dependency to >=4.0.0a0
 
 ## 4.1.1 (2022-10-21)
 

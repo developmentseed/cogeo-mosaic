@@ -12,8 +12,8 @@ from morecantile import TileMatrixSet
 from rasterio.crs import CRS
 from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.errors import PointOutsideBounds
-from rio_tiler.io import BaseReader, COGReader, MultiBandReader, MultiBaseReader
-from rio_tiler.models import ImageData
+from rio_tiler.io import BaseReader, MultiBandReader, MultiBaseReader, Reader
+from rio_tiler.models import ImageData, PointData
 from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.tasks import multi_values
 
@@ -37,7 +37,7 @@ class BaseBackend(BaseReader):
     Attributes:
         input (str): mosaic path.
         mosaic_def (MosaicJSON, optional): mosaicJSON document.
-        reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.COGReader`.
+        reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.Reader`.
         reader_options (dict): Options to forward to the reader config.
         geographic_crs (rasterio.crs.CRS, optional): CRS to use as geographic coordinate system. Defaults to WGS84.
         tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
@@ -54,7 +54,7 @@ class BaseBackend(BaseReader):
         Type[BaseReader],
         Type[MultiBaseReader],
         Type[MultiBandReader],
-    ] = attr.ib(default=COGReader)
+    ] = attr.ib(default=Reader)
     reader_options: Dict = attr.ib(factory=dict)
 
     geographic_crs: CRS = attr.ib(default=WGS84_CRS)
@@ -236,7 +236,7 @@ class BaseBackend(BaseReader):
         lat: float,
         reverse: bool = False,
         **kwargs: Any,
-    ) -> List:
+    ) -> List[PointData]:
         """Get Point value from multiple observation."""
         mosaic_assets = self.assets_for_point(lon, lat)
         if not mosaic_assets:
@@ -245,7 +245,7 @@ class BaseBackend(BaseReader):
         if reverse:
             mosaic_assets = list(reversed(mosaic_assets))
 
-        def _reader(asset: str, lon: float, lat: float, **kwargs) -> Dict:
+        def _reader(asset: str, lon: float, lat: float, **kwargs) -> PointData:
             with self.reader(asset, **self.reader_options) as src_dst:
                 return src_dst.point(lon, lat, **kwargs)
 
