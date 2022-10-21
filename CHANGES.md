@@ -1,5 +1,9 @@
 # Release Notes
 
+## 4.1.1 (2022-10-21)
+
+* Add Azure Blob Storage backend (author @christoe, https://github.com/developmentseed/cogeo-mosaic/pull/191)
+
 ## 4.1.0 (2022-02-22)
 
 * remove `mercantile` and switch to morecantile>=3.1
