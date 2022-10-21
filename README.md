@@ -11,7 +11,7 @@
       <img src="https://github.com/developmentseed/cogeo-mosaic/workflows/CI/badge.svg" alt="Test">
   </a>
   <a href="https://codecov.io/gh/developmentseed/cogeo-mosaic" target="_blank">
-      <img src="https://codecov.io/gh/developmentseed/cogeo-mosaic/branch/master/graph/badge.svg" alt="Coverage">
+      <img src="https://codecov.io/gh/developmentseed/cogeo-mosaic/branch/main/graph/badge.svg" alt="Coverage">
   </a>
   <a href="https://pypi.org/project/cogeo-mosaic" target="_blank">
       <img src="https://img.shields.io/pypi/v/cogeo-mosaic?color=%2334D058&label=pypi%20package" alt="Package version">
@@ -20,7 +20,7 @@
   <a href="https://pypistats.org/packages/cogeo-mosaic" target="_blank">
       <img src="https://img.shields.io/pypi/dm/cogeo-mosaic.svg" alt="Downloads">
   </a>
-  <a href="https://github.com/developmentseed/cogeo-mosaic/blob/master/LICENSE" target="_blank">
+  <a href="https://github.com/developmentseed/cogeo-mosaic/blob/main/LICENSE" target="_blank">
       <img src="https://img.shields.io/github/license/developmentseed/cogeo-mosaic.svg" alt="Downloads">
   </a>
 </p>

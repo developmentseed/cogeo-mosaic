@@ -84,7 +84,7 @@ mosaicjson = MosaicJSON.from_features(
 
 Update method is **backend specific** because you don't write a mosaicjson document in the same way in AWS S3 and in AWS DynamoDB.
 
-The **main** method is defined in [cogeo_mosaic.backends.base.BaseBackend](https://github.com/developmentseed/cogeo-mosaic/blob/master/cogeo_mosaic/backends/base.py).
+The **main** method is defined in [cogeo_mosaic.backends.base.BaseBackend](https://github.com/developmentseed/cogeo-mosaic/blob/main/cogeo_mosaic/backends/base.py).
 
 On update, here is what is happening:
 1. create mosaic with the new dataset

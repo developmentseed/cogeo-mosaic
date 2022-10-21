@@ -6,7 +6,7 @@ site_dir: 'build'
 
 repo_name: "developmentseed/cogeo-mosaic"
 repo_url: "https://github.com/developmentseed/cogeo-mosaic"
-edit_uri: 'blob/master/docs/src/'
+edit_uri: 'blob/main/docs/src/'
 
 extra:
   social:
