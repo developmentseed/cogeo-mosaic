@@ -48,7 +48,7 @@ dev = [
   "pytest", "pytest-cov", "pre-commit"
 ]
 docs = [
-  "mkdocs", "mkdocs-material", "pygments", "mkapi", "mkdocs-jupyter"
+  "mkdocs", "mkdocs-material", "pygments", "mkdocs-jupyter"
 ]
 
 [project.urls]

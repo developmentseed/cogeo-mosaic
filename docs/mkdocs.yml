@@ -33,27 +33,12 @@ nav:
     - Dynamic RTree backend: "examples/Create_a_Dynamic_RtreeBackend.ipynb"
     - Dynamic STAC backend: "examples/Create_a_Dynamic_StacBackend.ipynb"
 
-  - API:
-    - MosaicJSON: "API/mosaic.md"
-    - Cache: "API/cache.md"
-    - Backends:
-      - BaseClass: "API/backends/base.md"
-      - File: "API/backends/File.md"
-      - HTTP: "API/backends/HTTP.md"
-      - s3: "API/backends/S3.md"
-      - DynamoDB: "API/backends/DynamoDB.md"
-      - SQLite: "API/backends/SQLite.md"
-      - STAC: "API/backends/STAC.md"
-      - GoogleCloud: "API/backends/GoogleCloudStorage.md"
-
   - Migration to v3.0: "v3_migration.md"
   - Development - Contributing: "contributing.md"
   - Release Notes: "release-notes.md"
 
 plugins:
   - search
-  - mkapi:
-      src_dirs: [cogeo-mosaic]
   - mkdocs-jupyter:
       include_source: True
 
