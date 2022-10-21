@@ -11,7 +11,7 @@ import click
 import morecantile
 import numpy
 from pygeos import area, intersection
-from rio_tiler.io import COGReader
+from rio_tiler.io import Reader
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -43,8 +43,8 @@ def _filter_futures(tasks):
 
 def get_dataset_info(src_path: str) -> Dict:
     """Get rasterio dataset meta."""
-    with COGReader(src_path) as cog:
-        bounds = cog.geographic_bounds
+    with Reader(src_path) as src:
+        bounds = src.geographic_bounds
         return {
             "geometry": {
                 "type": "Polygon",
@@ -61,9 +61,9 @@ def get_dataset_info(src_path: str) -> Dict:
             "properties": {
                 "path": src_path,
                 "bounds": bounds,
-                "minzoom": cog.minzoom,
-                "maxzoom": cog.maxzoom,
-                "datatype": cog.dataset.meta["dtype"],
+                "minzoom": src.minzoom,
+                "maxzoom": src.maxzoom,
+                "datatype": src.dataset.meta["dtype"],
             },
             "type": "Feature",
         }

@@ -7,15 +7,20 @@ Issues and pull requests are more than welcome.
 ```
 $ git clone http://github.com/developmentseed/cogeo-mosaic.git
 $ cd cogeo-mosaic
-$ pip install -e .[dev]
+$ pip install -e .["test,az"]
 ```
 
+You can then run the tests with the following command:
 
-**Python >=3.7 only**
+```sh
+python -m pytest --cov cogeo_mosaic --cov-report term-missing --benchmark-skip
+```
+
+### pre-commit
 
 This repo is set to use `pre-commit` to run *isort*, *flake8*, *pydocstring*, *black* ("uncompromising Python code formatter") and mypy when committing new code.
 
-```
+```bash
 $ pre-commit install
 
 $ git add .

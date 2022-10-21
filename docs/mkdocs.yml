@@ -1,11 +1,12 @@
 site_name: cogeo-mosaic
 site_description: Create and use mosaics of Cloud Optimized GeoTIFF based on mosaicJSON specification.
 
-docs_dir: 'docs'
+docs_dir: 'src'
 site_dir: 'build'
 
 repo_name: "developmentseed/cogeo-mosaic"
 repo_url: "https://github.com/developmentseed/cogeo-mosaic"
+edit_uri: 'blob/master/docs/src/'
 
 extra:
   social:
