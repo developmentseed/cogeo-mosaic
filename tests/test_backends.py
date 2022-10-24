@@ -844,8 +844,7 @@ def test_stac_accessor():
         "file:///path/to/mosaic.json",
         # "dynamodb://us-east-1/amosaic",
         # "s3://mybucket/amosaic.json",
-        "https://mosaic.com/amosaic.json.gz",
-        "https://mybucket.s3.amazonaws.com/mosaic.json",
+        "https://developmentseed.org/cogeo-mosaic/amosaic.json.gz",  # fake mosaic
     ],
 )
 def test_mosaic_crud_error(mosaic_path):

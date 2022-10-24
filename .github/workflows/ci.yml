@@ -69,23 +69,26 @@ jobs:
           python -m pip install .
 
       - name: Set tag version
+        id: tag
         run: |
-          echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo "version=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
 
       - name: Set module version
-        run: echo "version=$(hatch version)" >> $GITHUB_ENV
+        id: module
+        run: |
+          echo "version=$(python -m hatch version)" >> $GITHUB_OUTPUT
 
       - name: Show version
         run: |
-          echo "${{ env.tag }}"
-          echo "${{ env.version }}"
+          echo "${{ steps.tag.outputs.version }}"
+          echo "${{ steps.module.outputs.version }}"
 
       - name: Build and publish
-        if: ${{ env.tag }} == ${{ env.version }}
+        if: ${{ steps.tag.outputs.version }} == ${{ steps.module.outputs.version }}
         env:
           HATCH_INDEX_USER: ${{ secrets.PYPI_USERNAME }}
           HATCH_INDEX_AUTH: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          hatch build
-          hatch publish
+          python -m hatch build
+          python -m hatch publish
 
