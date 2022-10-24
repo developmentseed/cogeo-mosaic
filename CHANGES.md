@@ -1,4 +1,4 @@
-## 4.2.0 (2022-10-21)
+## 4.2.0 (2022-10-24)
 
 * remove python 3.7 support
 * add python 3.10 support
