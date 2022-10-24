@@ -69,16 +69,19 @@ jobs:
           python -m pip install .
 
       - name: Set tag version
-        id: tag
-        # https://stackoverflow.com/questions/58177786/get-the-current-pushed-tag-in-github-actions
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+        run: |
+          echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
       - name: Set module version
-        id: module
-        run: echo ::set-output name=version::$(hatch version)
+        run: echo "version=$(hatch version)" >> $GITHUB_ENV
+
+      - name: Show version
+        run: |
+          echo "${{ env.tag }}"
+          echo "${{ env.version }}"
 
       - name: Build and publish
-        if: steps.tag.outputs.tag == steps.module.outputs.version
+        if: ${{ env.tag }} == ${{ env.version }}
         env:
           HATCH_INDEX_USER: ${{ secrets.PYPI_USERNAME }}
           HATCH_INDEX_AUTH: ${{ secrets.PYPI_PASSWORD }}
