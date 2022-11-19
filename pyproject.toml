@@ -82,6 +82,11 @@ path = "cogeo_mosaic/__init__.py"
 exclude = [
   "/tests",
   "/docs",
+  ".github",
+  ".bumpversion.cfg",
+  ".flake8",
+  ".gitignore",
+  ".pre-commit-config.yaml",
 ]
 
 [build-system]
