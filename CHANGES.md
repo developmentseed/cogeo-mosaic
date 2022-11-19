@@ -1,4 +1,8 @@
 
+## 4.2.2 (2022-11-19)
+
+* remove useless file in package
+
 ## 4.2.1 (2022-11-15)
 
 * add python 3.11 support
