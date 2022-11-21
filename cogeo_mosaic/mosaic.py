@@ -9,7 +9,8 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 import click
 import morecantile
 from pydantic import BaseModel, Field, root_validator
-from pygeos import STRtree, linearrings, polygons, total_bounds
+from shapely import linearrings, polygons, total_bounds
+from shapely.strtree import STRtree
 from supermercado import burntiles
 
 from cogeo_mosaic.errors import MosaicError

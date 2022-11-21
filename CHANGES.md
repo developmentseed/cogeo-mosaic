@@ -1,4 +1,8 @@
 
+## 5.0.0 (2022-11-21)
+
+* switch from pygeos to shapely>=2.0
+
 ## 4.2.2 (2022-11-19)
 
 * remove useless file in package
