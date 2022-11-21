@@ -26,7 +26,7 @@ setup(
     install_requires=[
         "attrs",
         "morecantile>=3.1,<4.0",
-        "pygeos>=0.10",
+        "shapely>=2.0b2,<2.1",
         "pydantic",
         "httpx",
         "rasterio",
