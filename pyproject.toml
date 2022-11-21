@@ -23,7 +23,7 @@ dynamic = ["version", "readme"]
 dependencies = [
   "attrs",
   "morecantile>=3.1,<4.0",
-  "pygeos>=0.10",
+  "shapely>=2.0b2,<2.1",
   "pydantic",
   "httpx",
   "rasterio",
@@ -112,7 +112,7 @@ known_third_party = [
     "rio_tiler",
     "morecantile",
     "supermercatdo",
-    "pygeos",
+    "shapely",
 ]
 default_section = "THIRDPARTY"
 

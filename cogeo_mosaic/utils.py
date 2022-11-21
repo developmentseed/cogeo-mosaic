@@ -10,8 +10,8 @@ from typing import Dict, List, Sequence, Tuple
 import click
 import morecantile
 import numpy
-from pygeos import area, intersection
 from rio_tiler.io import Reader
+from shapely import area, intersection
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
