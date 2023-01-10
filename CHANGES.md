@@ -1,4 +1,8 @@
 
+## 5.1.0 (TBD)
+
+* use `az://` prefix for private Azure Blob Storage Backend.
+
 ## 5.0.0 (2022-11-21)
 
 * switch from pygeos to shapely>=2.0

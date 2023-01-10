@@ -446,7 +446,7 @@ def test_abs_backend(session):
     )
 
     with MosaicBackend(
-        "https://storage_account.blob.core.windows.net/container/mymosaic.json.gz"
+        "az://storage_account.blob.core.windows.net/container/mymosaic.json.gz"
     ) as mosaic:
         assert mosaic._backend_name == "Azure Blob Storage"
         assert isinstance(mosaic, ABSBackend)
@@ -490,7 +490,7 @@ def test_abs_backend(session):
     )
 
     with MosaicBackend(
-        "https://storage_account.blob.core.windows.net/container/mymosaic.json.gz",
+        "az://storage_account.blob.core.windows.net/container/mymosaic.json.gz",
         mosaic_def=mosaic_content,
     ) as mosaic:
         assert isinstance(mosaic, ABSBackend)
@@ -504,7 +504,7 @@ def test_abs_backend(session):
         False
     )
     with MosaicBackend(
-        "https://storage_account.blob.core.windows.net/container/00000.json",
+        "az://storage_account.blob.core.windows.net/container/00000.json",
         mosaic_def=mosaic_content,
     ) as mosaic:
         assert isinstance(mosaic, ABSBackend)
@@ -517,7 +517,7 @@ def test_abs_backend(session):
         True
     )
     with MosaicBackend(
-        "https://storage_account.blob.core.windows.net/container/00000.json",
+        "az://storage_account.blob.core.windows.net/container/00000.json",
         mosaic_def=mosaic_content,
     ) as mosaic:
         assert isinstance(mosaic, ABSBackend)
@@ -531,7 +531,7 @@ def test_abs_backend(session):
         True
     )
     with MosaicBackend(
-        "https://storage_account.blob.core.windows.net/container/00000.json",
+        "az://storage_account.blob.core.windows.net/container/00000.json",
         mosaic_def=mosaic_content,
     ) as mosaic:
         assert isinstance(mosaic, ABSBackend)
