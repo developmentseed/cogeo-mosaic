@@ -35,8 +35,8 @@ def MosaicBackend(input: str, *args: Any, **kwargs: Any) -> BaseBackend:
     elif parsed.scheme == "gs":
         return GCSBackend(input, *args, **kwargs)
 
-    # `https://{storageaccount}.blob.core.windows.net/{container}/{key}`
-    elif parsed.scheme == "https" and parsed.netloc.endswith(".blob.core.windows.net"):
+    # `az://{storageaccount}.blob.core.windows.net/{container}/{key}`
+    elif parsed.scheme == "az":
         return ABSBackend(input, *args, **kwargs)
 
     # `dynamodb://{region}/{table}:{mosaic}`
