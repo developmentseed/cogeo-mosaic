@@ -10,7 +10,7 @@ Starting in version `3.0.0`, we introduced specific `backend` to abstract mosaic
 
 - **GCSBackend** (`gs://`)
 
-- **ABSBackend** (`https://{storageaccount}.blob.core.windows.net/{container}/{key}`)
+- **ABSBackend** (`az://{storageaccount}.blob.core.windows.net/{container}/{key}`)
 
 - **DynamoDBBackend** (`dynamodb://{region}/{table_name}`). If `region` is not passed, it reads the value of the `AWS_REGION` environment variable. If that environment variable does not exist, it falls back to `us-east-1`. If you choose not to pass a `region`, you still need three `/` before the table name, like so `dynamodb:///{table_name}`.
 
