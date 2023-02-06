@@ -50,11 +50,11 @@ def get_dataset_info(src_path: str) -> Dict:
                 "type": "Polygon",
                 "coordinates": [
                     [
-                        [bounds[0], bounds[3]],
-                        [bounds[0], bounds[1]],
-                        [bounds[2], bounds[1]],
-                        [bounds[2], bounds[3]],
-                        [bounds[0], bounds[3]],
+                        tms.truncate_lnglat(bounds[0], bounds[3]),
+                        tms.truncate_lnglat(bounds[0], bounds[1]),
+                        tms.truncate_lnglat(bounds[2], bounds[1]),
+                        tms.truncate_lnglat(bounds[2], bounds[3]),
+                        tms.truncate_lnglat(bounds[0], bounds[3]),
                     ]
                 ],
             },
