@@ -1,4 +1,8 @@
 
+## 5.1.1 (2023-02-06)
+
+* Clip dataset bounds with of TMS bbox (author @lseelenbinder, https://github.com/developmentseed/cogeo-mosaic/pull/200)
+
 ## 5.1.0 (2023-01-20)
 
 * use `az://` prefix for private Azure Blob Storage Backend.
