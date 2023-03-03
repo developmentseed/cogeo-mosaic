@@ -41,7 +41,7 @@ Lear more on MosaicJSON class [API/mosaic](../API/mosaic).
 
 ### Backends
 
-`backends` are python classed, based on rio-tiler [BaseReader](https://github.com/cogeotiff/rio-tiler/blob/main/rio_tiler/io/base.py#L16), which are used to interact with MosaicJSON documents weither they are stored on AWS dynamoBD, AWS S3, localy or on the web (http://).
+`backends` are python classed, based on rio-tiler [BaseReader](https://github.com/cogeotiff/rio-tiler/blob/main/rio_tiler/io/base.py#L16), which are used to interact with MosaicJSON documents whether they are stored on AWS DynamoDB, AWS S3, locally, or on the web (http://).
 
 Because each Backends extend rio-tiler [BaseReader](https://github.com/cogeotiff/rio-tiler/blob/main/rio_tiler/io/base.py#L16) they share the same minimal methods/properties
 
