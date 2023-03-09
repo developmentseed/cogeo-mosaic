@@ -13,7 +13,7 @@ $ pip install -e .["test,az"]
 You can then run the tests with the following command:
 
 ```sh
-python -m pytest --cov cogeo_mosaic --cov-report term-missing --benchmark-skip
+python -m pytest --cov cogeo_mosaic --cov-report term-missing
 ```
 
 ### pre-commit
