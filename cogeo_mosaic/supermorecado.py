@@ -1,24 +1,57 @@
 """Supermercado.burntiles but for other TMS."""
 
-from typing import Dict, List, Tuple
+from typing import Any, Dict, Sequence, Tuple
+
 import attr
-
-import numpy as np
 import morecantile
+import numpy as np
 from affine import Affine
-
 from rasterio import features
 from rio_tiler.constants import WEB_MERCATOR_TMS
 
 
+def _feature_extrema(geometry: Dict) -> Tuple[float, float, float, float]:
+    """Get bounds extrema for a feature."""
+    if geometry["type"] == "Polygon":
+        x, y = zip(*[c for part in geometry["coordinates"] for c in part])
+
+    elif geometry["type"] == "LineString":
+        x, y = zip(*[c for c in geometry["coordinates"]])
+
+    elif geometry["type"] == "Point":
+        x, y = geometry["coordinates"]
+        return x, y, x, y
+
+    return min(x), min(y), max(x), max(y)
+
+
+def find_extrema(
+    features: Sequence[Dict[Any, Any]]
+) -> Tuple[float, float, float, float]:
+    """Get bounds extrema for a set of features."""
+    epsilon = 1.0e-10
+    min_x, min_y, max_x, max_y = zip(
+        *[_feature_extrema(f["geometry"]) for f in features]
+    )
+
+    return (
+        min(min_x) + epsilon,
+        max(min(min_y) + epsilon, -85.0511287798066),
+        max(max_x) - epsilon,
+        min(max(max_y) - epsilon, 85.0511287798066),
+    )
+
+
 @attr.s
 class burntiles:
+    """Burntiles."""
 
     tms: morecantile.TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
 
-    ## TODO Add check for quadkey support
+    # TODO: Add check for quadkey support
 
     def project_geom(self, geom: Dict) -> Dict:
+        """reproject geom in TMS CRS."""
         if geom["type"] == "Polygon":
             return {
                 "type": geom["type"],
@@ -39,35 +72,11 @@ class burntiles:
                 "type": geom["type"],
                 "coordinates": self.tms.xy(*geom["coordinates"]),
             }
-
-    def _feature_extrema(self, geometry: Dict) -> Tuple[float, float, float, float]:
-        if geometry["type"] == "Polygon":
-            x, y = zip(*[c for part in geometry["coordinates"] for c in part])
-
-        elif geometry["type"] == "LineString":
-            x, y = zip(*[c for c in geometry["coordinates"]])
-
-        elif geometry["type"] == "Point":
-            x, y = geometry["coordinates"]
-            return x, y, x, y
-
-        return min(x), min(y), max(x), max(y)
-
-    def find_extrema(self, features: List[Dict]) -> Tuple[float, float, float, float]:
-        epsilon = 1.0e-10
-        min_x, min_y, max_x, max_y = zip(
-            *[self._feature_extrema(f["geometry"]) for f in features]
-        )
-
-        return (
-            min(min_x) + epsilon,
-            max(min(min_y) + epsilon, -85.0511287798066),
-            max(max_x) - epsilon,
-            min(max(max_y) - epsilon, 85.0511287798066),
-        )
-
+        else:
+            raise Exception(f"Invalid geometry type {geom['type']}")
 
     def tile_extrema(self, bounds, zoom):
+        """Tiles min/max at the given zoom for bounds."""
         minimumTile = self.tms.tile(bounds[0], bounds[3], zoom)
         maximumTile = self.tms.tile(bounds[2], bounds[1], zoom)
 
@@ -76,9 +85,8 @@ class burntiles:
             "y": {"min": minimumTile.y, "max": maximumTile.y + 1},
         }
 
-
     def make_transform(self, tilerange: Dict, zoom: int) -> Affine:
-
+        """Create Affine Transform from extrema."""
         ulx, uly = self.tms.xy(
             *self.tms.ul(tilerange["x"]["min"], tilerange["y"]["min"], zoom)
         )
@@ -92,9 +100,9 @@ class burntiles:
 
         return Affine(xcell, 0, ulx, 0, -ycell, uly)
 
-
-    def burn(self, polys: List[Dict], zoom: int):
-        bounds = self.find_extrema(polys)
+    def burn(self, polys: Sequence[Dict[Any, Any]], zoom: int):
+        """Burn geometries to Tiles."""
+        bounds = find_extrema(polys)
 
         tilerange = self.tile_extrema(bounds, zoom)
         afftrans = self.make_transform(tilerange, zoom)
@@ -116,4 +124,6 @@ class burntiles:
         xys[:, 0] += tilerange["x"]["min"]
         xys[:, 1] += tilerange["y"]["min"]
 
-        return np.append(xys, np.zeros((xys.shape[0], 1), dtype=np.uint8) + zoom, axis=1)
+        return np.append(
+            xys, np.zeros((xys.shape[0], 1), dtype=np.uint8) + zoom, axis=1
+        )

@@ -13,8 +13,8 @@ from shapely import linearrings, polygons, total_bounds
 from shapely.strtree import STRtree
 
 from cogeo_mosaic.errors import MosaicError
-from cogeo_mosaic.utils import _intersect_percent, get_footprints
 from cogeo_mosaic.supermorecado import burntiles
+from cogeo_mosaic.utils import _intersect_percent, get_footprints
 
 tms = morecantile.tms.get("WebMercatorQuad")
 
@@ -142,7 +142,7 @@ class MosaicJSON(BaseModel):
 
         bounds = tuple(total_bounds(dataset_geoms))
 
-        tiles = burntiles().burn(features, quadkey_zoom)
+        tiles = burntiles(tms).burn(features, quadkey_zoom)
         tiles = [morecantile.Tile(*tile) for tile in tiles]
 
         mosaic_definition: Dict[str, Any] = dict(
