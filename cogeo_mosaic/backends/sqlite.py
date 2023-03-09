@@ -87,7 +87,7 @@ class SQLiteBackend(BaseBackend):
         """Support using with Context Managers."""
         self.close()
 
-    @cached(
+    @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self: hashkey(self.input),
     )
@@ -267,7 +267,7 @@ class SQLiteBackend(BaseBackend):
                     [(assets, qk) for qk, assets in new_mosaic.tiles.items()],
                 )
 
-    @cached(
+    @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
     )
