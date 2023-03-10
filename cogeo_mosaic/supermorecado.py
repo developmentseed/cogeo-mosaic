@@ -1,10 +1,36 @@
-"""Supermercado.burntiles but for other TMS."""
+"""Supermercado.burntiles but for other TMS.
+
+This submodule is adapted from mapbox/supermercado project:
+
+The MIT License (MIT)
+
+Copyright (c) 2015 Mapbox
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+"""
 
 from typing import Any, Dict, Sequence, Tuple
 
 import attr
 import morecantile
-import numpy as np
+import numpy
 from affine import Affine
 from rasterio import features
 from rio_tiler.constants import WEB_MERCATOR_TMS
@@ -43,12 +69,15 @@ def find_extrema(
 
 
 @attr.s
-class burntiles:
+class burnTiles:
     """Burntiles."""
 
     tms: morecantile.TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
 
-    # TODO: Add check for quadkey support
+    @tms.validator
+    def _check_for_quadtree_support(self, attribute, value: morecantile.TileMatrixSet):
+        if not value._is_quadtree:
+            raise ValueError(f"{value.identifier} TMS does not support quadtree.")
 
     def project_geom(self, geom: Dict) -> Dict:
         """reproject geom in TMS CRS."""
@@ -100,7 +129,7 @@ class burntiles:
 
         return Affine(xcell, 0, ulx, 0, -ycell, uly)
 
-    def burn(self, polys: Sequence[Dict[Any, Any]], zoom: int):
+    def burn(self, polys: Sequence[Dict[Any, Any]], zoom: int) -> numpy.ndarray:
         """Burn geometries to Tiles."""
         bounds = find_extrema(polys)
 
@@ -119,11 +148,10 @@ class burntiles:
             all_touched=True,
         )
 
-        xys = np.fliplr(np.dstack(np.where(burn))[0])
-
+        xys = numpy.fliplr(numpy.dstack(numpy.where(burn))[0])
         xys[:, 0] += tilerange["x"]["min"]
         xys[:, 1] += tilerange["y"]["min"]
 
-        return np.append(
-            xys, np.zeros((xys.shape[0], 1), dtype=np.uint8) + zoom, axis=1
+        return numpy.append(
+            xys, numpy.zeros((xys.shape[0], 1), dtype=numpy.uint8) + zoom, axis=1
         )

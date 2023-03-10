@@ -8,15 +8,15 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import click
 import morecantile
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, PrivateAttr, root_validator
 from shapely import linearrings, polygons, total_bounds
 from shapely.strtree import STRtree
 
 from cogeo_mosaic.errors import MosaicError
-from cogeo_mosaic.supermorecado import burntiles
+from cogeo_mosaic.supermorecado import burnTiles
 from cogeo_mosaic.utils import _intersect_percent, get_footprints
 
-tms = morecantile.tms.get("WebMercatorQuad")
+WEB_MERCATOR_TMS = morecantile.tms.get("WebMercatorQuad")
 
 
 def default_accessor(feature: Dict):
@@ -36,7 +36,9 @@ def default_filter(
     indices = list(range(len(dataset)))
 
     if minimum_tile_cover or tile_cover_sort:
-        tile_geom = polygons(tms.feature(tile)["geometry"]["coordinates"][0])
+        tile_geom = polygons(
+            WEB_MERCATOR_TMS.feature(tile)["geometry"]["coordinates"][0]
+        )
         int_pcts = _intersect_percent(tile_geom, geoms)
 
         if minimum_tile_cover:
@@ -74,6 +76,10 @@ class MosaicJSON(BaseModel):
     center: Optional[Tuple[float, float, int]]
     tiles: Dict[str, List[str]]
 
+    # TMS is a private attributes for now but it might change with
+    # mosaicJSON 0.3.0 (https://github.com/developmentseed/mosaicjson-spec/pull/18)
+    tms: morecantile.TileMatrixSet = PrivateAttr(default=WEB_MERCATOR_TMS)
+
     class Config:
         """Validate model on update."""
 
@@ -107,6 +113,7 @@ class MosaicJSON(BaseModel):
         quadkey_zoom: Optional[int] = None,
         accessor: Callable[[Dict], str] = default_accessor,
         asset_filter: Callable = default_filter,
+        tms: Optional[morecantile.TileMatrixSet] = None,
         version: str = "0.0.2",
         quiet: bool = True,
         **kwargs,
@@ -131,6 +138,9 @@ class MosaicJSON(BaseModel):
             >>> MosaicJSON._create_mosaic([], 12, 14)
 
         """
+        tms = tms or WEB_MERCATOR_TMS
+        assert tms._is_quadtree, f"{tms.identifier} TMS does not support quadtree."
+
         quadkey_zoom = quadkey_zoom or minzoom
 
         if not quiet:
@@ -142,8 +152,8 @@ class MosaicJSON(BaseModel):
 
         bounds = tuple(total_bounds(dataset_geoms))
 
-        tiles = burntiles(tms).burn(features, quadkey_zoom)
-        tiles = [morecantile.Tile(*tile) for tile in tiles]
+        burntiles = burnTiles(tms)
+        tiles = [morecantile.Tile(*t) for t in burntiles.burn(features, quadkey_zoom)]
 
         mosaic_definition: Dict[str, Any] = dict(
             mosaicjson=version,
@@ -229,7 +239,6 @@ class MosaicJSON(BaseModel):
             >>> MosaicJSON.from_urls(["1.tif", "2.tif"])
 
         """
-
         features = get_footprints(urls, max_threads=max_threads, quiet=quiet)
 
         if minzoom is None:
