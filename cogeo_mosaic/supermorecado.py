@@ -33,7 +33,8 @@ import morecantile
 import numpy
 from affine import Affine
 from rasterio import features
-from rio_tiler.constants import WEB_MERCATOR_TMS
+
+WEB_MERCATOR_TMS = morecantile.tms.get("WebMercatorQuad")
 
 
 def _feature_extrema(geometry: Dict) -> Tuple[float, float, float, float]:
