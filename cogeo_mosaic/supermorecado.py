@@ -41,6 +41,11 @@ def _feature_extrema(geometry: Dict) -> Tuple[float, float, float, float]:
     if geometry["type"] == "Polygon":
         x, y = zip(*[c for part in geometry["coordinates"] for c in part])
 
+    elif geometry["type"] == "MultiPolygon":
+        x, y = zip(
+            *[c for poly in geometry["coordinates"] for part in poly for c in part]
+        )
+
     elif geometry["type"] == "LineString":
         x, y = zip(*[c for c in geometry["coordinates"]])
 
@@ -101,6 +106,16 @@ class burnTiles:
                 "type": geom["type"],
                 "coordinates": self.tms.xy(*geom["coordinates"]),
             }
+
+        elif geom["type"] == "MultiPolygon":
+            return {
+                "type": geom["type"],
+                "coordinates": [
+                    [[self.tms.xy(*coords) for coords in part] for part in poly]
+                    for poly in geom["coordinates"]
+                ],
+            }
+
         else:
             raise Exception(f"Invalid geometry type {geom['type']}")
 
