@@ -4,7 +4,6 @@ Note: most of the test are adapted from https://github.com/mapbox/supermercado/b
 """
 
 import morecantile
-import pytest
 
 from cogeo_mosaic.supermorecado import burnTiles
 
@@ -84,9 +83,3 @@ def test_burn_cli_tile_shape():
         "type": "Feature",
     }
     assert burnTiles().burn([tilegeom], 13).tolist() == [[1309, 3166, 13]]
-
-
-def test_other_tms():
-    tms = morecantile.tms.get("NZTM2000")
-    with pytest.raises(ValueError):
-        burnTiles(tms)

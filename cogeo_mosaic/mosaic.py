@@ -78,6 +78,7 @@ class MosaicJSON(BaseModel):
 
     # TMS is a private attributes for now but it might change with
     # mosaicJSON 0.3.0 (https://github.com/developmentseed/mosaicjson-spec/pull/18)
+    # Note: TMS should support quadkey (tms._is_quadtree)
     _tms: morecantile.TileMatrixSet = PrivateAttr(default=WEB_MERCATOR_TMS)
 
     class Config:
