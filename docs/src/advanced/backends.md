@@ -177,7 +177,7 @@ with STACBackend(
     minzoom=8,
     maxzoom=15,
 ) as mosaic:
-    print(mosaic.metadata)
+    print(mosaic.mosaic_def.dict(exclude={"tiles"}))
 ```
 
 #### Specification
@@ -201,7 +201,7 @@ with STACBackend(
     maxzoom=15,
     stac_api_options={"max_items": 1000},
 ) as mosaic:
-    print(mosaic.metadata)
+    print(mosaic.mosaic_def.dict(exclude={"tiles"}))
 ```
 
 - Limit the size of each POST result
@@ -214,7 +214,7 @@ with STACBackend(
     maxzoom=15,
     stac_api_options={"limit": 100},
 ) as mosaic:
-    print(mosaic.metadata)
+    print(mosaic.mosaic_def.dict(exclude={"tiles"}))
 ```
 Warnings: trying to run the previous example will results in fetching the whole collection.
 
@@ -263,5 +263,5 @@ with STACBackend(
     stac_api_options={"limit": 100},
     mosaic_options={"accessor": lambda x: x["assets"]["B01"]["href"]},
 ) as mosaic:
-    print(mosaic.metadata)
+    print(mosaic.mosaic_def.dict(exclude={"tiles"}))
 ```
