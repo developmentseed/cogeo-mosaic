@@ -29,7 +29,6 @@ dependencies = [
   "rasterio",
   "rio-tiler>=4.0.0a0,<5.0",
   "cachetools",
-  "supermercado",
 ]
 
 [project.optional-dependencies]

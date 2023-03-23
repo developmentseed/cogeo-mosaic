@@ -36,7 +36,7 @@ class FileBackend(BaseBackend):
                 exc = _FILE_EXCEPTIONS.get(e, MosaicError)  # type: ignore
                 raise exc(str(e)) from e
 
-    @cached(
+    @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self: hashkey(self.input),
     )

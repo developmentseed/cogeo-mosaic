@@ -1,4 +1,8 @@
 
+## Next (TBD)
+
+* replace supermercado with internal `supermorcado` to burn geometries as tiles for different TMS (https://github.com/developmentseed/cogeo-mosaic/pull/203)
+
 ## 5.1.1 (2023-02-06)
 
 * Clip dataset bounds with of TMS bbox (author @lseelenbinder, https://github.com/developmentseed/cogeo-mosaic/pull/200)
