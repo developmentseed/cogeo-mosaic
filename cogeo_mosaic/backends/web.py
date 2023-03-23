@@ -36,7 +36,7 @@ class HttpBackend(BaseBackend):
         self.maxzoom = self.mosaic_def.maxzoom
         self.bounds = self.mosaic_def.bounds
 
-    @cached(
+    @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self: hashkey(self.input),
     )

@@ -137,7 +137,7 @@ def query_from_link(link: Dict, query: Dict):
     return q
 
 
-@cached(
+@cached(  # type: ignore
     TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
     key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),
 )

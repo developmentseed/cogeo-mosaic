@@ -65,7 +65,7 @@ class ABSBackend(BaseBackend):
 
         self._put_object(self.key, self.container, body, **kwargs)
 
-    @cached(
+    @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self: hashkey(self.input),
     )

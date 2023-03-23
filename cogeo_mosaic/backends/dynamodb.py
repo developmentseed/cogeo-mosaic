@@ -84,7 +84,7 @@ class DynamoDBBackend(BaseBackend):
         self.table = self.client.Table(self.table_name)
         super().__attrs_post_init__()
 
-    @cached(
+    @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self: hashkey(self.input),
     )
@@ -202,7 +202,7 @@ class DynamoDBBackend(BaseBackend):
 
         self._write_items(items)
 
-    @cached(
+    @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
     )
