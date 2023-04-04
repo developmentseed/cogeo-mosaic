@@ -23,6 +23,7 @@ dynamic = ["version", "readme"]
 dependencies = [
   "attrs",
   "morecantile>=3.1,<4.0",
+  "planetcantile",
   "shapely>=2.0b2,<3.0",
   "pydantic",
   "httpx",
