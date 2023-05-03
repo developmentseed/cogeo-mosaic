@@ -64,7 +64,7 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
 
     mosaic.info(quadkeys=True/False)   # method -  spatial_info, list of quadkeys and mosaic name
 
-    mosaic.assets_for_tile(1,2,3)      # method - Find assets for a specific mercator tile
+    mosaic.get_assets(1,2,3)      # method - Find assets for a specific mercator tile
     mosaic.assets_for_point(lng, lat)  # method - Find assets for a specific point
 
     mosaic.tile(1,2,3)                 # method - Create mosaic tile
@@ -80,7 +80,7 @@ with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
 from cogeo_mosaic.backends import MosaicBackend
 
 with MosaicBackend("s3://mybucket/amosaic.json") as mosaic:
-    assets: List = mosaic.assets_for_tile(1, 2, 3) # get assets for morecantile.Tile(1, 2, 3)
+    assets: List = mosaic.get_assets(1, 2, 3) # get assets for morecantile.Tile(1, 2, 3)
 ```
 
 ##### Read Tile Data (mosaic tile)

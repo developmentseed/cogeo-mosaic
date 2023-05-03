@@ -10,7 +10,8 @@ from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 from morecantile import TileMatrixSet
 from rasterio.crs import CRS
-from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
+from rasterio.warp import transform_bounds
+from rio_tiler.constants import WEB_MERCATOR_TMS, WEB_MERCATOR_CRS, WGS84_CRS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, MultiBandReader, MultiBaseReader, Reader
 from rio_tiler.models import ImageData, PointData
@@ -22,7 +23,7 @@ from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import NoAssetFoundError
 from cogeo_mosaic.models import Info
 from cogeo_mosaic.mosaic import MosaicJSON
-from cogeo_mosaic.utils import bbox_union
+from cogeo_mosaic.utils import bbox_union, to_rio_crs, transform_point
 
 
 def _convert_to_mosaicjson(value: Union[Dict, MosaicJSON]):
@@ -40,10 +41,10 @@ class BaseBackend(BaseReader):
         reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.Reader`.
         reader_options (dict): Options to forward to the reader config.
         geographic_crs (rasterio.crs.CRS, optional): CRS to use as geographic coordinate system. Defaults to WGS84.
-        tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
+        tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. Defaults to `WebMercatorQuad`.
         bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
-        minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to `0`.
-        maxzoom (int): mosaic Max zoom level. **READ ONLY attribute**. Defaults to `30`
+        minzoom (int): mosaic Min zoom level. Defaults to `0`.
+        maxzoom (int): mosaic Max zoom level. Defaults to `30`
 
     """
 
@@ -57,19 +58,16 @@ class BaseBackend(BaseReader):
     ] = attr.ib(default=Reader)
     reader_options: Dict = attr.ib(factory=dict)
 
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
+    tms: TileMatrixSet = attr.ib(kw_only=True, default=WEB_MERCATOR_TMS)
+    crs: CRS = attr.ib(kw_only=True, default=WEB_MERCATOR_CRS)
+    geographic_crs: CRS = attr.ib(kw_only=True, default=WGS84_CRS)
 
-    # TMS is outside the init because mosaicJSON and cogeo-mosaic only
-    # works with WebMercator for now.
-    tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
-    minzoom: int = attr.ib(init=False)
-    maxzoom: int = attr.ib(init=False)
-
-    # default values for bounds
+    minzoom: int = attr.ib(kw_only=True, default=0)  # isn't this defined by the TMS?
+    maxzoom: int = attr.ib(kw_only=True, default=30)  # isn't this defined by the TMS?
+    # default values for bounds todo: use SpatialMixin
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
-    crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     _backend_name: str
     _file_byte_size: Optional[int] = 0
@@ -77,6 +75,7 @@ class BaseBackend(BaseReader):
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.input."""
         self.mosaic_def = self.mosaic_def or self._read()
+        #todo: grab tms from mosaic_def on next version
         self.minzoom = self.mosaic_def.minzoom
         self.maxzoom = self.mosaic_def.maxzoom
         self.bounds = self.mosaic_def.bounds
@@ -108,7 +107,7 @@ class BaseBackend(BaseReader):
 
         for quadkey, new_assets in new_mosaic.tiles.items():
             tile = self.tms.quadkey_to_tile(quadkey)
-            assets = self.assets_for_tile(*tile)
+            assets = self.get_assets(*tile)
             assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
             # add custom sorting algorithm (e.g based on path name)
@@ -126,19 +125,25 @@ class BaseBackend(BaseReader):
         self.bounds = bounds
         self.write(overwrite=True)
 
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
-        """Retrieve assets for tile."""
-        return self.get_assets(x, y, z)
-
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
+    def assets_for_point(self, lng: float, lat: float, coord_crs: CRS = WGS84_CRS) -> List[str]:
         """Retrieve assets for point."""
+        lng, lat = transform_point(lng, lat, to_rio_crs(coord_crs), self.geographic_crs)
         tile = self.tms.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
     def assets_for_bbox(
-        self, xmin: float, ymin: float, xmax: float, ymax: float
+            self,
+            xmin: float,
+            ymin: float,
+            xmax: float,
+            ymax: float,
+            coord_crs: CRS = WGS84_CRS
     ) -> List[str]:
         """Retrieve assets for bbox."""
+        coord_crs_rio = to_rio_crs(coord_crs)
+        if coord_crs_rio != self.geographic_crs:
+            xmin, ymin, xmax, ymax = transform_bounds(coord_crs_rio, self.geographic_crs, xmin, ymin, xmax, ymax)
+
         tl_tile = self.tms.tile(xmin, ymax, self.quadkey_zoom)
         br_tile = self.tms.tile(xmax, ymin, self.quadkey_zoom)
 
@@ -150,9 +155,10 @@ class BaseBackend(BaseReader):
 
         return list(
             dict.fromkeys(
-                itertools.chain.from_iterable([self.assets_for_tile(*t) for t in tiles])
+                itertools.chain.from_iterable([self.get_assets(*t) for t in tiles])
             )
         )
+
 
     @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
@@ -160,8 +166,8 @@ class BaseBackend(BaseReader):
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
-        mercator_tile = morecantile.Tile(x=x, y=y, z=z)
-        quadkeys = self.find_quadkeys(mercator_tile, self.quadkey_zoom)
+        tile = morecantile.Tile(x=x, y=y, z=z)
+        quadkeys = self.find_quadkeys(tile, self.quadkey_zoom)
         return list(
             dict.fromkeys(
                 itertools.chain.from_iterable(
@@ -171,14 +177,14 @@ class BaseBackend(BaseReader):
         )
 
     def find_quadkeys(
-        self, mercator_tile: morecantile.Tile, quadkey_zoom: int
+        self, tile: morecantile.Tile, quadkey_zoom: int
     ) -> List[str]:
         """
         Find quadkeys at desired zoom for tile
 
         Attributes
         ----------
-        mercator_tile: morecantile.Tile
+        tile: morecantile.Tile
             Input tile to use when searching for quadkeys
         quadkey_zoom: int
             Zoom level
@@ -190,23 +196,23 @@ class BaseBackend(BaseReader):
 
         """
         # get parent
-        if mercator_tile.z > quadkey_zoom:
-            depth = mercator_tile.z - quadkey_zoom
+        if tile.z > quadkey_zoom:
+            depth = tile.z - quadkey_zoom
             for _ in range(depth):
-                mercator_tile = self.tms.parent(mercator_tile)[0]
-            return [self.tms.quadkey(*mercator_tile)]
+                tile = self.tms.parent(tile)[0]
+            return [self.tms.quadkey(*tile)]
 
         # get child
-        elif mercator_tile.z < quadkey_zoom:
-            depth = quadkey_zoom - mercator_tile.z
-            mercator_tiles = [mercator_tile]
+        elif tile.z < quadkey_zoom:
+            depth = quadkey_zoom - tile.z
+            tiles = [tile]
             for _ in range(depth):
-                mercator_tiles = sum([self.tms.children(t) for t in mercator_tiles], [])
+                tiles = sum([self.tms.children(t) for t in tiles], [])
 
-            mercator_tiles = list(filter(lambda t: t.z == quadkey_zoom, mercator_tiles))
-            return [self.tms.quadkey(*tile) for tile in mercator_tiles]
+            tiles = list(filter(lambda t: t.z == quadkey_zoom, tiles))
+            return [self.tms.quadkey(*tile) for tile in tiles]
         else:
-            return [self.tms.quadkey(*mercator_tile)]
+            return [self.tms.quadkey(*tile)]
 
     def tile(  # type: ignore
         self,
@@ -217,15 +223,15 @@ class BaseBackend(BaseReader):
         **kwargs: Any,
     ) -> Tuple[ImageData, List[str]]:
         """Get Tile from multiple observation."""
-        mosaic_assets = self.assets_for_tile(x, y, z)
+        mosaic_assets = self.get_assets(x, y, z)
         if not mosaic_assets:
             raise NoAssetFoundError(f"No assets found for tile {z}-{x}-{y}")
 
         if reverse:
             mosaic_assets = list(reversed(mosaic_assets))
 
-        def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any) -> ImageData:
-            with self.reader(asset, **self.reader_options) as src_dst:
+        def _reader(asset: str, x: int, y: int, z: int, tms: TileMatrixSet = self.tms, **kwargs: Any) -> ImageData:
+            with self.reader(asset, tms=tms, **self.reader_options) as src_dst:
                 return src_dst.tile(x, y, z, **kwargs)
 
         return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
@@ -235,6 +241,7 @@ class BaseBackend(BaseReader):
         lon: float,
         lat: float,
         reverse: bool = False,
+        coord_crs: CRS = WGS84_CRS,
         **kwargs: Any,
     ) -> List[PointData]:
         """Get Point value from multiple observation."""
@@ -245,9 +252,13 @@ class BaseBackend(BaseReader):
         if reverse:
             mosaic_assets = list(reversed(mosaic_assets))
 
-        def _reader(asset: str, lon: float, lat: float, **kwargs) -> PointData:
-            with self.reader(asset, **self.reader_options) as src_dst:
-                return src_dst.point(lon, lat, **kwargs)
+        rio_coord_crs = to_rio_crs(coord_crs)
+        dst_crs = self.geographic_crs
+
+        def _reader(asset: str, lon: float, lat: float, tms: TileMatrixSet = self.tms, **kwargs) -> PointData:
+            with self.reader(asset, tms=tms, **self.reader_options) as src_dst:
+                lon, lat = transform_point(lon, lat, rio_coord_crs, dst_crs)
+                return src_dst.point(lon, lat, coord_crs=rio_coord_crs, **kwargs)
 
         if "allowed_exceptions" not in kwargs:
             kwargs.update({"allowed_exceptions": (PointOutsideBounds,)})

@@ -217,6 +217,7 @@ class MosaicJSON(BaseModel):
         maxzoom: Optional[int] = None,
         max_threads: int = 20,
         quiet: bool = True,
+        tms: Optional[morecantile.TileMatrixSet] = None,
         **kwargs,
     ):
         """Create mosaicjson from COG urls.
@@ -240,7 +241,10 @@ class MosaicJSON(BaseModel):
             >>> MosaicJSON.from_urls(["1.tif", "2.tif"])
 
         """
-        features = get_footprints(urls, max_threads=max_threads, quiet=quiet)
+        tms = tms or WEB_MERCATOR_TMS
+        assert tms._is_quadtree, f"{tms.identifier} TMS does not support quadtree."
+        
+        features = get_footprints(urls, max_threads=max_threads, quiet=quiet, tms=tms)
 
         if minzoom is None:
             data_minzoom = {feat["properties"]["minzoom"] for feat in features}
