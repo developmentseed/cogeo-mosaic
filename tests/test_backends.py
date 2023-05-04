@@ -90,9 +90,9 @@ def test_file_backend():
             "center",
         ]
         # make sure we do not return asset twice (e.g for parent tile)
-        assert mosaic.get_assets(18, 22, 6) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(18, 22, 6) == ["cog1.tif", "cog2.tif"]
 
-        assert mosaic.get_assets(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
         assert len(mosaic.get_assets(150, 182, 9)) == 2
@@ -203,7 +203,7 @@ def test_http_backend(httpx):
             "bounds",
             "center",
         ]
-        assert mosaic.get_assets(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
     httpx.get.assert_called_once()
     httpx.mock_reset()
@@ -270,7 +270,7 @@ def test_s3_backend(session):
             "bounds",
             "center",
         ]
-        assert mosaic.get_assets(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
         session.return_value.client.return_value.get_object.assert_called_once_with(
             Bucket="mybucket", Key="mymosaic.json.gz"
@@ -365,7 +365,7 @@ def test_gs_backend(session):
             "bounds",
             "center",
         ]
-        assert mosaic.get_assets(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
         session.return_value.bucket.assert_called_once_with("mybucket")
         session.return_value.bucket.return_value.blob.assert_called_once_with(
@@ -466,7 +466,7 @@ def test_abs_backend(session):
             "bounds",
             "center",
         ]
-        assert mosaic.get_assets(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
         session.return_value.get_container_client.assert_called_once_with("container")
         session.return_value.get_container_client.return_value.get_blob_client.assert_called_once_with(
@@ -649,7 +649,7 @@ def test_dynamoDB_backend(client):
             "bounds",
             "center",
         ]
-        assert mosaic.get_assets(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
         info = mosaic.info()
@@ -726,7 +726,7 @@ def test_stac_backend(post):
             "bounds",
             "center",
         ]
-        assert mosaic.get_assets(210, 90, 10) == [
+        assert mosaic.assets_for_tile(210, 90, 10) == [
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
         ]
@@ -972,7 +972,7 @@ def test_sqlite_backend():
             "bounds",
             "center",
         ]
-        assert mosaic.get_assets(150, 182, 9) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_tile(150, 182, 9) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
         assert len(mosaic.get_assets(150, 182, 9)) == 2

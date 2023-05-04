@@ -140,15 +140,16 @@ class BaseBackend(BaseReader):
         xmax: float,
         ymax: float,
         coord_crs: CRS = WGS84_CRS,
+        **kwargs: Any,
     ) -> List[str]:
         """Retrieve assets for bbox."""
-        if coord_crs != self.geographic_crs:
+        if coord_crs != self.tms.rasterio_crs:
             xmin, ymin, xmax, ymax = transform_bounds(
-                coord_crs, self.geographic_crs, xmin, ymin, xmax, ymax
+                coord_crs, self.tms.rasterio_crs, xmin, ymin, xmax, ymax
             )
 
-        tl_tile = self.tms.tile(xmin, ymax, self.quadkey_zoom)
-        br_tile = self.tms.tile(xmax, ymin, self.quadkey_zoom)
+        tl_tile = self.tms._tile(xmin, ymax, self.quadkey_zoom)
+        br_tile = self.tms._tile(xmax, ymin, self.quadkey_zoom)
 
         tiles = [
             (x, y, self.quadkey_zoom)
@@ -161,6 +162,11 @@ class BaseBackend(BaseReader):
                 itertools.chain.from_iterable([self.get_assets(*t) for t in tiles])
             )
         )
+
+    def assets_for_tile(self, x: int, y: int, z: int, **kwargs: Any) -> List[str]:
+        """Retrieve assets for tile."""
+        bbox = self.tms.xy_bounds(morecantile.Tile(x, y, z))
+        return self.assets_for_bbox(*bbox, coord_crs=self.tms.rasterio_crs)
 
     @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),

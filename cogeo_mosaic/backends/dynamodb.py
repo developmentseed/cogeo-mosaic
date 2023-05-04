@@ -194,7 +194,7 @@ class DynamoDBBackend(BaseBackend):
         # Create Tile items
         for quadkey, new_assets in new_mosaic.tiles.items():
             tile = self.tms.quadkey_to_tile(quadkey)
-            assets = self.get_assets(*tile)
+            assets = self.assets_for_tile(*tile)
             assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
             items.append(
                 {"mosaicId": self.mosaic_name, "quadkey": quadkey, "assets": assets}
