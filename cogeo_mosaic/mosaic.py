@@ -31,14 +31,15 @@ def default_filter(
     minimum_tile_cover: float = None,
     tile_cover_sort: bool = False,
     maximum_items_per_tile: Optional[int] = None,
+    tms: Optional[morecantile.TileMatrixSet] = None,
 ) -> List:
     """Filter and/or sort dataset per intersection coverage."""
+    tms = tms or WEB_MERCATOR_TMS
+    assert tms._is_quadtree, f"{tms.identifier} TMS does not support quadtree."
     indices = list(range(len(dataset)))
 
     if minimum_tile_cover or tile_cover_sort:
-        tile_geom = polygons(
-            WEB_MERCATOR_TMS.feature(tile)["geometry"]["coordinates"][0]
-        )
+        tile_geom = polygons(tms.feature(tile)["geometry"]["coordinates"][0])
         int_pcts = _intersect_percent(tile_geom, geoms)
 
         if minimum_tile_cover:
@@ -243,7 +244,7 @@ class MosaicJSON(BaseModel):
         """
         tms = tms or WEB_MERCATOR_TMS
         assert tms._is_quadtree, f"{tms.identifier} TMS does not support quadtree."
-        
+
         features = get_footprints(urls, max_threads=max_threads, quiet=quiet, tms=tms)
 
         if minzoom is None:
@@ -270,7 +271,7 @@ class MosaicJSON(BaseModel):
             raise Exception("Dataset should have the same data type")
 
         return cls._create_mosaic(
-            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, **kwargs
+            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, tms=tms, **kwargs
         )
 
     @classmethod
