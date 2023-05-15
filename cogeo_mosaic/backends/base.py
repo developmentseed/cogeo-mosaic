@@ -129,7 +129,9 @@ class BaseBackend(BaseReader):
         self, lng: float, lat: float, coord_crs: CRS = WGS84_CRS
     ) -> List[str]:
         """Retrieve assets for point."""
-        lng, lat = transform_point(lng, lat, coord_crs, self.geographic_crs)
+        lng, lat = transform_point(
+            lng, lat, coord_crs, self.tms.rasterio_geographic_crs
+        )
         tile = self.tms.tile(lng, lat, self.quadkey_zoom)
         return self.get_assets(tile.x, tile.y, tile.z)
 
@@ -258,7 +260,7 @@ class BaseBackend(BaseReader):
         **kwargs: Any,
     ) -> List[PointData]:
         """Get Point value from multiple observation."""
-        mosaic_assets = self.assets_for_point(lon, lat)
+        mosaic_assets = self.assets_for_point(lon, lat, coord_crs=coord_crs)
         if not mosaic_assets:
             raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
 
@@ -269,8 +271,12 @@ class BaseBackend(BaseReader):
             asset: str, lon: float, lat: float, tms: TileMatrixSet = self.tms, **kwargs
         ) -> PointData:
             with self.reader(asset, tms=tms, **self.reader_options) as src_dst:
-                lon, lat = transform_point(lon, lat, coord_crs, self.geographic_crs)
-                return src_dst.point(lon, lat, coord_crs=self.geographic_crs, **kwargs)
+                lon, lat = transform_point(
+                    lon, lat, coord_crs, self.tms.rasterio_geographic_crs
+                )
+                return src_dst.point(
+                    lon, lat, coord_crs=self.tms.rasterio_geographic_crs, **kwargs
+                )
 
         if "allowed_exceptions" not in kwargs:
             kwargs.update({"allowed_exceptions": (PointOutsideBounds,)})

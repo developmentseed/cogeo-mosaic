@@ -9,15 +9,11 @@ from typing import Dict, List, Sequence, Tuple, Union
 
 import click
 import morecantile
-from cachetools import TTLCache, cached
 import numpy
+from rasterio import CRS
+from rasterio.warp import transform
 from rio_tiler.io import Reader
 from shapely import area, intersection
-from pyproj import CRS as projCRS
-from pyproj.enums import WktVersion
-from rasterio.env import GDALVersion
-from rasterio import CRS as rioCRS
-from rasterio.warp import transform
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -76,7 +72,10 @@ def get_dataset_info(src_path: str, tms: morecantile.TileMatrixSet = _tms) -> Di
 
 
 def get_footprints(
-    dataset_list: Sequence[str], max_threads: int = 20, quiet: bool = True, tms: morecantile.TileMatrixSet = _tms
+    dataset_list: Sequence[str],
+    max_threads: int = 20,
+    quiet: bool = True,
+    tms: morecantile.TileMatrixSet = _tms,
 ) -> List:
     """
     Create footprint GeoJSON.
@@ -100,7 +99,8 @@ def get_footprints(
         fout = ctx.enter_context(open(os.devnull, "w")) if quiet else sys.stderr
         with futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             future_work = [
-                executor.submit(get_dataset_info, item, tms=tms) for item in dataset_list
+                executor.submit(get_dataset_info, item, tms=tms)
+                for item in dataset_list
             ]
             with click.progressbar(  # type: ignore
                 futures.as_completed(future_work),
@@ -115,7 +115,9 @@ def get_footprints(
     return list(_filter_futures(future_work))
 
 
-def tiles_to_bounds(tiles: List[morecantile.Tile], tms: morecantile.TileMatrixSet = _tms) -> Tuple[float, float, float, float]:
+def tiles_to_bounds(
+    tiles: List[morecantile.Tile], tms: morecantile.TileMatrixSet = _tms
+) -> Tuple[float, float, float, float]:
     """Get bounds from a set of morecantile tiles."""
     zoom = tiles[0].z
     xyz = numpy.array([[t.x, t.y, t.z] for t in tiles])
@@ -146,22 +148,10 @@ def bbox_union(
         max(bbox_1[3], bbox_2[3]),
     )
 
-@cached(  # type: ignore
-    TTLCache(maxsize=8, ttl=300),
-)
-def to_rio_crs(crs: Union[projCRS, rioCRS]) -> rioCRS:
-    """
-    Convert a pyproj CRS to a rasterio CRS
-    """
-    if isinstance(crs, rioCRS):
-        return crs
-    if GDALVersion.runtime().major < 3:
-        return rioCRS.from_wkt(projCRS.to_wkt(WktVersion.WKT1_GDAL))
-    else:
-        return rioCRS.from_wkt(projCRS.to_wkt())
 
-
-def transform_point(lng:float, lat: float, src_crs: rioCRS, dst_crs: rioCRS) -> Tuple[float, float]:
+def transform_point(
+    lng: float, lat: float, src_crs: CRS, dst_crs: CRS
+) -> Tuple[float, float]:
     # inspired by rasterio.reader.py lines 491-494
     if src_crs != dst_crs:
         xs, ys = transform(src_crs, dst_crs, [lng], [lat])
