@@ -43,7 +43,7 @@ gcp = [
   "google-cloud-storage"
 ]
 test = [
-  "pytest", "pytest-cov"
+  "pytest", "pytest-cov", "boto3",
 ]
 dev = [
   "pytest", "pytest-cov", "pre-commit"
