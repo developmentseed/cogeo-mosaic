@@ -21,7 +21,7 @@ tms_5041 = morecantile.tms.get("UPSArcticWGS84Quad")
 tms_4087 = morecantile.TileMatrixSet.custom(
     [-20037508.34, -10018754.17, 20037508.34, 10018754.17],
     pyproj.CRS("EPSG:4087"),
-    identifier="WGS84WorldEquidistantCylindrical",
+    id="WGS84WorldEquidistantCylindrical",
 )
 
 with open(mosaic_json, "r") as f:
@@ -90,12 +90,14 @@ def test_mosaic_create():
     mosaic = MosaicJSON.from_urls(assets, asset_filter=_filter_and_sort, quiet=False)
     assert not mosaic.tiles == mosaic_content["tiles"]
 
-    # using non mercator TMS
+    # using non Quadkey TMS
     with pytest.raises(AssertionError):
         mosaic = MosaicJSON.from_urls(assets, tms=tms_4326, quiet=False)
 
     # Test a Quad (1:1) polar projection
     mosaic = MosaicJSON.from_urls(assets, tms=tms_5041, quiet=False)
+    assert len(mosaic.tiles) == 6
 
     # Test a Earth Equirectangular projection, currently improperly using quadtree indexing
     mosaic = MosaicJSON.from_urls(assets, tms=tms_4087, quiet=False)
+    assert len(mosaic.tiles) == 6

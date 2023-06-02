@@ -5,7 +5,7 @@ import os
 import sys
 from concurrent import futures
 from contextlib import ExitStack
-from typing import Dict, List, Sequence, Tuple, Union
+from typing import Dict, List, Sequence, Tuple
 
 import click
 import morecantile
@@ -18,7 +18,7 @@ from shapely import area, intersection
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-_tms = morecantile.tms.get("WebMercatorQuad")
+WEB_MERCATOR_TMS = morecantile.tms.get("WebMercatorQuad")
 
 
 def _filter_futures(tasks):
@@ -43,9 +43,16 @@ def _filter_futures(tasks):
             pass
 
 
-def get_dataset_info(src_path: str, tms: morecantile.TileMatrixSet = _tms) -> Dict:
-    """Get rasterio dataset meta."""
-    with Reader(src_path) as src:
+def get_dataset_info(
+    src_path: str,
+    tms: morecantile.TileMatrixSet = WEB_MERCATOR_TMS,
+) -> Dict:
+    """Get rasterio dataset info and geometry in TMS geographic CRS."""
+    with Reader(
+        src_path,
+        tms=tms,
+        geographic_crs=tms.rasterio_geographic_crs,
+    ) as src:
         bounds = src.geographic_bounds
         return {
             "geometry": {
@@ -75,10 +82,10 @@ def get_footprints(
     dataset_list: Sequence[str],
     max_threads: int = 20,
     quiet: bool = True,
-    tms: morecantile.TileMatrixSet = _tms,
+    tms: morecantile.TileMatrixSet = WEB_MERCATOR_TMS,
 ) -> List:
     """
-    Create footprint GeoJSON.
+    Create Datasets GeoJSON footprint.
 
     Attributes
     ----------
@@ -116,7 +123,8 @@ def get_footprints(
 
 
 def tiles_to_bounds(
-    tiles: List[morecantile.Tile], tms: morecantile.TileMatrixSet = _tms
+    tiles: List[morecantile.Tile],
+    tms: morecantile.TileMatrixSet = WEB_MERCATOR_TMS,
 ) -> Tuple[float, float, float, float]:
     """Get bounds from a set of morecantile tiles."""
     zoom = tiles[0].z
@@ -150,10 +158,14 @@ def bbox_union(
 
 
 def transform_point(
-    lng: float, lat: float, src_crs: CRS, dst_crs: CRS
+    lng: float,
+    lat: float,
+    src_crs: CRS,
+    dst_crs: CRS,
 ) -> Tuple[float, float]:
-    # inspired by rasterio.reader.py lines 491-494
+    """Transform Point from on CRS to another."""
     if src_crs != dst_crs:
         xs, ys = transform(src_crs, dst_crs, [lng], [lat])
         lng, lat = xs[0], ys[0]
+
     return lng, lat

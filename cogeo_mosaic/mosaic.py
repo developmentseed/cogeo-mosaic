@@ -11,9 +11,9 @@ import morecantile
 from pydantic import BaseModel, Field, PrivateAttr, root_validator
 from shapely import linearrings, polygons, total_bounds
 from shapely.strtree import STRtree
+from supermorecado import burnTiles
 
 from cogeo_mosaic.errors import MosaicError
-from cogeo_mosaic.supermorecado import burnTiles
 from cogeo_mosaic.utils import _intersect_percent, get_footprints
 
 WEB_MERCATOR_TMS = morecantile.tms.get("WebMercatorQuad")
@@ -31,11 +31,10 @@ def default_filter(
     minimum_tile_cover: float = None,
     tile_cover_sort: bool = False,
     maximum_items_per_tile: Optional[int] = None,
-    tms: Optional[morecantile.TileMatrixSet] = None,
+    tms: Optional[morecantile.TileMatrixSet] = WEB_MERCATOR_TMS,
 ) -> List:
     """Filter and/or sort dataset per intersection coverage."""
-    tms = tms or WEB_MERCATOR_TMS
-    assert tms._is_quadtree, f"{tms.identifier} TMS does not support quadtree."
+    assert tms._is_quadtree, f"{tms.id} TMS does not support quadtree."
     indices = list(range(len(dataset)))
 
     if minimum_tile_cover or tile_cover_sort:
@@ -115,7 +114,7 @@ class MosaicJSON(BaseModel):
         quadkey_zoom: Optional[int] = None,
         accessor: Callable[[Dict], str] = default_accessor,
         asset_filter: Callable = default_filter,
-        tms: Optional[morecantile.TileMatrixSet] = None,
+        tms: Optional[morecantile.TileMatrixSet] = WEB_MERCATOR_TMS,
         version: str = "0.0.2",
         quiet: bool = True,
         **kwargs,
@@ -140,8 +139,7 @@ class MosaicJSON(BaseModel):
             >>> MosaicJSON._create_mosaic([], 12, 14)
 
         """
-        tms = tms or WEB_MERCATOR_TMS
-        assert tms._is_quadtree, f"{tms.identifier} TMS does not support quadtree."
+        assert tms._is_quadtree, f"{tms.id} TMS does not support quadtree."
 
         quadkey_zoom = quadkey_zoom or minzoom
 
@@ -154,7 +152,7 @@ class MosaicJSON(BaseModel):
 
         bounds = tuple(total_bounds(dataset_geoms))
 
-        burntiles = burnTiles(tms)
+        burntiles = burnTiles(tms=tms)
         tiles = [morecantile.Tile(*t) for t in burntiles.burn(features, quadkey_zoom)]
 
         mosaic_definition: Dict[str, Any] = dict(
@@ -200,7 +198,10 @@ class MosaicJSON(BaseModel):
                     )
 
                     dataset = asset_filter(
-                        tile, intersect_dataset, intersect_geoms, **kwargs
+                        tile,
+                        intersect_dataset,
+                        intersect_geoms,
+                        **kwargs,
                     )
 
                     if dataset:
@@ -218,7 +219,7 @@ class MosaicJSON(BaseModel):
         maxzoom: Optional[int] = None,
         max_threads: int = 20,
         quiet: bool = True,
-        tms: Optional[morecantile.TileMatrixSet] = None,
+        tms: Optional[morecantile.TileMatrixSet] = WEB_MERCATOR_TMS,
         **kwargs,
     ):
         """Create mosaicjson from COG urls.
@@ -242,8 +243,7 @@ class MosaicJSON(BaseModel):
             >>> MosaicJSON.from_urls(["1.tif", "2.tif"])
 
         """
-        tms = tms or WEB_MERCATOR_TMS
-        assert tms._is_quadtree, f"{tms.identifier} TMS does not support quadtree."
+        assert tms._is_quadtree, f"{tms.id} TMS does not support quadtree."
 
         features = get_footprints(urls, max_threads=max_threads, quiet=quiet, tms=tms)
 
@@ -271,7 +271,12 @@ class MosaicJSON(BaseModel):
             raise Exception("Dataset should have the same data type")
 
         return cls._create_mosaic(
-            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, tms=tms, **kwargs
+            features,
+            minzoom=minzoom,
+            maxzoom=maxzoom,
+            quiet=quiet,
+            tms=tms,
+            **kwargs,
         )
 
     @classmethod

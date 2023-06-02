@@ -273,8 +273,9 @@ class SQLiteBackend(BaseBackend):
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
-        mercator_tile = morecantile.Tile(x=x, y=y, z=z)
-        quadkeys = self.find_quadkeys(mercator_tile, self.quadkey_zoom)
+        tile = morecantile.Tile(x=x, y=y, z=z)
+        quadkeys = self.find_quadkeys(tile, self.quadkey_zoom)
+
         return list(
             dict.fromkeys(
                 itertools.chain.from_iterable([self._fetch(qk) for qk in quadkeys])

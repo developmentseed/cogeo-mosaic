@@ -32,7 +32,7 @@ def test_filtering_futurestask():
 
 def test_dataset_info():
     """Read raster metadata and return spatial info."""
-    info = utils.get_dataset_info(asset1, tms=morecantile.tms.get('WebMercatorQuad'))
+    info = utils.get_dataset_info(asset1, tms=morecantile.tms.get("WebMercatorQuad"))
     assert info["geometry"]
     assert info["properties"]["path"]
     assert info["properties"]["bounds"]

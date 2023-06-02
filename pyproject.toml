@@ -22,12 +22,13 @@ classifiers = [
 dynamic = ["version", "readme"]
 dependencies = [
   "attrs",
-  "morecantile>=3.4,<4.0",
-  "shapely>=2.0b2,<3.0",
+  "morecantile",
+  "shapely>=2.0,<3.0",
   "pydantic",
   "httpx",
   "rasterio",
-  "rio-tiler>=4.0.0a0,<5.0",
+  "rio-tiler>=5.0,<6.0",
+  "supermorecado",
   "cachetools",
 ]
 
@@ -42,7 +43,7 @@ gcp = [
   "google-cloud-storage"
 ]
 test = [
-  "pytest", "pytest-cov"
+  "pytest", "pytest-cov", "boto3",
 ]
 dev = [
   "pytest", "pytest-cov", "pre-commit"
@@ -110,7 +111,7 @@ known_third_party = [
     "rasterio",
     "rio_tiler",
     "morecantile",
-    "supermercatdo",
+    "supermorecado",
     "shapely",
 ]
 default_section = "THIRDPARTY"

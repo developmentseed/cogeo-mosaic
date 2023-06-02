@@ -3,8 +3,6 @@
 from typing import Dict, Type, Union
 
 import attr
-from rasterio.crs import CRS
-from rio_tiler.constants import WGS84_CRS
 from rio_tiler.io import BaseReader, MultiBandReader, MultiBaseReader, Reader
 
 from cogeo_mosaic.backends.base import BaseBackend, _convert_to_mosaicjson
@@ -28,8 +26,6 @@ class MemoryBackend(BaseBackend):
         Type[MultiBandReader],
     ] = attr.ib(default=Reader)
     reader_options: Dict = attr.ib(factory=dict)
-
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
 
     # We put `input` outside the init method
     input: str = attr.ib(init=False, default=":memory:")
