@@ -1,7 +1,7 @@
 
-## Next (TBD)
+## 6.0.0 (TBD)
 
-* replace supermercado with internal `supermorcado` to burn geometries as tiles for different TMS (https://github.com/developmentseed/cogeo-mosaic/pull/203)
+* replace supermercado with `supermorcado` to burn geometries as tiles for different TMS
 
 ## 5.1.1 (2023-02-06)
 

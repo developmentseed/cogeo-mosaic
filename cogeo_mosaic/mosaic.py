@@ -11,9 +11,9 @@ import morecantile
 from pydantic import BaseModel, Field, PrivateAttr, root_validator
 from shapely import linearrings, polygons, total_bounds
 from shapely.strtree import STRtree
+from supermorecado import burnTiles
 
 from cogeo_mosaic.errors import MosaicError
-from cogeo_mosaic.supermorecado import burnTiles
 from cogeo_mosaic.utils import _intersect_percent, get_footprints
 
 WEB_MERCATOR_TMS = morecantile.tms.get("WebMercatorQuad")
@@ -140,7 +140,7 @@ class MosaicJSON(BaseModel):
 
         """
         tms = tms or WEB_MERCATOR_TMS
-        assert tms._is_quadtree, f"{tms.identifier} TMS does not support quadtree."
+        assert tms._is_quadtree, f"{tms.id} TMS does not support quadtree."
 
         quadkey_zoom = quadkey_zoom or minzoom
 
@@ -153,7 +153,7 @@ class MosaicJSON(BaseModel):
 
         bounds = tuple(total_bounds(dataset_geoms))
 
-        burntiles = burnTiles(tms)
+        burntiles = burnTiles(tms=tms)
         tiles = [morecantile.Tile(*t) for t in burntiles.burn(features, quadkey_zoom)]
 
         mosaic_definition: Dict[str, Any] = dict(
