@@ -141,7 +141,7 @@ def query_from_link(link: Dict, query: Dict):
     TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
     key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),
 )
-def _fetch(
+def _fetch(  # noqa: C901
     stac_url: str,
     query: Dict,
     max_items: Optional[int] = None,

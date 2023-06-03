@@ -73,7 +73,7 @@ def test_update_valid():
         assert result.exit_code == 0
         with open("mosaic_1.json", "r") as f:
             updated_mosaic = json.load(f)
-            updated_mosaic["version"] == "1.0.1"
+            assert updated_mosaic["version"] == "1.0.1"
             assert not mosaic_content.tiles == updated_mosaic["tiles"]
 
         with open("mosaic_2.json", "w") as f:
@@ -86,7 +86,7 @@ def test_update_valid():
         assert result.exit_code == 0
         with open("mosaic_2.json", "r") as f:
             updated_mosaic = json.load(f)
-            updated_mosaic["version"] == "1.0.1"
+            assert updated_mosaic["version"] == "1.0.1"
             assert mosaic_content.tiles == updated_mosaic["tiles"]
 
 

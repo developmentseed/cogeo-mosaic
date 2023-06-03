@@ -18,7 +18,7 @@ def test_decompress():
     with open(mosaic_gz, "rb") as f:
         body = f.read()
     res = json.loads(utils._decompress_gz(body))
-    assert sorted(list(res.keys())) == sorted(
+    assert sorted(res.keys()) == sorted(
         [
             "mosaicjson",
             "quadkey_zoom",

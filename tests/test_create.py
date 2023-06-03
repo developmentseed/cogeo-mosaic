@@ -3,6 +3,7 @@ import os
 
 import pytest
 
+from cogeo_mosaic.errors import MultipleDataTypeError
 from cogeo_mosaic.mosaic import MosaicJSON, default_filter
 
 basepath = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -71,8 +72,7 @@ def test_mosaic_create():
         MosaicJSON.from_urls(assets)
 
     # Mixed datatype
-    with pytest.raises(Exception):
-        asset1_uint32
+    with pytest.raises(MultipleDataTypeError):
         assets = [asset1_uint32, asset2]
         MosaicJSON.from_urls(assets)
 

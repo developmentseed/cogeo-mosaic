@@ -25,6 +25,10 @@ class MosaicExistsError(MosaicError):
     """MosaicJSON already exists."""
 
 
+class MultipleDataTypeError(MosaicError):
+    """Can create mosaic will dataset of multiple datatype."""
+
+
 _HTTP_EXCEPTIONS = {
     401: MosaicAuthError,
     403: MosaicAuthError,
