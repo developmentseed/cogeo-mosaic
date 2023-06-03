@@ -15,7 +15,7 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.web import HttpBackend
 
 
-def MosaicBackend(input: str, *args: Any, **kwargs: Any) -> BaseBackend:
+def MosaicBackend(input: str, *args: Any, **kwargs: Any) -> BaseBackend:  # noqa: C901
     """Select mosaic backend for input."""
     parsed = urlparse(input)
 

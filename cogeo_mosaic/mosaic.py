@@ -13,7 +13,7 @@ from shapely import linearrings, polygons, total_bounds
 from shapely.strtree import STRtree
 from supermorecado import burnTiles
 
-from cogeo_mosaic.errors import MosaicError
+from cogeo_mosaic.errors import MosaicError, MultipleDataTypeError
 from cogeo_mosaic.utils import _intersect_percent, get_footprints
 
 WEB_MERCATOR_TMS = morecantile.tms.get("WebMercatorQuad")
@@ -156,16 +156,20 @@ class MosaicJSON(BaseModel):
         burntiles = burnTiles(tms=tms)
         tiles = [morecantile.Tile(*t) for t in burntiles.burn(features, quadkey_zoom)]
 
-        mosaic_definition: Dict[str, Any] = dict(
-            mosaicjson=version,
-            minzoom=minzoom,
-            maxzoom=maxzoom,
-            quadkey_zoom=quadkey_zoom,
-            bounds=bounds,
-            center=((bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2, minzoom),
-            tiles={},
-            version="1.0.0",
-        )
+        mosaic_definition: Dict[str, Any] = {
+            "mosaicjson": version,
+            "minzoom": minzoom,
+            "maxzoom": maxzoom,
+            "quadkey_zoom": quadkey_zoom,
+            "bounds": bounds,
+            "center": (
+                (bounds[0] + bounds[2]) / 2,
+                (bounds[1] + bounds[3]) / 2,
+                minzoom,
+            ),
+            "tiles": {},
+            "version": "1.0.0",
+        }
 
         if not quiet:
             click.echo("Feed Quadkey index", err=True)
@@ -263,7 +267,7 @@ class MosaicJSON(BaseModel):
 
         datatype = {feat["properties"]["datatype"] for feat in features}
         if len(datatype) > 1:
-            raise Exception("Dataset should have the same data type")
+            raise MultipleDataTypeError("Dataset should have the same data type")
 
         return cls._create_mosaic(
             features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, **kwargs

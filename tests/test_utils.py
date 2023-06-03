@@ -17,17 +17,17 @@ def test_filtering_futurestask():
 
     def _is_odd(val: int) -> int:
         if not val % 2:
-            raise Exception(f"{val} is Even.")
+            raise ValueError(f"{val} is Even.")
         return val
 
     with futures.ThreadPoolExecutor() as executor:
         future_work = [executor.submit(_is_odd, item) for item in range(0, 8)]
     assert list(utils._filter_futures(future_work)) == [1, 3, 5, 7]
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         with futures.ThreadPoolExecutor() as executor:
             future_work = [executor.submit(_is_odd, item) for item in range(0, 8)]
-        list([f.result() for f in future_work])
+        [f.result() for f in future_work]
 
 
 def test_dataset_info():

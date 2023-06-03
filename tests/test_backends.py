@@ -589,8 +589,10 @@ class MockTable(object):
             error_response={}, operation_name="table_status"
         )
 
-    def get_item(self, Key: Dict = {}) -> Dict:
+    def get_item(self, Key: Dict = None) -> Dict:
         """Mock Get Item."""
+        Key = Key or {}
+
         quadkey = Key["quadkey"]
         if quadkey == "-1":
             return {
