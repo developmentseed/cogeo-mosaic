@@ -16,7 +16,7 @@ from shapely import area, intersection
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-tms = morecantile.tms.get("WebMercatorQuad")
+WEB_MERCATOR_TMS = morecantile.tms.get("WebMercatorQuad")
 
 
 def _filter_futures(tasks):
@@ -41,9 +41,16 @@ def _filter_futures(tasks):
             pass
 
 
-def get_dataset_info(src_path: str) -> Dict:
+def get_dataset_info(
+    src_path: str,
+    tms: morecantile.TileMatrixSet = WEB_MERCATOR_TMS,
+) -> Dict:
     """Get rasterio dataset meta."""
-    with Reader(src_path) as src:
+    with Reader(
+        src_path,
+        tms=tms,
+        geographic_crs=tms.rasterio_geographic_crs,
+    ) as src:
         bounds = src.geographic_bounds
         return {
             "geometry": {
@@ -70,7 +77,10 @@ def get_dataset_info(src_path: str) -> Dict:
 
 
 def get_footprints(
-    dataset_list: Sequence[str], max_threads: int = 20, quiet: bool = True
+    dataset_list: Sequence[str],
+    tms: morecantile.TileMatrixSet = WEB_MERCATOR_TMS,
+    max_threads: int = 20,
+    quiet: bool = True,
 ) -> List:
     """
     Create footprint GeoJSON.
@@ -79,6 +89,8 @@ def get_footprints(
     ----------
     dataset_listurl : tuple or list, required
         Dataset urls.
+    tms : TileMatrixSet
+        TileMartixSet to use (default WebMercatorQaud
     max_threads : int
         Max threads to use (default: 20).
 
@@ -92,7 +104,7 @@ def get_footprints(
         fout = ctx.enter_context(open(os.devnull, "w")) if quiet else sys.stderr
         with futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
             future_work = [
-                executor.submit(get_dataset_info, item) for item in dataset_list
+                executor.submit(get_dataset_info, item, tms) for item in dataset_list
             ]
             with click.progressbar(  # type: ignore
                 futures.as_completed(future_work),
@@ -107,7 +119,10 @@ def get_footprints(
     return list(_filter_futures(future_work))
 
 
-def tiles_to_bounds(tiles: List[morecantile.Tile]) -> Tuple[float, float, float, float]:
+def tiles_to_bounds(
+    tiles: List[morecantile.Tile],
+    tms: morecantile.TileMatrixSet = WEB_MERCATOR_TMS,
+) -> Tuple[float, float, float, float]:
     """Get bounds from a set of mercator tiles."""
     zoom = tiles[0].z
     xyz = numpy.array([[t.x, t.y, t.z] for t in tiles])
@@ -115,8 +130,10 @@ def tiles_to_bounds(tiles: List[morecantile.Tile]) -> Tuple[float, float, float,
         "x": {"min": xyz[:, 0].min(), "max": xyz[:, 0].max() + 1},
         "y": {"min": xyz[:, 1].min(), "max": xyz[:, 1].max() + 1},
     }
+
     ulx, uly = tms.ul(extrema["x"]["min"], extrema["y"]["min"], zoom)
     lrx, lry = tms.ul(extrema["x"]["max"], extrema["y"]["max"], zoom)
+
     return (ulx, lry, lrx, uly)
 
 

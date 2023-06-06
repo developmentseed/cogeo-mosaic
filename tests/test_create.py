@@ -1,10 +1,21 @@
 import json
 import os
 
+import morecantile
+import pyproj
 import pytest
 
 from cogeo_mosaic.errors import MultipleDataTypeError
 from cogeo_mosaic.mosaic import MosaicJSON, default_filter
+
+tms_3857 = morecantile.tms.get("WebMercatorQuad")
+tms_4326 = morecantile.tms.get("WorldCRS84Quad")
+tms_5041 = morecantile.tms.get("UPSArcticWGS84Quad")
+tms_4087 = morecantile.TileMatrixSet.custom(
+    [-20037508.34, -10018754.17, 20037508.34, 10018754.17],
+    pyproj.CRS("EPSG:4087"),
+    id="WGS84WorldEquidistantCylindrical",
+)
 
 basepath = os.path.join(os.path.dirname(__file__), "fixtures")
 mosaic_gz = os.path.join(basepath, "mosaic.json.gz")
@@ -29,7 +40,7 @@ def _filter_and_sort(*args, **kwargs):
 def test_mosaic_create():
     """Fetch info from dataset and create the mosaicJSON definition."""
     assets = [asset1, asset2]
-    mosaic = MosaicJSON.from_urls(assets, quiet=False)
+    mosaic = MosaicJSON.from_urls(assets, quiet=True)
     assert [round(b, 3) for b in list(mosaic.bounds)] == [
         round(b, 3) for b in mosaic_content["bounds"]
     ]
@@ -45,6 +56,8 @@ def test_mosaic_create():
     assert mosaic.maxzoom == mosaic_content["maxzoom"]
     assert mosaic.minzoom == mosaic_content["minzoom"]
     assert list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
+
+    assert mosaic.tilematrixset.id == "WebMercatorQuad"
 
     # 5% tile cover filter
     mosaic = MosaicJSON.from_urls(assets, minimum_tile_cover=0.059)
@@ -77,5 +90,49 @@ def test_mosaic_create():
         MosaicJSON.from_urls(assets)
 
     assets = [asset1, asset2]
-    mosaic = MosaicJSON.from_urls(assets, asset_filter=_filter_and_sort, quiet=False)
+    mosaic = MosaicJSON.from_urls(assets, asset_filter=_filter_and_sort, quiet=True)
     assert not mosaic.tiles == mosaic_content["tiles"]
+
+
+def test_mosaic_create_tms():
+    """Create mosaic with TMS"""
+    assets = [asset1, asset2]
+    mosaic = MosaicJSON.from_urls(assets, quiet=True, tilematrixset=tms_3857)
+    assert mosaic.tilematrixset.id == "WebMercatorQuad"
+
+    # using non Quadkey TMS
+    with pytest.raises(AssertionError):
+        mosaic = MosaicJSON.from_urls(assets, tilematrixset=tms_4326, quiet=True)
+
+    # Test a Quad (1:1) polar projection
+    mosaic = MosaicJSON.from_urls(assets, tilematrixset=tms_5041, quiet=True)
+    assert len(mosaic.tiles) == 6
+    assert mosaic.tilematrixset.id == "UPSArcticWGS84Quad"
+
+    # Test a Earth Equirectangular projection, currently improperly using quadtree indexing
+    mosaic = MosaicJSON.from_urls(assets, tilematrixset=tms_4087, quiet=True)
+    assert len(mosaic.tiles) == 6
+    assert mosaic.tilematrixset.id == "WGS84WorldEquidistantCylindrical"
+
+
+def test_mosaic_create_additional_metadata():
+    """add metadata info to"""
+    assets = [asset1, asset2]
+    mosaic = MosaicJSON.from_urls(
+        assets,
+        quiet=True,
+        tilematrixset=tms_3857,
+        asset_type="COG",
+        asset_prefix="s3://my-bucket/",
+        data_type="uint16",
+        layers={
+            "true-color": {
+                "bidx": [1, 2, 3],
+                "rescale": [(0, 1000), (0, 1100), (0, 3000)],
+            }
+        },
+    )
+    assert mosaic.asset_type == "COG"
+    assert mosaic.asset_prefix == "s3://my-bucket/"
+    assert mosaic.data_type == "uint16"
+    assert mosaic.layers["true-color"]

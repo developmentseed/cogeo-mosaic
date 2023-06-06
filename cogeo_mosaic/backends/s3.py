@@ -47,11 +47,11 @@ class S3Backend(BaseBackend):
         if not overwrite and self._head_object(self.key, self.bucket):
             raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
 
-        mosaic_doc = self.mosaic_def.dict(exclude_none=True)
+        mosaic_doc = self.mosaic_def.json(exclude_none=True)
         if self.key.endswith(".gz"):
             body = _compress_gz_json(mosaic_doc)
         else:
-            body = json.dumps(mosaic_doc).encode("utf-8")
+            body = mosaic_doc.encode("utf-8")
 
         self._put_object(self.key, self.bucket, body, **kwargs)
 

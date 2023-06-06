@@ -37,7 +37,7 @@ def test_compress():
     with open(mosaic_json, "r") as f:
         mosaic = json.loads(f.read())
 
-    body = utils._compress_gz_json(mosaic)
+    body = utils._compress_gz_json(json.dumps(mosaic))
     assert type(body) == bytes
     res = json.loads(utils._decompress_gz(body))
     assert res == mosaic

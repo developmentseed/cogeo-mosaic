@@ -102,6 +102,12 @@ class BaseBackend(BaseReader):
             self.mosaic_def.minzoom,
             self.mosaic_def.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
+            tilematrixset=self.mosaic_def.tilematrixset,
+            asset_type=self.mosaic_def.asset_type,
+            asset_prefix=self.mosaic_def.asset_prefix,
+            data_type=self.mosaic_def.data_type,
+            colormap=self.mosaic_def.colormap,
+            layers=self.mosaic_def.layers,
             quiet=quiet,
             **kwargs,
         )

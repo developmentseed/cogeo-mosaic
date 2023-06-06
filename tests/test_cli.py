@@ -61,7 +61,7 @@ def test_update_valid():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with open("mosaic_1.json", "w") as f:
-            f.write(json.dumps(MosaicJSON.from_urls([asset1]).dict(exclude_none=True)))
+            f.write(MosaicJSON.from_urls([asset1]).json(exclude_none=True))
 
         with open("./list.txt", "w") as f:
             f.write("\n".join([asset2]))
@@ -77,7 +77,7 @@ def test_update_valid():
             assert not mosaic_content.tiles == updated_mosaic["tiles"]
 
         with open("mosaic_2.json", "w") as f:
-            f.write(json.dumps(MosaicJSON.from_urls([asset1]).dict(exclude_none=True)))
+            f.write(MosaicJSON.from_urls([asset1]).json(exclude_none=True))
 
         result = runner.invoke(
             cogeo_cli, ["update", "list.txt", "mosaic_2.json", "--add-last", "--quiet"]

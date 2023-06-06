@@ -132,7 +132,13 @@ class SQLiteBackend(BaseBackend):
                         maxzoom INTEGER NOT NULL,
                         quadkey_zoom INTEGER,
                         bounds JSON NOT NULL,
-                        center JSON
+                        center JSON,
+                        tilematrixset JSON,
+                        asset_type TEXT,
+                        asset_prefix TEXT,
+                        data_type TEXT,
+                        colormap JSON,
+                        layers JSON
                     );
                 """
             )
@@ -147,6 +153,8 @@ class SQLiteBackend(BaseBackend):
             )
 
             logger.debug(f"Adding items in '{self.mosaic_name}' Table.")
+
+            mosaic = json.loads(self.mosaic_def.json(exclude={"tiles"}))
             self.db.execute(
                 f"""
                     INSERT INTO {self._metadata_table}
@@ -160,7 +168,13 @@ class SQLiteBackend(BaseBackend):
                         maxzoom,
                         quadkey_zoom,
                         bounds,
-                        center
+                        center,
+                        tilematrixset,
+                        asset_type,
+                        asset_prefix,
+                        data_type,
+                        colormap,
+                        layers
                     )
                     VALUES
                     (
@@ -173,10 +187,16 @@ class SQLiteBackend(BaseBackend):
                         :maxzoom,
                         :quadkey_zoom,
                         :bounds,
-                        :center
+                        :center,
+                        :tilematrixset,
+                        :asset_type,
+                        :asset_prefix,
+                        :data_type,
+                        :colormap,
+                        :layers
                     );
                 """,
-                self.mosaic_def.dict(),
+                mosaic,
             )
 
             self.db.executemany(
@@ -199,6 +219,12 @@ class SQLiteBackend(BaseBackend):
             self.mosaic_def.minzoom,
             self.mosaic_def.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
+            tilematrixset=self.mosaic_def.tilematrixset,
+            asset_type=self.mosaic_def.asset_type,
+            asset_prefix=self.mosaic_def.asset_prefix,
+            data_type=self.mosaic_def.data_type,
+            colormap=self.mosaic_def.colormap,
+            layers=self.mosaic_def.layers,
             quiet=quiet,
             **kwargs,
         )
@@ -215,6 +241,7 @@ class SQLiteBackend(BaseBackend):
         self.bounds = bounds
 
         with self.db:
+            mosaic = json.loads(self.mosaic_def.json(exclude={"tiles"}))
             self.db.execute(
                 f"""
                     UPDATE {self._metadata_table}
@@ -227,10 +254,16 @@ class SQLiteBackend(BaseBackend):
                         maxzoom = :maxzoom,
                         quadkey_zoom = :quadkey_zoom,
                         bounds = :bounds,
-                        center = :center
+                        center = :center,
+                        tilematrixset = :tilematrixset,
+                        asset_type = :asset_type,
+                        asset_prefix = :asset_prefix,
+                        data_type = :data_type,
+                        colormap = :colormap,
+                        layers = :layers
                     WHERE name=:name
                 """,
-                self.mosaic_def.dict(),
+                mosaic,
             )
 
             if add_first:
