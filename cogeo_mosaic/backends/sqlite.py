@@ -153,8 +153,6 @@ class SQLiteBackend(BaseBackend):
             )
 
             logger.debug(f"Adding items in '{self.mosaic_name}' Table.")
-
-            mosaic = json.loads(self.mosaic_def.json(exclude={"tiles"}))
             self.db.execute(
                 f"""
                     INSERT INTO {self._metadata_table}
@@ -196,7 +194,7 @@ class SQLiteBackend(BaseBackend):
                         :layers
                     );
                 """,
-                mosaic,
+                self.mosaic_def.dict(exclude={"tiles"}),
             )
 
             self.db.executemany(
@@ -241,7 +239,6 @@ class SQLiteBackend(BaseBackend):
         self.bounds = bounds
 
         with self.db:
-            mosaic = json.loads(self.mosaic_def.json(exclude={"tiles"}))
             self.db.execute(
                 f"""
                     UPDATE {self._metadata_table}
@@ -263,7 +260,7 @@ class SQLiteBackend(BaseBackend):
                         layers = :layers
                     WHERE name=:name
                 """,
-                mosaic,
+                self.mosaic_def.dict(exclude={"tiles"}),
             )
 
             if add_first:
