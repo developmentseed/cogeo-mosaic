@@ -219,7 +219,6 @@ class SQLiteBackend(BaseBackend):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
-        # We check the `user_version` of the Database
         logger.debug(f"Checking {self.db_path} version ...")
         with self.db:
             r = self.db.execute("PRAGMA user_version;").fetchone()
