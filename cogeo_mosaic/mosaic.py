@@ -156,11 +156,9 @@ class MosaicJSON(BaseModel):
             >>> MosaicJSON._create_mosaic([], 12, 14)
 
         """
-        tilematrixset = tilematrixset or WEB_MERCATOR_TMS
+        tms = tilematrixset or WEB_MERCATOR_TMS
 
-        assert (
-            tilematrixset._is_quadtree
-        ), f"{tilematrixset.id} TMS does not support quadtree."
+        assert tms._is_quadtree, f"{tms.id} TMS does not support quadtree."
 
         quadkey_zoom = quadkey_zoom or minzoom
 
@@ -173,7 +171,7 @@ class MosaicJSON(BaseModel):
 
         bounds = tuple(total_bounds(dataset_geoms))
 
-        burntiles = burnTiles(tms=tilematrixset)
+        burntiles = burnTiles(tms=tms)
         tiles = [morecantile.Tile(*t) for t in burntiles.burn(features, quadkey_zoom)]
 
         mosaic_definition: Dict[str, Any] = {
@@ -215,9 +213,9 @@ class MosaicJSON(BaseModel):
                 tiles, file=fout, show_percent=True, label="Iterate over quadkeys"
             ) as bar:
                 for tile in bar:
-                    quadkey = tilematrixset.quadkey(tile)
+                    quadkey = tms.quadkey(tile)
                     tile_geom = polygons(
-                        tilematrixset.feature(tile)["geometry"]["coordinates"][0]
+                        tms.feature(tile)["geometry"]["coordinates"][0]
                     )
 
                     # Find intersections from rtree

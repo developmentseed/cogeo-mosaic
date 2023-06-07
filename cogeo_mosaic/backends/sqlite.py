@@ -14,6 +14,7 @@ import morecantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
+from cogeo_mosaic import __version__ as cogeo_mosaic_version
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import MosaicExistsError, MosaicNotFoundError
@@ -25,6 +26,9 @@ sqlite3.register_adapter(dict, json.dumps)
 sqlite3.register_adapter(tuple, json.dumps)
 sqlite3.register_adapter(list, json.dumps)
 sqlite3.register_converter("JSON", json.loads)
+
+
+MOSAIC_JSON_VERSION = 3
 
 
 @attr.s
@@ -118,6 +122,11 @@ class SQLiteBackend(BaseBackend):
             self.delete()
 
         with self.db:
+            logger.debug(
+                f"Setting user_version to '{MOSAIC_JSON_VERSION}' in {self.db_path}."
+            )
+            self.db.execute(f"PRAGMA user_version = {MOSAIC_JSON_VERSION};")
+
             logger.debug(f"Creating '{self.mosaic_name}' Table in {self.db_path}.")
             self.db.execute(
                 f"""
@@ -210,6 +219,14 @@ class SQLiteBackend(BaseBackend):
         **kwargs,
     ):
         """Update existing MosaicJSON on backend."""
+        # We check the `user_version` of the Database
+        logger.debug(f"Checking {self.db_path} version ...")
+        with self.db:
+            r = self.db.execute("PRAGMA user_version;").fetchone()
+            assert (
+                r[0] == MOSAIC_JSON_VERSION
+            ), f"{self.db_path} is not compatible with this Backend version ({cogeo_mosaic_version})"
+
         logger.debug(f"Updating {self.mosaic_name}...")
 
         new_mosaic = MosaicJSON.from_features(
@@ -218,11 +235,6 @@ class SQLiteBackend(BaseBackend):
             self.mosaic_def.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
             tilematrixset=self.mosaic_def.tilematrixset,
-            asset_type=self.mosaic_def.asset_type,
-            asset_prefix=self.mosaic_def.asset_prefix,
-            data_type=self.mosaic_def.data_type,
-            colormap=self.mosaic_def.colormap,
-            layers=self.mosaic_def.layers,
             quiet=quiet,
             **kwargs,
         )

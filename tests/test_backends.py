@@ -727,7 +727,6 @@ def test_stac_backend(post):
             "quadkey_zoom",
             "bounds",
             "center",
-            "tilematrixset",
         ]
         assert mosaic.assets_for_tile(210, 90, 10) == [
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
@@ -762,7 +761,6 @@ def test_stac_backend(post):
             "quadkey_zoom",
             "bounds",
             "center",
-            "tilematrixset",
         ]
     post.reset_mock()
 
@@ -1074,3 +1072,8 @@ def test_sqlite_backend():
 
     with pytest.raises(ValueError):
         assert SQLiteBackend.list_mosaics_in_db("test.db")
+
+    # Cannot update a V2 mosaic
+    with pytest.raises(AssertionError):
+        with MosaicBackend(f"sqlite:///{mosaic_db}:test") as mosaic:
+            mosaic.update(features)

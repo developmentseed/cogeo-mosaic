@@ -1,6 +1,7 @@
 import json
 import os
 
+import morecantile
 import pytest
 from pydantic import BaseModel, ValidationError
 
@@ -46,7 +47,8 @@ def test_validate_assignment():
 def test_mosaic_reverse():
     """MosaicJSON dict can be reversed"""
     assets = [asset1, asset2]
-    mosaic = MosaicJSON.from_urls(assets, quiet=True)
+    tms = morecantile.tms.get("WebMercatorQuad")
+    mosaic = MosaicJSON.from_urls(assets, quiet=True, tilematrixset=tms)
 
     mosaic_dict = mosaic.dict(exclude_none=True)
     assert MosaicJSON(**mosaic_dict).tilematrixset.id == "WebMercatorQuad"
