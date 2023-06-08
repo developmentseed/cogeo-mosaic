@@ -166,11 +166,18 @@ class DynamoDBBackend(BaseBackend):
             self.mosaic_def.minzoom,
             self.mosaic_def.maxzoom,
             quadkey_zoom=self.quadkey_zoom,
+            tilematrixset=self.mosaic_def.tilematrixset,
             quiet=quiet,
             **kwargs,
         )
 
         bounds = bbox_union(new_mosaic.bounds, self.mosaic_def.bounds)
+
+        if self.mosaic_def.mosaicjson != new_mosaic.mosaicjson:
+            warnings.warn(
+                f"Updating `mosaicjson` version from {self.mosaic_def.mosaicjson} to {new_mosaic.mosaicjson}"
+            )
+            self.mosaic_def.mosaicjson = new_mosaic.mosaicjson
 
         self.mosaic_def._increase_version()
         self.mosaic_def.bounds = bounds

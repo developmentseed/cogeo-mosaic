@@ -1072,3 +1072,8 @@ def test_sqlite_backend():
 
     with pytest.raises(ValueError):
         assert SQLiteBackend.list_mosaics_in_db("test.db")
+
+    # Cannot update a V2 mosaic
+    with pytest.raises(AssertionError):
+        with MosaicBackend(f"sqlite:///{mosaic_db}:test") as mosaic:
+            mosaic.update(features)

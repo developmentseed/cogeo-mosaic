@@ -2,7 +2,7 @@
 
 ### MosaicJSON pydantic model
 
-We now use [pydantic](https://pydantic-docs.helpmanual.io) to define the MosaicJSON document. Pydantic 
+We now use [pydantic](https://pydantic-docs.helpmanual.io) to define the MosaicJSON document. Pydantic
 
 From Pydantic docs:
 > Define how data should be in pure, canonical python; validate it with pydantic.
@@ -83,7 +83,7 @@ maxzoom
 
 ### Creation
 
-The `MosaicJSON` class comes also with helper functions: 
+The `MosaicJSON` class comes also with helper functions:
 - **MosaicJSON.from_urls**: Create a mosaicjson from a set of COG urls
 - **MosaicJSON.from_features**: Create a mosaicjson from a set of GeoJSON features
 - **MosaicJSON._create_mosaic** (semi-private): Low level mosaic creation methods used by public methods (`from_urls` and `from_features`).

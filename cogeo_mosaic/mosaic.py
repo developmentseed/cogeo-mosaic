@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import click
 import morecantile
-from pydantic import BaseModel, Field, PrivateAttr, root_validator
+from pydantic import BaseModel, Field, root_validator, validator
 from shapely import linearrings, polygons, total_bounds
 from shapely.strtree import STRtree
 from supermorecado import burnTiles
@@ -19,7 +19,7 @@ from cogeo_mosaic.utils import _intersect_percent, get_footprints
 WEB_MERCATOR_TMS = morecantile.tms.get("WebMercatorQuad")
 
 
-def default_accessor(feature: Dict):
+def default_accessor(feature: Dict) -> str:
     """Return specific feature identifier."""
     return feature["properties"]["path"]
 
@@ -72,19 +72,31 @@ class MosaicJSON(BaseModel):
     minzoom: int = Field(0, ge=0, le=30)
     maxzoom: int = Field(30, ge=0, le=30)
     quadkey_zoom: Optional[int]
-    bounds: Tuple[float, float, float, float] = Field((-180, -90, 180, 90))
+    bounds: Tuple[float, float, float, float] = Field(default=(-180, -90, 180, 90))
     center: Optional[Tuple[float, float, int]]
     tiles: Dict[str, List[str]]
-
-    # TMS is a private attributes for now but it might change with
-    # mosaicJSON 0.3.0 (https://github.com/developmentseed/mosaicjson-spec/pull/18)
-    # Note: TMS should support quadkey (tms._is_quadtree)
-    _tms: morecantile.TileMatrixSet = PrivateAttr(default=WEB_MERCATOR_TMS)
+    tilematrixset: Optional[morecantile.TileMatrixSet]
+    asset_type: Optional[str]
+    asset_prefix: Optional[str]
+    data_type: Optional[str]
+    colormap: Optional[Dict[int, Tuple[int, int, int, int]]]
+    layers: Optional[Dict]
 
     class Config:
         """Validate model on update."""
 
         validate_assignment = True
+
+    @validator("tilematrixset", pre=True, always=True)
+    def parse_tms(cls, value) -> Optional[morecantile.TileMatrixSet]:
+        """Parse TMS."""
+        if isinstance(value, dict):
+            value = morecantile.TileMatrixSet(**value)
+
+        if value:
+            assert value._is_quadtree, f"{value.id} TMS does not support quadtree."
+
+        return value
 
     @root_validator
     def compute_center(cls, values):
@@ -114,8 +126,13 @@ class MosaicJSON(BaseModel):
         quadkey_zoom: Optional[int] = None,
         accessor: Callable[[Dict], str] = default_accessor,
         asset_filter: Callable = default_filter,
-        tms: Optional[morecantile.TileMatrixSet] = None,
-        version: str = "0.0.2",
+        version: str = "0.0.3",
+        tilematrixset: Optional[morecantile.TileMatrixSet] = None,
+        asset_type: Optional[str] = None,
+        asset_prefix: Optional[str] = None,
+        data_type: Optional[str] = None,
+        colormap: Optional[Dict[int, Tuple[int, int, int, int]]] = None,
+        layers: Optional[Dict] = None,
         quiet: bool = True,
         **kwargs,
     ):
@@ -139,7 +156,8 @@ class MosaicJSON(BaseModel):
             >>> MosaicJSON._create_mosaic([], 12, 14)
 
         """
-        tms = tms or WEB_MERCATOR_TMS
+        tms = tilematrixset or WEB_MERCATOR_TMS
+
         assert tms._is_quadtree, f"{tms.id} TMS does not support quadtree."
 
         quadkey_zoom = quadkey_zoom or minzoom
@@ -170,6 +188,18 @@ class MosaicJSON(BaseModel):
             "tiles": {},
             "version": "1.0.0",
         }
+
+        mosaic_003 = {
+            "tilematrixset": tilematrixset,
+            "asset_type": asset_type,
+            "asset_prefix": asset_prefix,
+            "data_type": data_type,
+            "colormap": colormap,
+            "layers": layers,
+        }
+        for k, v in mosaic_003.items():
+            if v is not None:
+                mosaic_definition[k] = v
 
         if not quiet:
             click.echo("Feed Quadkey index", err=True)

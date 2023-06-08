@@ -37,12 +37,12 @@
 
 ## Install
 ```bash
-$ pip install pip -U
-$ pip install cogeo-mosaic --pre
+python -m pip install pip -U
+python -m pip install cogeo-mosaic --pre
 
 # Or from source
 
-$ pip install git+http://github.com/developmentseed/cogeo-mosaic
+python -m pip install git+http://github.com/developmentseed/cogeo-mosaic
 ```
 
 **Notes**:

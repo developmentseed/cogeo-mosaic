@@ -3,15 +3,13 @@
 import hashlib
 import json
 import zlib
-from typing import Any, Dict
+from typing import Any
 
 
-def _compress_gz_json(data: Dict) -> bytes:
+def _compress_gz_json(data: str) -> bytes:
     gzip_compress = zlib.compressobj(9, zlib.DEFLATED, zlib.MAX_WBITS | 16)
 
-    return (
-        gzip_compress.compress(json.dumps(data).encode("utf-8")) + gzip_compress.flush()
-    )
+    return gzip_compress.compress(data.encode("utf-8")) + gzip_compress.flush()
 
 
 def _decompress_gz(gzip_buffer: bytes):
