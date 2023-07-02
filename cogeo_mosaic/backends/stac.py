@@ -8,8 +8,9 @@ import attr
 import httpx
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
+from morecantile import TileMatrixSet
 from rasterio.crs import CRS
-from rio_tiler.constants import WGS84_CRS
+from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.io import STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
@@ -60,8 +61,12 @@ class STACBackend(BaseBackend):
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
 
+    tms: TileMatrixSet = attr.ib(WEB_MERCATOR_TMS)
+
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
+
+    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
 
     # STAC API related options
     # max_items |  next_link_key | limit
@@ -70,8 +75,6 @@ class STACBackend(BaseBackend):
     # Mosaic Creation options
     # e.g `accessor`
     mosaic_options: Dict = attr.ib(factory=dict)
-
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
 
     # Because the STACBackend is a Read-Only backend, there is no need for
     # mosaic_def to be in the init method.
@@ -106,7 +109,13 @@ class STACBackend(BaseBackend):
         if "accessor" not in options:
             options["accessor"] = default_stac_accessor
 
-        return MosaicJSON.from_features(features, self.minzoom, self.maxzoom, **options)
+        return MosaicJSON.from_features(
+            features,
+            self.minzoom,
+            self.maxzoom,
+            tilematrixset=self.tms,
+            **options,
+        )
 
     def write(self, overwrite: bool = True):
         """Write mosaicjson document."""

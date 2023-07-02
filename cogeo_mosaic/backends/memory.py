@@ -3,8 +3,9 @@
 from typing import Dict, Type, Union
 
 import attr
+from morecantile import TileMatrixSet
 from rasterio.crs import CRS
-from rio_tiler.constants import WGS84_CRS
+from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.io import BaseReader, MultiBandReader, MultiBaseReader, Reader
 
 from cogeo_mosaic.backends.base import BaseBackend, _convert_to_mosaicjson
@@ -22,6 +23,10 @@ class MemoryBackend(BaseBackend):
 
     mosaic_def: MosaicJSON = attr.ib(converter=_convert_to_mosaicjson)
 
+    tms: TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
+    minzoom: int = attr.ib(default=None)
+    maxzoom: int = attr.ib(default=None)
+
     reader: Union[
         Type[BaseReader],
         Type[MultiBaseReader],
@@ -38,9 +43,16 @@ class MemoryBackend(BaseBackend):
 
     def __attrs_post_init__(self):
         """Post Init."""
-        self.minzoom = self.mosaic_def.minzoom
-        self.maxzoom = self.mosaic_def.maxzoom
         self.bounds = self.mosaic_def.bounds
+
+        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+        if mosaic_tms == self.tms:
+            self.minzoom = (
+                self.minzoom if self.minzoom is not None else self.mosaic_def.minzoom
+            )
+            self.maxzoom = (
+                self.maxzoom if self.maxzoom is not None else self.mosaic_def.maxzoom
+            )
 
     def write(self, overwrite: bool = True):
         """Write mosaicjson document."""
