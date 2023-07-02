@@ -214,9 +214,7 @@ class BaseBackend(BaseReader):
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
-        tile = Tile(x=x, y=y, z=z)
-        quadkeys = self.find_quadkeys(tile, self.quadkey_zoom)
-
+        quadkeys = self.find_quadkeys(Tile(x=x, y=y, z=z), self.quadkey_zoom)
         return list(
             dict.fromkeys(
                 itertools.chain.from_iterable(
