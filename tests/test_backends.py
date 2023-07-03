@@ -163,6 +163,40 @@ def test_file_backend():
                 ]
             )
 
+    with MosaicBackend(mosaic_gz) as mosaic:
+        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+
+        assert mosaic.assets_for_tile(*tile) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_bbox(
+            *mosaic.tms.xy_bounds(*tile), coord_crs=mosaic.tms.rasterio_crs
+        ) == ["cog1.tif", "cog2.tif"]
+
+        assert mosaic.assets_for_bbox(
+            *mosaic.tms.bounds(*tile),
+            coord_crs=mosaic.tms.rasterio_geographic_crs,
+        ) == ["cog1.tif", "cog2.tif"]
+
+        assert mosaic.assets_for_point(
+            -73.662319,
+            46.015949,
+            coord_crs="epsg:4326",
+        ) == ["cog1.tif", "cog2.tif"]
+
+        assert mosaic.assets_for_point(
+            -8200051.8694,
+            5782905.49327,
+            coord_crs="epsg:3857",
+        ) == ["cog1.tif", "cog2.tif"]
+
+    tms = morecantile.tms.get("WGS1984Quad")
+    with MosaicBackend(mosaic_gz, tms=tms) as mosaic:
+        assert mosaic.minzoom == tms.minzoom
+        assert mosaic.maxzoom == tms.maxzoom
+
+    with MosaicBackend(mosaic_gz, tms=tms, minzoom=6, maxzoom=8) as mosaic:
+        assert mosaic.minzoom == 6
+        assert mosaic.maxzoom == 8
+
 
 class MockResponse:
     def __init__(self, data):
@@ -1079,3 +1113,21 @@ def test_sqlite_backend():
     with pytest.raises(AssertionError):
         with MosaicBackend(f"sqlite:///{mosaic_db}:test") as mosaic:
             mosaic.update(features)
+
+
+def test_tms_and_coordinates():
+    """use MemoryBackend for data read tests."""
+    assets = [asset1, asset2]
+    mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
+    with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
+        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+        img, assets = mosaic.tile(*tile)
+        assert assets == [asset1, asset2]
+        assert img.crs == "epsg:3857"
+
+    tms = morecantile.tms.get("WGS1984Quad")
+    with MemoryBackend(mosaic_def=mosaicdef, tms=tms, minzoom=6, maxzoom=8) as mosaic:
+        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+        img, assets = mosaic.tile(*tile)
+        assert assets == [asset1, asset2]
+        assert img.crs == "epsg:4326"

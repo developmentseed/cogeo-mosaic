@@ -314,9 +314,13 @@ class BaseBackend(BaseReader):
         """Mosaic info."""
         return Info(
             bounds=self.mosaic_def.bounds,
-            center=self.mosaic_def.center,
-            maxzoom=self.mosaic_def.maxzoom,
-            minzoom=self.mosaic_def.minzoom,
+            center=(
+                (self.bounds[0] + self.bounds[2]) / 2,
+                (self.bounds[1] + self.bounds[3]) / 2,
+                self.minzoom,
+            ),
+            maxzoom=self.maxzoom,
+            minzoom=self.minzoom,
             name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
             quadkeys=[] if not quadkeys else self._quadkeys,
         )
