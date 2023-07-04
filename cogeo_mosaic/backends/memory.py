@@ -1,6 +1,6 @@
 """cogeo-mosaic In-Memory backend."""
 
-from typing import Dict, Type, Union
+from typing import Dict, Tuple, Type, Union
 
 import attr
 from morecantile import TileMatrixSet
@@ -34,7 +34,11 @@ class MemoryBackend(BaseBackend):
     ] = attr.ib(default=Reader)
     reader_options: Dict = attr.ib(factory=dict)
 
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        init=False, default=(-180, -90, 180, 90)
+    )
+    crs: CRS = attr.ib(init=False, default=WGS84_CRS)
+    geographic_crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     # We put `input` outside the init method
     input: str = attr.ib(init=False, default=":memory:")
@@ -46,13 +50,19 @@ class MemoryBackend(BaseBackend):
         self.bounds = self.mosaic_def.bounds
 
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
+        # By mosaic definition the bounds and CRS are defined using the TMS
+        # Geographic CRS.
+        self.crs = mosaic_tms.rasterio_geographic_crs
+        self.geographic_crs = mosaic_tms.rasterio_geographic_crs
+
         if mosaic_tms == self.tms:
-            self.minzoom = (
-                self.minzoom if self.minzoom is not None else self.mosaic_def.minzoom
-            )
-            self.maxzoom = (
-                self.maxzoom if self.maxzoom is not None else self.mosaic_def.maxzoom
-            )
+            minzoom, maxzoom = self.mosaic_def.minzoom, self.mosaic_def.maxzoom
+        else:
+            minzoom, maxzoom = self.tms.minzoom, self.tms.maxzoom
+
+        self.minzoom = self.minzoom if self.minzoom is not None else minzoom
+        self.maxzoom = self.maxzoom if self.maxzoom is not None else maxzoom
 
     def write(self, overwrite: bool = True):
         """Write mosaicjson document."""

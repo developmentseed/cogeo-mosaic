@@ -1,7 +1,7 @@
 
 ## 6.0.0 (TBD)
 
-* replace supermercado with `supermorcado` to burn geometries as tiles for different TMS
+* replace supermercado with [`supermorecado`](https://github.com/developmentseed/supermorecado) to burn geometries as tiles for different TMS
 
 * update MosaicJSON models to `0.0.3` specification (adds `tilematrixset`, `asset_type`, `asset_prefix`, `data_type`, `colormap` and `layers` attributes)
 

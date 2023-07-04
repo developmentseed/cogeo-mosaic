@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Dict, List, Optional, Sequence, Type
+from typing import Dict, List, Optional, Sequence, Tuple, Type
 
 import attr
 import httpx
@@ -66,7 +66,11 @@ class STACBackend(BaseBackend):
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
 
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        init=False, default=(-180, -90, 180, 90)
+    )
+    crs: CRS = attr.ib(init=False, default=WGS84_CRS)
+    geographic_crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     # STAC API related options
     # max_items |  next_link_key | limit
@@ -86,6 +90,13 @@ class STACBackend(BaseBackend):
         """Post Init: if not passed in init, try to read from self.input."""
         self.mosaic_def = self._read()
         self.bounds = self.mosaic_def.bounds
+
+        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
+        # By mosaic definition the bounds and CRS are defined using the TMS
+        # Geographic CRS.
+        self.crs = mosaic_tms.rasterio_geographic_crs
+        self.geographic_crs = mosaic_tms.rasterio_geographic_crs
 
     def _read(self) -> MosaicJSON:
         """
@@ -109,13 +120,18 @@ class STACBackend(BaseBackend):
         if "accessor" not in options:
             options["accessor"] = default_stac_accessor
 
-        return MosaicJSON.from_features(
-            features,
-            self.minzoom,
-            self.maxzoom,
-            tilematrixset=self.tms,
-            **options,
-        )
+        minzoom = options.pop("minzoom", None)
+        maxzoom = options.pop("maxzoom", None)
+        mosaic_tms = options.get("tilematrixset", WEB_MERCATOR_TMS)
+        if mosaic_tms == self.tms:
+            minzoom, maxzoom = self.minzoom, self.maxzoom
+        else:
+            if minzoom is None or maxzoom is None:
+                raise MosaicError(
+                    "Min/Max zoom HAVE TO be provided through `mosaic_options` when using different TMS for Read and Mosaic creation"
+                )
+
+        return MosaicJSON.from_features(features, minzoom, maxzoom, **options)
 
     def write(self, overwrite: bool = True):
         """Write mosaicjson document."""

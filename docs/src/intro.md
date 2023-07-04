@@ -66,17 +66,18 @@ with S3Backend("s3://mybucket/amosaic.json") as mosaic:
     mosaic.mosaic_def                              # attribute - MosaicJSON document, wrapped in a Pydantic Model
     mosaic.reader                                  # attribute - BaseReader, MultiBaseReader, MultiBandReader to use to fetch tile data
     mosaic.reader_options                          # attribute - Options for forward to `reader`
-    mosaic.geographic_crs                          # attribute - CRS to use for geographic transformation
+    mosaic.tms                                     # attribute - TileMatrixSet (default to WebMercatorQuad)
+    mosaic.minzoom                                 # attribute - Mosaic (default to tms or mosaic minzoom)
+    mosaic.maxzoom                                 # attribute - Mosaic (default to tms or mosaic maxzoom)
+
+    mosaic.crs                                     # property - CRS (from mosaic's TMS geographic CRS)
+    mosaic.geographic_crs                          # property - CRS (from mosaic's TMS geographic CRS)
+    mosaic.bounds                                  # property - Mosaic bounds in `mosaic.crs`
+    mosaic.center                                  # property - Mosaic center (lon, lat, minzoom)
+    mosaic.geographic_bounds                       # property - Mosaic bounds in `mosaic.geographic_crs`
 
     mosaic.mosaicid                                # property - Return sha224 id from the mosaicjson doc
     mosaic.quadkey_zoom                            # property - Return Quadkey zoom of the mosaic
-    mosaic.minzoom                                 # property - Mosaic minzoom
-    mosaic.maxzoom                                 # property - Mosaic maxzoom
-    mosaic.center                                  # property - Mosaic center
-    mosaic.bounds                                  # property - Mosaic bounds
-    mosaic.crs                                     # property - Mosaic bounds
-    mosaic.geographic_bounds                       # property - Mosaic bounds in WGS84
-    mosaic.tms                                     # property - TileMatrixSet (not in INIT, default to WebMercatorQuad)
 
     mosaic.write()                                 # method - Write the mosaicjson to the given location
     mosaic.update([features])                      # method - Update the mosaicjson data with a list of features
@@ -94,8 +95,6 @@ with S3Backend("s3://mybucket/amosaic.json") as mosaic:
 !!! Important
 
     `statistics()`, `preview()`, `part()` and `feature()` methods are not implemented in BaseBackend
-
-
 
 #### Open Mosaic and Get assets list for a tile
 
@@ -166,6 +165,25 @@ with MosaicBackend(None, mosaic_def=mosaicdata) as mosaic:
 
 with MemoryBackend(mosaic_def=mosaicdata) as mosaic:
     img, assets_used = mosaic.tile(1, 2, 3)
+```
+
+### TileMatrixSet attribute
+
+```python
+from cogeo_mosaic.backends import MosaicBackend
+import morecantile
+
+# Mosaic in WebMercatorQuad (default), output tile in WGS84
+WGS1984Quad = morecantile.tms.get("WGS1984Quad")
+
+with MosaicBackend("s3://mybucket/amosaic.json", tms=WGS1984Quad) as mosaic:
+    img: ImageData, assets_used: List[str] = mosaic.tile(1, 2, 3)
+
+    # The mosaic might use a specific TMS (WebMercatorQuad by default)
+    assert mosaic.mosaic_def.tilematrixset.rasterio_crs == "epsg:3857"
+
+    # When passing `tms=`, the output tile image will have the CRS from the input TMS
+    assert img.crs == "epsg:4326"
 ```
 
 # Image Order

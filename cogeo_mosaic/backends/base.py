@@ -38,13 +38,14 @@ class BaseBackend(BaseReader):
     Attributes:
         input (str): mosaic path.
         mosaic_def (MosaicJSON, optional): mosaicJSON document.
+        tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. Defaults to `WebMercatorQuad`.
+        minzoom (int): mosaic Min zoom level. Defaults to tms or mosaic minzoom.
+        maxzoom (int): mosaic Max zoom level. Defaults to tms or mosaic maxzoom.
         reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.Reader`.
         reader_options (dict): Options to forward to the reader config.
         geographic_crs (rasterio.crs.CRS, optional): CRS to use as geographic coordinate system. Defaults to WGS84.
-        tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
-        bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
-        minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to `0`.
-        maxzoom (int): mosaic Max zoom level. **READ ONLY attribute**. Defaults to `30`
+        bounds (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
+        crs (rasterio.crs.CRS): mosaic crs (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
 
     """
 
@@ -62,13 +63,11 @@ class BaseBackend(BaseReader):
     ] = attr.ib(default=Reader)
     reader_options: Dict = attr.ib(factory=dict)
 
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
-
-    # default values for bounds
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
     crs: CRS = attr.ib(init=False, default=WGS84_CRS)
+    geographic_crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     _backend_name: str
     _file_byte_size: Optional[int] = 0
@@ -79,6 +78,12 @@ class BaseBackend(BaseReader):
         self.bounds = self.mosaic_def.bounds
 
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
+        # By mosaic definition the bounds and CRS are defined using the TMS
+        # Geographic CRS.
+        self.crs = mosaic_tms.rasterio_geographic_crs
+        self.geographic_crs = mosaic_tms.rasterio_geographic_crs
+
         if mosaic_tms == self.tms:
             minzoom, maxzoom = self.mosaic_def.minzoom, self.mosaic_def.maxzoom
         else:
@@ -314,11 +319,7 @@ class BaseBackend(BaseReader):
         """Mosaic info."""
         return Info(
             bounds=self.mosaic_def.bounds,
-            center=(
-                (self.bounds[0] + self.bounds[2]) / 2,
-                (self.bounds[1] + self.bounds[3]) / 2,
-                self.minzoom,
-            ),
+            center=self.center,
             maxzoom=self.maxzoom,
             minzoom=self.minzoom,
             name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
@@ -328,7 +329,11 @@ class BaseBackend(BaseReader):
     @property
     def center(self):
         """Return center from the mosaic definition."""
-        return self.mosaic_def.center
+        return (
+            (self.bounds[0] + self.bounds[2]) / 2,
+            (self.bounds[1] + self.bounds[3]) / 2,
+            self.minzoom,
+        )
 
     @property
     def mosaicid(self) -> str:

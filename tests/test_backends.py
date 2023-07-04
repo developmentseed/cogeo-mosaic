@@ -761,7 +761,6 @@ def test_stac_backend(post):
             "quadkey_zoom",
             "bounds",
             "center",
-            "tilematrixset",
         ]
         assert mosaic.assets_for_tile(210, 90, 10) == [
             "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
@@ -796,7 +795,6 @@ def test_stac_backend(post):
             "quadkey_zoom",
             "bounds",
             "center",
-            "tilematrixset",
         ]
     post.reset_mock()
 
@@ -814,6 +812,55 @@ def test_stac_backend(post):
 
         with pytest.raises(NotImplementedError):
             mosaic.update([])
+    post.reset_mock()
+
+    with open(stac_page1, "r") as f1, open(stac_page2, "r") as f2:
+        post.side_effect = [
+            STACMockResponse(json.loads(f1.read())),
+            STACMockResponse(json.loads(f2.read())),
+        ]
+
+    with STACBackend(
+        "https://a_stac.api/search",
+        {},
+        tms=morecantile.tms.get("WGS1984Quad"),
+        minzoom=8,
+        maxzoom=13,
+        stac_api_options={"max_items": 8},
+        mosaic_options={
+            "tilematrixset": morecantile.tms.get("WebMercatorQuad"),
+            "minzoom": 8,
+            "maxzoom": 14,
+        },
+    ) as mosaic:
+        assert mosaic._backend_name == "STAC"
+        assert isinstance(mosaic, STACBackend)
+        assert mosaic.quadkey_zoom == 8
+        assert mosaic.minzoom == 8
+        assert mosaic.maxzoom == 13
+        assert mosaic.mosaic_def.minzoom == 8
+        assert mosaic.mosaic_def.maxzoom == 14
+        assert list(
+            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+        ) == [
+            "mosaicjson",
+            "version",
+            "minzoom",
+            "maxzoom",
+            "quadkey_zoom",
+            "bounds",
+            "center",
+            "tilematrixset",
+        ]
+        assert mosaic.assets_for_tile(420, 48, 10) == [
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
+        ]
+        assert mosaic.assets_for_point(-106.050, 81.43) == [
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
+        ]
+    post.reset_mock()
 
 
 @patch("cogeo_mosaic.backends.stac.httpx.post")

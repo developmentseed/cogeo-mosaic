@@ -149,6 +149,7 @@ Sometime you'll will want to do more advanced filtering/sorting with the newly d
 
 ```python
 from cogeo_mosaic.backends.s3 import S3Backend
+import morecantile
 
 class CustomS3Backend(S3Backend):
 
@@ -171,8 +172,9 @@ class CustomS3Backend(S3Backend):
             **kwargs,
         )
 
+        mosaic_tms = self.mosaic_def.tilematrixset or morecantile.tms.get("WebMercatorQuad")
         for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = self.tms.quadkey_to_tile(quadkey)
+            tile = mosaic_tms.quadkey_to_tile(quadkey)
             assets = self.tile(*tile)
             assets = [*new_assets, *assets]
 
