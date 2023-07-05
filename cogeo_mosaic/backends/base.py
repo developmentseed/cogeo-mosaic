@@ -155,9 +155,11 @@ class BaseBackend(BaseReader):
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
-        if self.tms.rasterio_crs == mosaic_tms.rasterio_crs:
+        if self.tms == mosaic_tms:
             return self.get_assets(x, y, z)
 
+        # If TMS are different, then use Tile's geographic coordinates
+        # and `assets_for_bbox` to get the assets
         xmin, ymin, xmax, ymax = self.tms.bounds(x, y, z)
         return self.assets_for_bbox(
             xmin,
@@ -175,12 +177,16 @@ class BaseBackend(BaseReader):
     ) -> List[str]:
         """Retrieve assets for point."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
+        # If coord_crs is not the same as the mosaic's geographic CRS
+        # we reproject the coordinates
         if coord_crs != mosaic_tms.rasterio_geographic_crs:
             xs, ys = transform(
                 coord_crs, mosaic_tms.rasterio_geographic_crs, [lng], [lat]
             )
             lng, lat = xs[0], ys[0]
 
+        # Find the tile index using geographic coordinates
         tile = mosaic_tms.tile(lng, lat, self.quadkey_zoom)
 
         return self.get_assets(tile.x, tile.y, tile.z)
@@ -195,6 +201,9 @@ class BaseBackend(BaseReader):
     ) -> List[str]:
         """Retrieve assets for bbox."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
+        # If coord_crs is not the same as the mosaic's geographic CRS
+        # we reproject the bounding box
         if coord_crs != mosaic_tms.rasterio_geographic_crs:
             xmin, ymin, xmax, ymax = transform_bounds(
                 coord_crs,
