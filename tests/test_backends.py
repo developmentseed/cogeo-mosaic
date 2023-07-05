@@ -1167,13 +1167,17 @@ def test_tms_and_coordinates():
     assets = [asset1, asset2]
     mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
     with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
+        assert mosaic.minzoom == mosaic.mosaic_def.minzoom
+        assert mosaic.maxzoom == mosaic.mosaic_def.maxzoom
         tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
         img, assets = mosaic.tile(*tile)
         assert assets == [asset1, asset2]
         assert img.crs == "epsg:3857"
 
     tms = morecantile.tms.get("WGS1984Quad")
-    with MemoryBackend(mosaic_def=mosaicdef, tms=tms, minzoom=6, maxzoom=8) as mosaic:
+    with MemoryBackend(mosaic_def=mosaicdef, tms=tms, minzoom=4, maxzoom=7) as mosaic:
+        assert mosaic.minzoom == 4
+        assert mosaic.maxzoom == 7
         tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
         img, assets = mosaic.tile(*tile)
         assert assets == [asset1, asset2]

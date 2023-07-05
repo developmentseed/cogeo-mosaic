@@ -61,7 +61,7 @@ class STACBackend(BaseBackend):
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
 
-    tms: TileMatrixSet = attr.ib(WEB_MERCATOR_TMS)
+    tms: TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
 
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
@@ -82,21 +82,9 @@ class STACBackend(BaseBackend):
 
     # Because the STACBackend is a Read-Only backend, there is no need for
     # mosaic_def to be in the init method.
-    mosaic_def: MosaicJSON = attr.ib(init=False)
+    mosaic_def: MosaicJSON = attr.ib(init=False, default=None)
 
     _backend_name = "STAC"
-
-    def __attrs_post_init__(self):
-        """Post Init: if not passed in init, try to read from self.input."""
-        self.mosaic_def = self._read()
-        self.bounds = self.mosaic_def.bounds
-
-        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
-
-        # By mosaic definition the bounds and CRS are defined using the TMS
-        # Geographic CRS.
-        self.crs = mosaic_tms.rasterio_geographic_crs
-        self.geographic_crs = mosaic_tms.rasterio_geographic_crs
 
     def _read(self) -> MosaicJSON:
         """

@@ -43,9 +43,9 @@ class BaseBackend(BaseReader):
         maxzoom (int): mosaic Max zoom level. Defaults to tms or mosaic maxzoom.
         reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.Reader`.
         reader_options (dict): Options to forward to the reader config.
-        geographic_crs (rasterio.crs.CRS, optional): CRS to use as geographic coordinate system. Defaults to WGS84.
         bounds (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
-        crs (rasterio.crs.CRS): mosaic crs (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
+        crs (rasterio.crs.CRS): mosaic crs in which its bounds is defined. **READ ONLY attribute**. Defaults to WGS84.
+        geographic_crs (rasterio.crs.CRS, optional): CRS to use as geographic coordinate system. **READ ONLY attribute**. Defaults to WGS84.
 
     """
 
@@ -77,20 +77,27 @@ class BaseBackend(BaseReader):
         self.mosaic_def = self.mosaic_def or self._read()
         self.bounds = self.mosaic_def.bounds
 
+        # in order to keep support for old mosaic document we assume the default TMS to be WebMercatorQuad
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
 
-        # By mosaic definition the bounds and CRS are defined using the TMS
-        # Geographic CRS.
+        # By mosaic definition, its `bounds` is defined using the mosaic's TMS
+        # Geographic CRS so we define both `crs` and `geographic_crs` using the mosaic
+        # TMS geographic_crs.
         self.crs = mosaic_tms.rasterio_geographic_crs
         self.geographic_crs = mosaic_tms.rasterio_geographic_crs
 
-        if mosaic_tms == self.tms:
-            minzoom, maxzoom = self.mosaic_def.minzoom, self.mosaic_def.maxzoom
-        else:
-            minzoom, maxzoom = self.tms.minzoom, self.tms.maxzoom
+        # if we open the Mosaic with a TMS which is not the mosaic TMS
+        # the min/max zoom will default to the TMS (read) zooms
+        # except if min/max zoom are passed by the user
+        if self.minzoom is None:
+            self.minzoom = (
+                self.mosaic_def.minzoom if mosaic_tms == self.tms else self.tms.minzoom
+            )
 
-        self.minzoom = self.minzoom if self.minzoom is not None else minzoom
-        self.maxzoom = self.maxzoom if self.maxzoom is not None else maxzoom
+        if self.maxzoom is None:
+            self.maxzoom = (
+                self.mosaic_def.maxzoom if mosaic_tms == self.tms else self.tms.maxzoom
+            )
 
     @abc.abstractmethod
     def _read(self) -> MosaicJSON:
@@ -318,7 +325,7 @@ class BaseBackend(BaseReader):
     def info(self, quadkeys: bool = False) -> Info:  # type: ignore
         """Mosaic info."""
         return Info(
-            bounds=self.mosaic_def.bounds,
+            bounds=self.geographic_bounds,
             center=self.center,
             maxzoom=self.maxzoom,
             minzoom=self.minzoom,

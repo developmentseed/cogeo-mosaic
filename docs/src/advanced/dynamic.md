@@ -32,7 +32,7 @@ from typing import Dict, Tuple, Type, Optional, List
 import attr
 import morecantile
 from rasterio.crs import CRS
-from rio_tiler.constants import WEB_MERCATOR_TMS
+from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.io import BaseReader
 from rio_tiler.io import STACReader
 
@@ -51,9 +51,10 @@ class DynamicStacBackend(BaseBackend):
     # Addition required attribute (STAC Query)
     query: Dict = attr.ib(factory=dict)
 
+    minzoom: int = attr.ib()
+    maxzoom: int = attr.ib()
+
     tms: morecantile.TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
-    minzoom: int = attr.ib(default=None)
-    maxzoom: int = attr.ib(default=None)
 
     reader: Type[BaseReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
@@ -73,6 +74,14 @@ class DynamicStacBackend(BaseBackend):
 
     _backend_name = "DynamicSTAC"
 
+    @minzoom.default
+    def _minzoom(self):
+        return self.tms.minzoom
+
+    @maxzoom.default
+    def _maxzoom(self):
+        return self.tms.maxzoom
+
     def __attrs_post_init__(self):
         """Post Init."""
         # Construct a FAKE/Empty mosaicJSON
@@ -81,8 +90,8 @@ class DynamicStacBackend(BaseBackend):
             mosaicjson="0.0.3",
             name="it's fake but it's ok",
             bounds=self.bounds,
-            minzoom=self.minzoom if self.minzoom is not None else self.tms.minzoom,
-            maxzoom=self.maxzoom if self.maxzoom is not None else self.tms.maxzoom,
+            minzoom=self.minzoom,
+            maxzoom=self.maxzoom,
             tiles=[]  # we set `tiles` to an empty list.
         )
 

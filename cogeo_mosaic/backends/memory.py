@@ -45,25 +45,6 @@ class MemoryBackend(BaseBackend):
 
     _backend_name = "MEM"
 
-    def __attrs_post_init__(self):
-        """Post Init."""
-        self.bounds = self.mosaic_def.bounds
-
-        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
-
-        # By mosaic definition the bounds and CRS are defined using the TMS
-        # Geographic CRS.
-        self.crs = mosaic_tms.rasterio_geographic_crs
-        self.geographic_crs = mosaic_tms.rasterio_geographic_crs
-
-        if mosaic_tms == self.tms:
-            minzoom, maxzoom = self.mosaic_def.minzoom, self.mosaic_def.maxzoom
-        else:
-            minzoom, maxzoom = self.tms.minzoom, self.tms.maxzoom
-
-        self.minzoom = self.minzoom if self.minzoom is not None else minzoom
-        self.maxzoom = self.maxzoom if self.maxzoom is not None else maxzoom
-
     def write(self, overwrite: bool = True):
         """Write mosaicjson document."""
         pass
