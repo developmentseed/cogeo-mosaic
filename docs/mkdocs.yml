@@ -33,7 +33,10 @@ nav:
     - Dynamic RTree backend: "examples/Create_a_Dynamic_RtreeBackend.ipynb"
     - Dynamic STAC backend: "examples/Create_a_Dynamic_StacBackend.ipynb"
 
-  - Migration to v3.0: "v3_migration.md"
+  - Migration Guides:
+    - Migration to v3.0: "v3_migration.md"
+    - Migration to v6.0: "v6_migration.md"
+
   - Development - Contributing: "contributing.md"
   - Release Notes: "release-notes.md"
 

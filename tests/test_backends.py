@@ -163,6 +163,40 @@ def test_file_backend():
                 ]
             )
 
+    with MosaicBackend(mosaic_gz) as mosaic:
+        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+
+        assert mosaic.assets_for_tile(*tile) == ["cog1.tif", "cog2.tif"]
+        assert mosaic.assets_for_bbox(
+            *mosaic.tms.xy_bounds(*tile), coord_crs=mosaic.tms.rasterio_crs
+        ) == ["cog1.tif", "cog2.tif"]
+
+        assert mosaic.assets_for_bbox(
+            *mosaic.tms.bounds(*tile),
+            coord_crs=mosaic.tms.rasterio_geographic_crs,
+        ) == ["cog1.tif", "cog2.tif"]
+
+        assert mosaic.assets_for_point(
+            -73.662319,
+            46.015949,
+            coord_crs="epsg:4326",
+        ) == ["cog1.tif", "cog2.tif"]
+
+        assert mosaic.assets_for_point(
+            -8200051.8694,
+            5782905.49327,
+            coord_crs="epsg:3857",
+        ) == ["cog1.tif", "cog2.tif"]
+
+    tms = morecantile.tms.get("WGS1984Quad")
+    with MosaicBackend(mosaic_gz, tms=tms) as mosaic:
+        assert mosaic.minzoom == tms.minzoom
+        assert mosaic.maxzoom == tms.maxzoom
+
+    with MosaicBackend(mosaic_gz, tms=tms, minzoom=6, maxzoom=8) as mosaic:
+        assert mosaic.minzoom == 6
+        assert mosaic.maxzoom == 8
+
 
 class MockResponse:
     def __init__(self, data):
@@ -778,6 +812,55 @@ def test_stac_backend(post):
 
         with pytest.raises(NotImplementedError):
             mosaic.update([])
+    post.reset_mock()
+
+    with open(stac_page1, "r") as f1, open(stac_page2, "r") as f2:
+        post.side_effect = [
+            STACMockResponse(json.loads(f1.read())),
+            STACMockResponse(json.loads(f2.read())),
+        ]
+
+    with STACBackend(
+        "https://a_stac.api/search",
+        {},
+        tms=morecantile.tms.get("WGS1984Quad"),
+        minzoom=8,
+        maxzoom=13,
+        stac_api_options={"max_items": 8},
+        mosaic_options={
+            "tilematrixset": morecantile.tms.get("WebMercatorQuad"),
+            "minzoom": 8,
+            "maxzoom": 14,
+        },
+    ) as mosaic:
+        assert mosaic._backend_name == "STAC"
+        assert isinstance(mosaic, STACBackend)
+        assert mosaic.quadkey_zoom == 8
+        assert mosaic.minzoom == 8
+        assert mosaic.maxzoom == 13
+        assert mosaic.mosaic_def.minzoom == 8
+        assert mosaic.mosaic_def.maxzoom == 14
+        assert list(
+            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+        ) == [
+            "mosaicjson",
+            "version",
+            "minzoom",
+            "maxzoom",
+            "quadkey_zoom",
+            "bounds",
+            "center",
+            "tilematrixset",
+        ]
+        assert mosaic.assets_for_tile(420, 48, 10) == [
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
+        ]
+        assert mosaic.assets_for_point(-106.050, 81.43) == [
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_12XWR_20200621_0_L2A",
+            "https://earth-search.aws.element84.com/v0/collections/sentinel-s2-l2a/items/S2A_13XDL_20200621_0_L2A",
+        ]
+    post.reset_mock()
 
 
 @patch("cogeo_mosaic.backends.stac.httpx.post")
@@ -1077,3 +1160,25 @@ def test_sqlite_backend():
     with pytest.raises(AssertionError):
         with MosaicBackend(f"sqlite:///{mosaic_db}:test") as mosaic:
             mosaic.update(features)
+
+
+def test_tms_and_coordinates():
+    """use MemoryBackend for data read tests."""
+    assets = [asset1, asset2]
+    mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
+    with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
+        assert mosaic.minzoom == mosaic.mosaic_def.minzoom
+        assert mosaic.maxzoom == mosaic.mosaic_def.maxzoom
+        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+        img, assets = mosaic.tile(*tile)
+        assert assets == [asset1, asset2]
+        assert img.crs == "epsg:3857"
+
+    tms = morecantile.tms.get("WGS1984Quad")
+    with MemoryBackend(mosaic_def=mosaicdef, tms=tms, minzoom=4, maxzoom=7) as mosaic:
+        assert mosaic.minzoom == 4
+        assert mosaic.maxzoom == 7
+        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+        img, assets = mosaic.tile(*tile)
+        assert assets == [asset1, asset2]
+        assert img.crs == "epsg:4326"

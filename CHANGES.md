@@ -1,9 +1,26 @@
 
 ## 6.0.0 (TBD)
 
-* replace supermercado with `supermorcado` to burn geometries as tiles for different TMS
+* replace supermercado with [`supermorecado`](https://github.com/developmentseed/supermorecado) to burn geometries as tiles for different TMS
+
 * update MosaicJSON models to `0.0.3` specification (adds `tilematrixset`, `asset_type`, `asset_prefix`, `data_type`, `colormap` and `layers` attributes)
-* allow Mosaic creation using other TileMatrixSet
+
+* allow Mosaic creation using other TileMatrixSet (default is still `WebMercatorQuad`)
+
+* add `tms` support to MosaicBackend
+
+    ```python
+    # Before
+    # Mosaic and output Tile in WebMercatorQuad
+    with MosaicBackend("mosaic.json") as mosaic:
+        img, _ = mosaic.tile(0, 0, 0)
+
+    # Now
+    # Mosaic in WebMercatorQuad (default), output tile in WGS84
+    WGS1984Quad = morecantile.tms.get("WGS1984Quad")
+    with MosaicBackend("mosaic.json", tms=WGS1984Quad) as mosaic:
+        img, _ = mosaic.tile(0, 0, 0)
+    ```
 
 ## 5.1.1 (2023-02-06)
 

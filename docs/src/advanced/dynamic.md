@@ -30,8 +30,9 @@ Here is an example of a `Dynamic` STAC backend where on each `tile()` or `point(
 from typing import Dict, Tuple, Type, Optional, List
 
 import attr
-from morecantile import TileMatrixSet
-from rio_tiler.constants import WEB_MERCATOR_TMS
+import morecantile
+from rasterio.crs import CRS
+from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.io import BaseReader
 from rio_tiler.io import STACReader
 
@@ -50,11 +51,19 @@ class DynamicStacBackend(BaseBackend):
     # Addition required attribute (STAC Query)
     query: Dict = attr.ib(factory=dict)
 
-    minzoom: int = attr.ib(default=None)
-    maxzoom: int = attr.ib(default=None)
+    minzoom: int = attr.ib()
+    maxzoom: int = attr.ib()
+
+    tms: morecantile.TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
 
     reader: Type[BaseReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
+
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        default=(-180, -90, 180, 90)
+    )
+    crs: CRS = attr.ib(default=WGS84_CRS)
+    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
 
     # STAC API related options
     # max_items |  next_link_key | limit
@@ -65,25 +74,34 @@ class DynamicStacBackend(BaseBackend):
 
     _backend_name = "DynamicSTAC"
 
+    @minzoom.default
+    def _minzoom(self):
+        return self.tms.minzoom
+
+    @maxzoom.default
+    def _maxzoom(self):
+        return self.tms.maxzoom
+
     def __attrs_post_init__(self):
         """Post Init."""
         # Construct a FAKE/Empty mosaicJSON
         # mosaic_def has to be defined. As we do for the DynamoDB and SQLite backend
         self.mosaic_def = MosaicJSON(
-            mosaicjson="0.0.2",
+            mosaicjson="0.0.3",
             name="it's fake but it's ok",
-            minzoom=self.minzoom or self.tms.minzoom,
-            maxzoom=self.maxzoom or self.tms.maxzoom,
+            bounds=self.bounds,
+            minzoom=self.minzoom,
+            maxzoom=self.maxzoom,
             tiles=[]  # we set `tiles` to an empty list.
         )
 
     def write(self, overwrite: bool = True):
         """This method is not used but is required by the abstract class."""
-        pass
+        raise NotImplementedError
 
     def update(self):
         """We overwrite the default method."""
-        pass
+        raise NotImplementedError
 
     def _read(self) -> MosaicJSON:
         """This method is not used but is required by the abstract class."""

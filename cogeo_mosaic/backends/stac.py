@@ -2,14 +2,15 @@
 
 import json
 import os
-from typing import Dict, List, Optional, Sequence, Type
+from typing import Dict, List, Optional, Sequence, Tuple, Type
 
 import attr
 import httpx
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
+from morecantile import TileMatrixSet
 from rasterio.crs import CRS
-from rio_tiler.constants import WGS84_CRS
+from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.io import STACReader
 
 from cogeo_mosaic.backends.base import BaseBackend
@@ -60,8 +61,16 @@ class STACBackend(BaseBackend):
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
 
+    tms: TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
+
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
+
+    bounds: Tuple[float, float, float, float] = attr.ib(
+        init=False, default=(-180, -90, 180, 90)
+    )
+    crs: CRS = attr.ib(init=False, default=WGS84_CRS)
+    geographic_crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     # STAC API related options
     # max_items |  next_link_key | limit
@@ -71,18 +80,11 @@ class STACBackend(BaseBackend):
     # e.g `accessor`
     mosaic_options: Dict = attr.ib(factory=dict)
 
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
-
     # Because the STACBackend is a Read-Only backend, there is no need for
     # mosaic_def to be in the init method.
-    mosaic_def: MosaicJSON = attr.ib(init=False)
+    mosaic_def: MosaicJSON = attr.ib(init=False, default=None)
 
     _backend_name = "STAC"
-
-    def __attrs_post_init__(self):
-        """Post Init: if not passed in init, try to read from self.input."""
-        self.mosaic_def = self._read()
-        self.bounds = self.mosaic_def.bounds
 
     def _read(self) -> MosaicJSON:
         """
@@ -106,7 +108,18 @@ class STACBackend(BaseBackend):
         if "accessor" not in options:
             options["accessor"] = default_stac_accessor
 
-        return MosaicJSON.from_features(features, self.minzoom, self.maxzoom, **options)
+        minzoom = options.pop("minzoom", None)
+        maxzoom = options.pop("maxzoom", None)
+        mosaic_tms = options.get("tilematrixset", WEB_MERCATOR_TMS)
+        if mosaic_tms == self.tms:
+            minzoom, maxzoom = self.minzoom, self.maxzoom
+        else:
+            if minzoom is None or maxzoom is None:
+                raise MosaicError(
+                    "Min/Max zoom HAVE TO be provided through `mosaic_options` when using different TMS for Read and Mosaic creation"
+                )
+
+        return MosaicJSON.from_features(features, minzoom, maxzoom, **options)
 
     def write(self, overwrite: bool = True):
         """Write mosaicjson document."""

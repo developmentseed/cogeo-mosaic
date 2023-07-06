@@ -180,6 +180,27 @@ with STACBackend(
     print(mosaic.mosaic_def.dict(exclude={"tiles"}))
 ```
 
+#### Mosaic TileMatrixSet vs Backend TileMatrixSet
+
+If using a TileMatrixSet other than the default `WebMercatorQuad`, user HAS TO pass mosaic min/max zoom (different than the backend min/max zoom).
+
+```python
+with STACBackend(
+    "https://earth-search.aws.element84.com/v0/search",
+    query=query,
+    tms=morecantile.tms.get("WGS1984Quad"),
+    minzoom=8,
+    maxzoom=12,
+    mosaic_options={
+        "tilematrixset": morecantile.tms.get("WebMercatorQuad"),  # This is Optional and will be set by default to `WebMercatorQuad` TMS
+        "minzoom": 8,
+        "maxzoom": 14,
+    },
+) as mosaic:
+    print(mosaic.mosaic_def.dict(exclude={"tiles"}))
+```
+
+
 #### Specification
 
 The STACBackend rely on Spec version 1.0.0alpha.

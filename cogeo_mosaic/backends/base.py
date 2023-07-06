@@ -6,11 +6,11 @@ import warnings
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import attr
-import morecantile
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
-from morecantile import TileMatrixSet
+from morecantile import Tile, TileMatrixSet
 from rasterio.crs import CRS
+from rasterio.warp import transform, transform_bounds
 from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, MultiBandReader, MultiBaseReader, Reader
@@ -38,18 +38,23 @@ class BaseBackend(BaseReader):
     Attributes:
         input (str): mosaic path.
         mosaic_def (MosaicJSON, optional): mosaicJSON document.
+        tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. Defaults to `WebMercatorQuad`.
+        minzoom (int): mosaic Min zoom level. Defaults to tms or mosaic minzoom.
+        maxzoom (int): mosaic Max zoom level. Defaults to tms or mosaic maxzoom.
         reader (rio_tiler.io.BaseReader): Dataset reader. Defaults to `rio_tiler.io.Reader`.
         reader_options (dict): Options to forward to the reader config.
-        geographic_crs (rasterio.crs.CRS, optional): CRS to use as geographic coordinate system. Defaults to WGS84.
-        tms (morecantile.TileMatrixSet, optional): TileMatrixSet grid definition. **READ ONLY attribute**. Defaults to `WebMercatorQuad`.
-        bbox (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
-        minzoom (int): mosaic Min zoom level. **READ ONLY attribute**. Defaults to `0`.
-        maxzoom (int): mosaic Max zoom level. **READ ONLY attribute**. Defaults to `30`
+        bounds (tuple): mosaic bounds (left, bottom, right, top). **READ ONLY attribute**. Defaults to `(-180, -90, 180, 90)`.
+        crs (rasterio.crs.CRS): mosaic crs in which its bounds is defined. **READ ONLY attribute**. Defaults to WGS84.
+        geographic_crs (rasterio.crs.CRS, optional): CRS to use as geographic coordinate system. **READ ONLY attribute**. Defaults to WGS84.
 
     """
 
     input: str = attr.ib()
     mosaic_def: MosaicJSON = attr.ib(default=None, converter=_convert_to_mosaicjson)
+
+    tms: TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
+    minzoom: int = attr.ib(default=None)
+    maxzoom: int = attr.ib(default=None)
 
     reader: Union[
         Type[BaseReader],
@@ -58,19 +63,11 @@ class BaseBackend(BaseReader):
     ] = attr.ib(default=Reader)
     reader_options: Dict = attr.ib(factory=dict)
 
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
-
-    # TMS is outside the init because mosaicJSON and cogeo-mosaic only
-    # works with WebMercator for now.
-    tms: TileMatrixSet = attr.ib(init=False, default=WEB_MERCATOR_TMS)
-    minzoom: int = attr.ib(init=False)
-    maxzoom: int = attr.ib(init=False)
-
-    # default values for bounds
     bounds: Tuple[float, float, float, float] = attr.ib(
         init=False, default=(-180, -90, 180, 90)
     )
     crs: CRS = attr.ib(init=False, default=WGS84_CRS)
+    geographic_crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     _backend_name: str
     _file_byte_size: Optional[int] = 0
@@ -78,9 +75,29 @@ class BaseBackend(BaseReader):
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.input."""
         self.mosaic_def = self.mosaic_def or self._read()
-        self.minzoom = self.mosaic_def.minzoom
-        self.maxzoom = self.mosaic_def.maxzoom
         self.bounds = self.mosaic_def.bounds
+
+        # in order to keep support for old mosaic document we assume the default TMS to be WebMercatorQuad
+        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
+        # By mosaic definition, its `bounds` is defined using the mosaic's TMS
+        # Geographic CRS so we define both `crs` and `geographic_crs` using the mosaic
+        # TMS geographic_crs.
+        self.crs = mosaic_tms.rasterio_geographic_crs
+        self.geographic_crs = mosaic_tms.rasterio_geographic_crs
+
+        # if we open the Mosaic with a TMS which is not the mosaic TMS
+        # the min/max zoom will default to the TMS (read) zooms
+        # except if min/max zoom are passed by the user
+        if self.minzoom is None:
+            self.minzoom = (
+                self.mosaic_def.minzoom if mosaic_tms == self.tms else self.tms.minzoom
+            )
+
+        if self.maxzoom is None:
+            self.maxzoom = (
+                self.mosaic_def.maxzoom if mosaic_tms == self.tms else self.tms.maxzoom
+            )
 
     @abc.abstractmethod
     def _read(self) -> MosaicJSON:
@@ -109,7 +126,8 @@ class BaseBackend(BaseReader):
         )
 
         for quadkey, new_assets in new_mosaic.tiles.items():
-            tile = self.tms.quadkey_to_tile(quadkey)
+            mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+            tile = mosaic_tms.quadkey_to_tile(quadkey)
             assets = self.assets_for_tile(*tile)
             assets = [*new_assets, *assets] if add_first else [*assets, *new_assets]
 
@@ -136,19 +154,68 @@ class BaseBackend(BaseReader):
 
     def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
         """Retrieve assets for tile."""
-        return self.get_assets(x, y, z)
+        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+        if self.tms == mosaic_tms:
+            return self.get_assets(x, y, z)
 
-    def assets_for_point(self, lng: float, lat: float) -> List[str]:
+        # If TMS are different, then use Tile's geographic coordinates
+        # and `assets_for_bbox` to get the assets
+        xmin, ymin, xmax, ymax = self.tms.bounds(x, y, z)
+        return self.assets_for_bbox(
+            xmin,
+            ymin,
+            xmax,
+            ymax,
+            coord_crs=self.tms.rasterio_geographic_crs,
+        )
+
+    def assets_for_point(
+        self,
+        lng: float,
+        lat: float,
+        coord_crs: CRS = WGS84_CRS,
+    ) -> List[str]:
         """Retrieve assets for point."""
-        tile = self.tms.tile(lng, lat, self.quadkey_zoom)
+        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
+        # If coord_crs is not the same as the mosaic's geographic CRS
+        # we reproject the coordinates
+        if coord_crs != mosaic_tms.rasterio_geographic_crs:
+            xs, ys = transform(
+                coord_crs, mosaic_tms.rasterio_geographic_crs, [lng], [lat]
+            )
+            lng, lat = xs[0], ys[0]
+
+        # Find the tile index using geographic coordinates
+        tile = mosaic_tms.tile(lng, lat, self.quadkey_zoom)
+
         return self.get_assets(tile.x, tile.y, tile.z)
 
     def assets_for_bbox(
-        self, xmin: float, ymin: float, xmax: float, ymax: float
+        self,
+        xmin: float,
+        ymin: float,
+        xmax: float,
+        ymax: float,
+        coord_crs: Optional[CRS] = WGS84_CRS,
     ) -> List[str]:
         """Retrieve assets for bbox."""
-        tl_tile = self.tms.tile(xmin, ymax, self.quadkey_zoom)
-        br_tile = self.tms.tile(xmax, ymin, self.quadkey_zoom)
+        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
+        # If coord_crs is not the same as the mosaic's geographic CRS
+        # we reproject the bounding box
+        if coord_crs != mosaic_tms.rasterio_geographic_crs:
+            xmin, ymin, xmax, ymax = transform_bounds(
+                coord_crs,
+                mosaic_tms.rasterio_geographic_crs,
+                xmin,
+                ymin,
+                xmax,
+                ymax,
+            )
+
+        tl_tile = mosaic_tms.tile(xmin, ymax, self.quadkey_zoom)
+        br_tile = mosaic_tms.tile(xmax, ymin, self.quadkey_zoom)
 
         tiles = [
             (x, y, self.quadkey_zoom)
@@ -158,7 +225,7 @@ class BaseBackend(BaseReader):
 
         return list(
             dict.fromkeys(
-                itertools.chain.from_iterable([self.assets_for_tile(*t) for t in tiles])
+                itertools.chain.from_iterable([self.get_assets(*t) for t in tiles])
             )
         )
 
@@ -168,8 +235,7 @@ class BaseBackend(BaseReader):
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
-        mercator_tile = morecantile.Tile(x=x, y=y, z=z)
-        quadkeys = self.find_quadkeys(mercator_tile, self.quadkey_zoom)
+        quadkeys = self.find_quadkeys(Tile(x=x, y=y, z=z), self.quadkey_zoom)
         return list(
             dict.fromkeys(
                 itertools.chain.from_iterable(
@@ -178,15 +244,13 @@ class BaseBackend(BaseReader):
             )
         )
 
-    def find_quadkeys(
-        self, mercator_tile: morecantile.Tile, quadkey_zoom: int
-    ) -> List[str]:
+    def find_quadkeys(self, tile: Tile, quadkey_zoom: int) -> List[str]:
         """
         Find quadkeys at desired zoom for tile
 
         Attributes
         ----------
-        mercator_tile: morecantile.Tile
+        tile: morecantile.Tile
             Input tile to use when searching for quadkeys
         quadkey_zoom: int
             Zoom level
@@ -197,24 +261,29 @@ class BaseBackend(BaseReader):
             List[str] of quadkeys
 
         """
+        mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
         # get parent
-        if mercator_tile.z > quadkey_zoom:
-            depth = mercator_tile.z - quadkey_zoom
+        if tile.z > quadkey_zoom:
+            depth = tile.z - quadkey_zoom
             for _ in range(depth):
-                mercator_tile = self.tms.parent(mercator_tile)[0]
-            return [self.tms.quadkey(*mercator_tile)]
+                tile = mosaic_tms.parent(tile)[0]
+
+            return [mosaic_tms.quadkey(*tile)]
 
         # get child
-        elif mercator_tile.z < quadkey_zoom:
-            depth = quadkey_zoom - mercator_tile.z
-            mercator_tiles = [mercator_tile]
-            for _ in range(depth):
-                mercator_tiles = sum([self.tms.children(t) for t in mercator_tiles], [])
+        elif tile.z < quadkey_zoom:
+            depth = quadkey_zoom - tile.z
 
-            mercator_tiles = list(filter(lambda t: t.z == quadkey_zoom, mercator_tiles))
-            return [self.tms.quadkey(*tile) for tile in mercator_tiles]
+            tiles = [tile]
+            for _ in range(depth):
+                tiles = sum([mosaic_tms.children(t) for t in tiles], [])
+
+            tiles = list(filter(lambda t: t.z == quadkey_zoom, tiles))
+            return [mosaic_tms.quadkey(*tile) for tile in tiles]
+
         else:
-            return [self.tms.quadkey(*mercator_tile)]
+            return [mosaic_tms.quadkey(*tile)]
 
     def tile(  # type: ignore
         self,
@@ -233,7 +302,7 @@ class BaseBackend(BaseReader):
             mosaic_assets = list(reversed(mosaic_assets))
 
         def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any) -> ImageData:
-            with self.reader(asset, **self.reader_options) as src_dst:
+            with self.reader(asset, tms=self.tms, **self.reader_options) as src_dst:
                 return src_dst.tile(x, y, z, **kwargs)
 
         return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
@@ -265,10 +334,10 @@ class BaseBackend(BaseReader):
     def info(self, quadkeys: bool = False) -> Info:  # type: ignore
         """Mosaic info."""
         return Info(
-            bounds=self.mosaic_def.bounds,
-            center=self.mosaic_def.center,
-            maxzoom=self.mosaic_def.maxzoom,
-            minzoom=self.mosaic_def.minzoom,
+            bounds=self.geographic_bounds,
+            center=self.center,
+            maxzoom=self.maxzoom,
+            minzoom=self.minzoom,
             name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
             quadkeys=[] if not quadkeys else self._quadkeys,
         )
@@ -276,7 +345,11 @@ class BaseBackend(BaseReader):
     @property
     def center(self):
         """Return center from the mosaic definition."""
-        return self.mosaic_def.center
+        return (
+            (self.bounds[0] + self.bounds[2]) / 2,
+            (self.bounds[1] + self.bounds[3]) / 2,
+            self.minzoom,
+        )
 
     @property
     def mosaicid(self) -> str:
