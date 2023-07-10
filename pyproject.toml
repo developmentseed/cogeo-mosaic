@@ -22,9 +22,9 @@ classifiers = [
 dynamic = ["version", "readme"]
 dependencies = [
   "attrs",
-  "morecantile>=4.1",
+  "morecantile>=4.1,<5.0",
   "shapely>=2.0,<3.0",
-  "pydantic",
+  "pydantic~=1.0",
   "httpx",
   "rasterio",
   "rio-tiler>=5.0,<6.0",

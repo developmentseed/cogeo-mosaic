@@ -1,13 +1,15 @@
 
-## 6.0.0 (TBD)
+## 6.0.0 (2023-07-10)
 
-* replace supermercado with [`supermorecado`](https://github.com/developmentseed/supermorecado) to burn geometries as tiles for different TMS
+* update `morecantile>=4.1,<5.0` and `rio-tiler>=5.0,<6.0` requirements
+
+* replace `supermercado` with [`supermorecado`](https://github.com/developmentseed/supermorecado) to burn geometries as tiles for different TMS
 
 * update MosaicJSON models to `0.0.3` specification (adds `tilematrixset`, `asset_type`, `asset_prefix`, `data_type`, `colormap` and `layers` attributes)
 
 * allow Mosaic creation using other TileMatrixSet (default is still `WebMercatorQuad`)
 
-* add `tms` support to MosaicBackend
+* add `tms` support to MosaicBackend to read tile in other TMS than the mosaic TileMatrixSet
 
     ```python
     # Before
