@@ -340,6 +340,7 @@ class BaseBackend(BaseReader):
             minzoom=self.minzoom,
             name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
             quadkeys=[] if not quadkeys else self._quadkeys,
+            tilematrixset=repr(self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS),
         )
 
     @property
