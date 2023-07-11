@@ -1,4 +1,8 @@
 
+## 6.1.0 (2023-07-11)
+
+* add `tilematrixset` in `MosaicBackend.info()` response
+
 ## 6.0.1 (2023-07-11)
 
 * fix `HttpBackend` post_init method

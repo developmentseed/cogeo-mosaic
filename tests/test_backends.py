@@ -73,6 +73,7 @@ def test_file_backend():
             "maxzoom",
             "name",
             "quadkeys",
+            "tilematrixset",
         ]
 
         info = mosaic.info(quadkeys=True)
@@ -697,6 +698,7 @@ def test_dynamoDB_backend(client):
             "maxzoom",
             "name",
             "quadkeys",
+            "tilematrixset",
         ]
 
         info = mosaic.info(quadkeys=True)
@@ -1006,6 +1008,7 @@ def test_InMemoryReader():
             "maxzoom",
             "name",
             "quadkeys",
+            "tilematrixset",
         ]
 
     mosaic_oneasset = MosaicJSON.from_urls([asset1], quiet=True)
@@ -1040,6 +1043,7 @@ def test_sqlite_backend():
             "maxzoom",
             "name",
             "quadkeys",
+            "tilematrixset",
         ]
 
         info = mosaic.info(quadkeys=True)
@@ -1182,3 +1186,12 @@ def test_tms_and_coordinates():
         img, assets = mosaic.tile(*tile)
         assert assets == [asset1, asset2]
         assert img.crs == "epsg:4326"
+
+    tms = morecantile.tms.get("WebMercatorQuad")
+    tms_5041 = morecantile.tms.get("UPSArcticWGS84Quad")
+    mosaicdef = MosaicJSON.from_urls(assets, tilematrixset=tms_5041, quiet=True)
+    assert mosaicdef.tilematrixset.id == "UPSArcticWGS84Quad"
+    with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
+        assert mosaic.tms == tms
+        assert mosaic.minzoom == tms.minzoom
+        assert mosaic.maxzoom == tms.maxzoom

@@ -15,3 +15,4 @@ class Info(RioTilerBaseModel):
     maxzoom: int = Field(30, ge=0, le=30)
     name: Optional[str]
     quadkeys: List[str] = []
+    tilematrixset: Optional[str]
