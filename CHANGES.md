@@ -1,4 +1,8 @@
 
+## 6.2.0 (2023-07-11)
+
+* add `coord_crs` to `MosaicBackend.point()` method
+
 ## 6.1.0 (2023-07-11)
 
 * add `tilematrixset` in `MosaicBackend.info()` response

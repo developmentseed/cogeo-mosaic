@@ -1195,3 +1195,22 @@ def test_tms_and_coordinates():
         assert mosaic.tms == tms
         assert mosaic.minzoom == tms.minzoom
         assert mosaic.maxzoom == tms.maxzoom
+
+
+def test_point_crs_coordinates():
+    """Test Point with multiple CRS."""
+    assets = [asset1, asset2]
+    mosaicdef = MosaicJSON.from_urls(assets, quiet=False)
+    with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
+        pts = mosaic.point(-73, 45)
+        assert len(pts) == 2
+        assert pts[0][0].endswith(".tif")
+        assert len(pts[0][1].data) == 3
+        assert pts[0][1].crs == "epsg:4326"
+        assert pts[0][1].coordinates == (-73, 45)
+
+        ptsR = mosaic.point(-8200051.8694, 5782905.49327, coord_crs="epsg:3857")
+        assert len(ptsR) == 2
+        assert ptsR[0][0] == pts[0][0]
+        assert ptsR[0][1].crs == "epsg:3857"
+        assert ptsR[0][1].coordinates == (-8200051.8694, 5782905.49327)
