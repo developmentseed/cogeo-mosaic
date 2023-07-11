@@ -311,25 +311,30 @@ class BaseBackend(BaseReader):
         self,
         lon: float,
         lat: float,
+        coord_crs: CRS = WGS84_CRS,
         reverse: bool = False,
         **kwargs: Any,
     ) -> List[PointData]:
         """Get Point value from multiple observation."""
-        mosaic_assets = self.assets_for_point(lon, lat)
+        mosaic_assets = self.assets_for_point(lon, lat, coord_crs=coord_crs)
         if not mosaic_assets:
             raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
 
         if reverse:
             mosaic_assets = list(reversed(mosaic_assets))
 
-        def _reader(asset: str, lon: float, lat: float, **kwargs) -> PointData:
+        def _reader(
+            asset: str, lon: float, lat: float, coord_crs: CRS, **kwargs
+        ) -> PointData:
             with self.reader(asset, **self.reader_options) as src_dst:
-                return src_dst.point(lon, lat, **kwargs)
+                return src_dst.point(lon, lat, coord_crs=coord_crs, **kwargs)
 
         if "allowed_exceptions" not in kwargs:
             kwargs.update({"allowed_exceptions": (PointOutsideBounds,)})
 
-        return list(multi_values(mosaic_assets, _reader, lon, lat, **kwargs).items())
+        return list(
+            multi_values(mosaic_assets, _reader, lon, lat, coord_crs, **kwargs).items()
+        )
 
     def info(self, quadkeys: bool = False) -> Info:  # type: ignore
         """Mosaic info."""
