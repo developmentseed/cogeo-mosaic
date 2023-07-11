@@ -25,16 +25,9 @@ class HttpBackend(BaseBackend):
 
     # Because the HttpBackend is a Read-Only backend, there is no need for
     # mosaic_def to be in the init method.
-    mosaic_def: MosaicJSON = attr.ib(init=False)
+    mosaic_def: MosaicJSON = attr.ib(init=False, default=None)
 
     _backend_name = "HTTP"
-
-    def __attrs_post_init__(self):
-        """Post Init."""
-        self.mosaic_def = self._read()
-        self.minzoom = self.mosaic_def.minzoom
-        self.maxzoom = self.mosaic_def.maxzoom
-        self.bounds = self.mosaic_def.bounds
 
     @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
