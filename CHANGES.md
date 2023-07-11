@@ -1,4 +1,8 @@
 
+## 6.0.1 (2023-07-11)
+
+* fix `HttpBackend` post_init method
+
 ## 6.0.0 (2023-07-10)
 
 * update `morecantile>=4.1,<5.0` and `rio-tiler>=5.0,<6.0` requirements
