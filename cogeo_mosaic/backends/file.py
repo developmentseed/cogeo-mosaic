@@ -25,7 +25,7 @@ class FileBackend(BaseBackend):
         if not overwrite and pathlib.Path(self.input).exists():
             raise MosaicExistsError("Mosaic file already exist, use `overwrite=True`.")
 
-        body = self.mosaic_def.json(exclude_none=True)
+        body = self.mosaic_def.model_dump_json(exclude_none=True)
         with open(self.input, "wb") as f:
             try:
                 if self.input.endswith(".gz"):

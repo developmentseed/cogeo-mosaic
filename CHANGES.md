@@ -1,4 +1,10 @@
 
+## 7.0.0 (2023-07-26)
+
+* update `morecantile` requirement to `>=5.0,<6.0`
+* update `rio-tiler` requirement to `>=6.0,<7.0`
+* update `pydantic` requirement to `~=2.0`
+
 ## 6.2.0 (2023-07-11)
 
 * add `coord_crs` to `MosaicBackend.point()` method

@@ -1,9 +1,10 @@
 """cogeo-mosaic cache configuration"""
 
-import pydantic
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class CacheSettings(pydantic.BaseSettings):
+class CacheSettings(BaseSettings):
     """Application settings"""
 
     # TTL of the cache in seconds
@@ -15,17 +16,15 @@ class CacheSettings(pydantic.BaseSettings):
     # Whether or not caching is enabled
     disable: bool = False
 
-    class Config:
-        """model config"""
+    model_config = SettingsConfigDict(env_prefix="COGEO_MOSAIC_CACHE_")
 
-        env_prefix = "COGEO_MOSAIC_CACHE_"
-
-    @pydantic.root_validator
+    @model_validator(mode="before")
     def check_enable(cls, values):
-        """Check if cache is desabled."""
+        """Check if cache is disabled."""
         if values.get("disable"):
             values["ttl"] = 0
             values["maxsize"] = 0
+
         return values
 
 

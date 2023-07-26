@@ -203,7 +203,7 @@ class SQLiteBackend(BaseBackend):
                         :layers
                     );
                 """,
-                self.mosaic_def.dict(exclude={"tiles"}),
+                self.mosaic_def.model_dump(exclude={"tiles"}),
             )
 
             self.db.executemany(
@@ -271,7 +271,7 @@ class SQLiteBackend(BaseBackend):
                         layers = :layers
                     WHERE name=:name
                 """,
-                self.mosaic_def.dict(exclude={"tiles"}),
+                self.mosaic_def.model_dump(exclude={"tiles"}),
             )
 
             if add_first:
