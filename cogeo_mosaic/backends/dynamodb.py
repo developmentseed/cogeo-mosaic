@@ -139,7 +139,9 @@ class DynamoDBBackend(BaseBackend):
         # Create Metadata item
         # Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be
         # in Decimal type (ref: https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/)
-        meta = json.loads(self.mosaic_def.json(exclude={"tiles"}), parse_float=Decimal)
+        meta = json.loads(
+            self.mosaic_def.model_dump_json(exclude={"tiles"}), parse_float=Decimal
+        )
         items.append(
             {"quadkey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
         )
@@ -194,7 +196,9 @@ class DynamoDBBackend(BaseBackend):
         # Create Metadata item
         # Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be
         # in Decimal type (ref: https://blog.ruanbekker.com/blog/2019/02/05/convert-float-to-decimal-data-types-for-boto3-dynamodb-using-python/)
-        meta = json.loads(self.mosaic_def.json(exclude={"tiles"}), parse_float=Decimal)
+        meta = json.loads(
+            self.mosaic_def.model_dump_json(exclude={"tiles"}), parse_float=Decimal
+        )
         items.append(
             {"quadkey": self._metadata_quadkey, "mosaicId": self.mosaic_name, **meta}
         )

@@ -14,8 +14,8 @@ asset2 = os.path.join(basepath, "cog2.tif")
 
 
 def test_model():
-    with open(mosaic_json) as f:
-        mosaic = MosaicJSON(**json.load(f))
+    with open(mosaic_json, "r") as f:
+        mosaic = MosaicJSON.model_validate_json(f.read())
         assert isinstance(mosaic.bounds, tuple)
         assert isinstance(mosaic.center, tuple)
         assert isinstance(mosaic, BaseModel)
@@ -26,20 +26,21 @@ def test_validation_error():
         data = json.load(f)
         data["minzoom"] = -1
         with pytest.raises(ValidationError):
-            MosaicJSON(**data)
+            MosaicJSON.model_validate(data)
 
 
 def test_compute_center():
-    with open(mosaic_json) as f:
+    with open(mosaic_json, "r") as f:
         data = json.load(f)
         del data["center"]
-        mosaic = MosaicJSON(**data)
+
+        mosaic = MosaicJSON.model_validate(data)
         assert mosaic.center
 
 
 def test_validate_assignment():
-    with open(mosaic_json) as f:
-        mosaic = MosaicJSON(**json.load(f))
+    with open(mosaic_json, "r") as f:
+        mosaic = MosaicJSON.model_validate_json(f.read())
         with pytest.raises(ValidationError):
             mosaic.minzoom = -1
 
@@ -50,8 +51,55 @@ def test_mosaic_reverse():
     tms = morecantile.tms.get("WebMercatorQuad")
     mosaic = MosaicJSON.from_urls(assets, quiet=True, tilematrixset=tms)
 
-    mosaic_dict = mosaic.dict(exclude_none=True)
-    assert MosaicJSON(**mosaic_dict).tilematrixset.id == "WebMercatorQuad"
+    mosaic_dict = mosaic.model_dump(exclude_none=True)
+    assert MosaicJSON.model_validate(mosaic_dict).tilematrixset.id == "WebMercatorQuad"
 
-    mosaic_json = mosaic.json(exclude_none=True)
-    assert MosaicJSON(**json.loads(mosaic_json)).tilematrixset.id == "WebMercatorQuad"
+    mosaic_json = mosaic.model_dump_json(exclude_none=True)
+    assert (
+        MosaicJSON.model_validate(json.loads(mosaic_json)).tilematrixset.id
+        == "WebMercatorQuad"
+    )
+
+
+def test_mosaic_model():
+    assert MosaicJSON.model_validate(
+        {
+            "mosaicjson": "0.0.3",
+            "minzoom": 0,
+            "maxzoom": 2,
+            "tiles": {},
+        }
+    )
+
+    assert MosaicJSON.model_validate(
+        {
+            "mosaicjson": "0.0.3",
+            "minzoom": 0,
+            "maxzoom": 2,
+            "tiles": {},
+            "tilematrixset": morecantile.tms.get("WebMercatorQuad"),
+        }
+    )
+
+    assert MosaicJSON.model_validate(
+        {
+            "mosaicjson": "0.0.3",
+            "minzoom": 0,
+            "maxzoom": 2,
+            "tiles": {},
+            "tilematrixset": morecantile.tms.get("WebMercatorQuad").model_dump(
+                exclude_none=True
+            ),
+        }
+    )
+
+    with pytest.raises(ValidationError):
+        MosaicJSON.model_validate(
+            {
+                "mosaicjson": "0.0.3",
+                "minzoom": 0,
+                "maxzoom": 2,
+                "tiles": {},
+                "tilematrixset": morecantile.tms.get("WorldCRS84Quad"),
+            }
+        )

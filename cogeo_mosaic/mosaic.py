@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import click
 import morecantile
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from shapely import linearrings, polygons, total_bounds
 from shapely.strtree import STRtree
 from supermorecado import burnTiles
@@ -57,7 +57,7 @@ def default_filter(
     return [dataset[ind] for ind in indices]
 
 
-class MosaicJSON(BaseModel):
+class MosaicJSON(BaseModel, validate_assignment=True):
     """MosaicJSON model.
 
     Based on https://github.com/developmentseed/mosaicjson-spec
@@ -65,50 +65,43 @@ class MosaicJSON(BaseModel):
     """
 
     mosaicjson: str
-    name: Optional[str]
-    description: Optional[str]
+    name: Optional[str] = None
+    description: Optional[str] = None
     version: str = "1.0.0"
-    attribution: Optional[str]
+    attribution: Optional[str] = None
     minzoom: int = Field(0, ge=0, le=30)
     maxzoom: int = Field(30, ge=0, le=30)
-    quadkey_zoom: Optional[int]
+    quadkey_zoom: Optional[int] = None
     bounds: Tuple[float, float, float, float] = Field(default=(-180, -90, 180, 90))
-    center: Optional[Tuple[float, float, int]]
+    center: Optional[Tuple[float, float, int]] = None
     tiles: Dict[str, List[str]]
-    tilematrixset: Optional[morecantile.TileMatrixSet]
-    asset_type: Optional[str]
-    asset_prefix: Optional[str]
-    data_type: Optional[str]
-    colormap: Optional[Dict[int, Tuple[int, int, int, int]]]
-    layers: Optional[Dict]
+    tilematrixset: Optional[morecantile.TileMatrixSet] = None
+    asset_type: Optional[str] = None
+    asset_prefix: Optional[str] = None
+    data_type: Optional[str] = None
+    colormap: Optional[Dict[int, Tuple[int, int, int, int]]] = None
+    layers: Optional[Dict] = None
 
-    class Config:
-        """Validate model on update."""
-
-        validate_assignment = True
-
-    @validator("tilematrixset", pre=True, always=True)
+    @field_validator("tilematrixset")
     def parse_tms(cls, value) -> Optional[morecantile.TileMatrixSet]:
         """Parse TMS."""
-        if isinstance(value, dict):
-            value = morecantile.TileMatrixSet(**value)
-
         if value:
-            assert value._is_quadtree, f"{value.id} TMS does not support quadtree."
+            value = morecantile.TileMatrixSet.model_validate(value)
+            assert value.is_quadtree, f"{value.id} TMS does not support quadtree."
 
         return value
 
-    @root_validator
-    def compute_center(cls, values):
+    @model_validator(mode="after")
+    def compute_center(self):
         """Compute center if it does not exist."""
-        bounds = values["bounds"]
-        if not values.get("center"):
-            values["center"] = (
+        bounds = self.bounds
+        if not self.center:
+            self.center = (
                 (bounds[0] + bounds[2]) / 2,
                 (bounds[1] + bounds[3]) / 2,
-                values["minzoom"],
+                self.minzoom,
             )
-        return values
+        return self
 
     def _increase_version(self):
         """Increment mosaicjson document version."""
@@ -158,7 +151,7 @@ class MosaicJSON(BaseModel):
         """
         tms = tilematrixset or WEB_MERCATOR_TMS
 
-        assert tms._is_quadtree, f"{tms.id} TMS does not support quadtree."
+        assert tms.is_quadtree, f"{tms.id} TMS does not support quadtree."
 
         quadkey_zoom = quadkey_zoom or minzoom
 

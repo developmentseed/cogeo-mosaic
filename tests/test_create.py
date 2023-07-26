@@ -1,5 +1,6 @@
 import json
 import os
+import warnings
 
 import morecantile
 import pyproj
@@ -77,9 +78,10 @@ def test_mosaic_create():
     ]
     assert mosaic.maxzoom == mosaic_content["maxzoom"]
 
-    with pytest.warns(None) as record:
+    # Make sure no warning is emmited
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         MosaicJSON.from_urls([asset1_small, asset2], minzoom=7, maxzoom=9)
-        assert not len(record)
 
     # Multiple MaxZoom
     with pytest.warns(UserWarning):

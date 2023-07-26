@@ -102,7 +102,7 @@ def create(
         with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
             mosaic.write(overwrite=True)
     else:
-        click.echo(mosaicjson.json(exclude_none=True))
+        click.echo(mosaicjson.model_dump_json(exclude_none=True))
 
 
 @cogeo_cli.command(short_help="Upload mosaic definition to backend")
@@ -182,7 +182,7 @@ def create_from_features(
         with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
             mosaic.write(overwrite=True)
     else:
-        click.echo(mosaicjson.json(exclude_none=True))
+        click.echo(mosaicjson.model_dump_json(exclude_none=True))
 
 
 @cogeo_cli.command(short_help="Update a mosaic definition from list of files")

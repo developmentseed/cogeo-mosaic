@@ -65,8 +65,11 @@ def test_file_backend():
         assert mosaic.minzoom == mosaic.mosaic_def.minzoom
 
         info = mosaic.info()
-        assert not info["quadkeys"]
-        assert list(info.dict()) == [
+        assert not info.quadkeys
+        with pytest.warns(DeprecationWarning):
+            assert not info["quadkeys"]
+
+        assert list(info.model_dump()) == [
             "bounds",
             "center",
             "minzoom",
@@ -77,10 +80,10 @@ def test_file_backend():
         ]
 
         info = mosaic.info(quadkeys=True)
-        assert info["quadkeys"]
+        assert info.quadkeys
 
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -111,7 +114,7 @@ def test_file_backend():
         assert isinstance(mosaic, FileBackend)
         assert mosaic.quadkey_zoom == 7
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == ["mosaicjson", "version", "minzoom", "maxzoom", "bounds", "center"]
 
     with pytest.raises(ValidationError):
@@ -228,7 +231,7 @@ def test_http_backend(httpx):
         )
         assert mosaic.quadkey_zoom == 7
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -295,7 +298,7 @@ def test_s3_backend(session):
         )
         assert mosaic.quadkey_zoom == 7
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -390,7 +393,7 @@ def test_gs_backend(session):
         )
         assert mosaic.quadkey_zoom == 7
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -491,7 +494,7 @@ def test_abs_backend(session):
         )
         assert mosaic.quadkey_zoom == 7
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -676,7 +679,7 @@ def test_dynamoDB_backend(client):
         assert isinstance(mosaic, DynamoDBBackend)
         assert mosaic.quadkey_zoom == 7
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -690,8 +693,8 @@ def test_dynamoDB_backend(client):
         assert mosaic.assets_for_point(-73, 45) == ["cog1.tif", "cog2.tif"]
 
         info = mosaic.info()
-        assert not info["quadkeys"]
-        assert list(info.dict()) == [
+        assert not info.quadkeys
+        assert list(info.model_dump()) == [
             "bounds",
             "center",
             "minzoom",
@@ -702,7 +705,7 @@ def test_dynamoDB_backend(client):
         ]
 
         info = mosaic.info(quadkeys=True)
-        assert info["quadkeys"]
+        assert info.quadkeys
 
     # TODO better test dynamodb write
     # with MosaicBackend(
@@ -754,7 +757,7 @@ def test_stac_backend(post):
         assert post.call_count == 1
         assert mosaic.quadkey_zoom == 8
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -788,7 +791,7 @@ def test_stac_backend(post):
         assert post.call_count == 2
         assert mosaic.quadkey_zoom == 8
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -843,7 +846,7 @@ def test_stac_backend(post):
         assert mosaic.mosaic_def.minzoom == 8
         assert mosaic.mosaic_def.maxzoom == 14
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "version",
@@ -1001,7 +1004,7 @@ def test_InMemoryReader():
             mosaic.feature()
 
         info = mosaic.info()
-        assert list(info.dict()) == [
+        assert list(info.model_dump()) == [
             "bounds",
             "center",
             "minzoom",
@@ -1035,8 +1038,8 @@ def test_sqlite_backend():
         assert mosaic.quadkey_zoom == 7
 
         info = mosaic.info()
-        assert not info["quadkeys"]
-        assert list(info.dict()) == [
+        assert not info.quadkeys
+        assert list(info.model_dump()) == [
             "bounds",
             "center",
             "minzoom",
@@ -1047,10 +1050,10 @@ def test_sqlite_backend():
         ]
 
         info = mosaic.info(quadkeys=True)
-        assert info["quadkeys"]
+        assert info.quadkeys
 
         assert list(
-            mosaic.mosaic_def.dict(exclude_none=True, exclude={"tiles"}).keys()
+            mosaic.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}).keys()
         ) == [
             "mosaicjson",
             "name",
@@ -1129,11 +1132,11 @@ def test_sqlite_backend():
     # Test update methods
     with MosaicBackend("sqlite:///:memory::test", mosaic_def=mosaic_oneasset) as m:
         m.write()
-        meta = m.mosaic_def.dict(exclude_none=True, exclude={"tiles"})
+        meta = m.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"})
         assert len(m.get_assets(150, 182, 9)) == 1
 
         m.update(features)
-        assert not m.mosaic_def.dict(exclude_none=True, exclude={"tiles"}) == meta
+        assert not m.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}) == meta
 
         assets = m.get_assets(150, 182, 9)
         assert len(assets) == 2
@@ -1143,11 +1146,11 @@ def test_sqlite_backend():
     # Test update with `add_first=False`
     with MosaicBackend("sqlite:///:memory::test2", mosaic_def=mosaic_oneasset) as m:
         m.write()
-        meta = m.mosaic_def.dict(exclude_none=True, exclude={"tiles"})
+        meta = m.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"})
         assert len(m.get_assets(150, 182, 9)) == 1
 
         m.update(features, add_first=False)
-        assert not m.mosaic_def.dict(exclude_none=True, exclude={"tiles"}) == meta
+        assert not m.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}) == meta
 
         assets = m.get_assets(150, 182, 9)
         assert len(assets) == 2

@@ -360,7 +360,7 @@ class BaseBackend(BaseReader):
     @property
     def mosaicid(self) -> str:
         """Return sha224 id of the mosaicjson document."""
-        return get_hash(**self.mosaic_def.dict(exclude_none=True))
+        return get_hash(**self.mosaic_def.model_dump(exclude_none=True))
 
     @property
     def _quadkeys(self) -> List[str]:

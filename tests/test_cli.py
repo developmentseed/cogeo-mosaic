@@ -31,7 +31,8 @@ def test_create_valid():
         result = runner.invoke(cogeo_cli, ["create", "list.txt", "-o", "mosaic.json"])
         assert not result.exception
         assert result.exit_code == 0
-        assert mosaic_content == MosaicJSON.parse_file("mosaic.json")
+        with open("mosaic.json", "r") as f:
+            assert mosaic_content == MosaicJSON.model_validate_json(f.read())
 
         result = runner.invoke(
             cogeo_cli,
@@ -50,7 +51,8 @@ def test_create_valid():
         )
         assert not result.exception
         assert result.exit_code == 0
-        mosaic = MosaicJSON.parse_file("mosaic.json")
+        with open("mosaic.json", "r") as f:
+            mosaic = MosaicJSON.model_validate_json(f.read())
         assert mosaic.name == "my_mosaic"
         assert mosaic.description == "A mosaic"
         assert mosaic.attribution == "someone"
@@ -61,7 +63,7 @@ def test_update_valid():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with open("mosaic_1.json", "w") as f:
-            f.write(MosaicJSON.from_urls([asset1]).json(exclude_none=True))
+            f.write(MosaicJSON.from_urls([asset1]).model_dump_json(exclude_none=True))
 
         with open("./list.txt", "w") as f:
             f.write("\n".join([asset2]))
@@ -77,7 +79,7 @@ def test_update_valid():
             assert not mosaic_content.tiles == updated_mosaic["tiles"]
 
         with open("mosaic_2.json", "w") as f:
-            f.write(MosaicJSON.from_urls([asset1]).json(exclude_none=True))
+            f.write(MosaicJSON.from_urls([asset1]).model_dump_json(exclude_none=True))
 
         result = runner.invoke(
             cogeo_cli, ["update", "list.txt", "mosaic_2.json", "--add-last", "--quiet"]
@@ -162,7 +164,8 @@ def test_from_features():
         )
         assert not result.exception
         assert result.exit_code == 0
-        assert mosaic_content == MosaicJSON.parse_file("mosaic.json")
+        with open("mosaic.json", "r") as f:
+            assert mosaic_content == MosaicJSON.model_validate_json(f.read())
 
         result = runner.invoke(
             cogeo_cli,
