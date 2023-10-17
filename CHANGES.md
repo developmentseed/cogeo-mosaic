@@ -1,4 +1,8 @@
 
+## 7.0.1 (2023-10-17)
+
+* add `py.typed` file (https://peps.python.org/pep-0561)
+
 ## 7.0.0 (2023-07-26)
 
 * update `morecantile` requirement to `>=5.0,<6.0`
