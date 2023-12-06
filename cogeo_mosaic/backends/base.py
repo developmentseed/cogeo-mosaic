@@ -236,13 +236,17 @@ class BaseBackend(BaseReader):
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
         quadkeys = self.find_quadkeys(Tile(x=x, y=y, z=z), self.quadkey_zoom)
-        return list(
+        assets = list(
             dict.fromkeys(
                 itertools.chain.from_iterable(
                     [self.mosaic_def.tiles.get(qk, []) for qk in quadkeys]
                 )
             )
         )
+        if self.mosaic_def.asset_prefix:
+            assets = [self.mosaic_def.asset_prefix + asset for asset in assets]
+
+        return assets
 
     def find_quadkeys(self, tile: Tile, quadkey_zoom: int) -> List[str]:
         """

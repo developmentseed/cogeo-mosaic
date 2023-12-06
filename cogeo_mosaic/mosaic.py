@@ -1,6 +1,7 @@
 """cogeo_mosaic.mosaic MosaicJSON models and helper functions."""
 
 import os
+import re
 import sys
 import warnings
 from contextlib import ExitStack
@@ -230,9 +231,16 @@ class MosaicJSON(BaseModel, validate_assignment=True):
                     )
 
                     if dataset:
-                        mosaic_definition["tiles"][quadkey] = [
-                            accessor(f) for f in dataset
-                        ]
+                        assets = [accessor(f) for f in dataset]
+                        if asset_prefix:
+                            assets = [
+                                re.sub(rf"^{asset_prefix}", "", asset)
+                                if asset.startswith(asset_prefix)
+                                else asset
+                                for asset in assets
+                            ]
+
+                        mosaic_definition["tiles"][quadkey] = assets
 
         return cls(**mosaic_definition)
 

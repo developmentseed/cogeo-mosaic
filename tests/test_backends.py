@@ -1217,3 +1217,15 @@ def test_point_crs_coordinates():
         assert ptsR[0][0] == pts[0][0]
         assert ptsR[0][1].crs == "epsg:3857"
         assert ptsR[0][1].coordinates == (-8200051.8694, 5782905.49327)
+
+
+def test_InMemoryReader_asset_prefix():
+    """Test MemoryBackend."""
+    assets = [asset1, asset2]
+    prefix = os.path.join(os.path.dirname(__file__), "fixtures")
+    mosaicdef = MosaicJSON.from_urls(assets, quiet=False, asset_prefix=prefix)
+
+    assert mosaicdef.tiles["0302310"] == ["/cog1.tif", "/cog2.tif"]
+    with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
+        assets = mosaic.assets_for_tile(150, 182, 9)
+        assert assets[0].startswith(prefix)
