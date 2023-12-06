@@ -316,11 +316,15 @@ class SQLiteBackend(BaseBackend):
         """Find assets."""
         mercator_tile = morecantile.Tile(x=x, y=y, z=z)
         quadkeys = self.find_quadkeys(mercator_tile, self.quadkey_zoom)
-        return list(
+        assets = list(
             dict.fromkeys(
                 itertools.chain.from_iterable([self._fetch(qk) for qk in quadkeys])
             )
         )
+        if self.mosaic_def.asset_prefix:
+            assets = [self.mosaic_def.asset_prefix + asset for asset in assets]
+
+        return assets
 
     @property
     def _quadkeys(self) -> List[str]:

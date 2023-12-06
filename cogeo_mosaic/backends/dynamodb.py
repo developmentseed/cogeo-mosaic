@@ -222,13 +222,17 @@ class DynamoDBBackend(BaseBackend):
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""
         quadkeys = self.find_quadkeys(Tile(x=x, y=y, z=z), self.quadkey_zoom)
-        return list(
+        assets = list(
             dict.fromkeys(
                 itertools.chain.from_iterable(
                     [self._fetch_dynamodb(qk).get("assets", []) for qk in quadkeys]
                 )
             )
         )
+        if self.mosaic_def.asset_prefix:
+            assets = [self.mosaic_def.asset_prefix + asset for asset in assets]
+
+        return assets
 
     @property
     def _quadkeys(self) -> List[str]:

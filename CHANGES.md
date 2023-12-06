@@ -1,3 +1,6 @@
+## 7.1.0
+
+* Automatically remove/add `asset_prefix` in Mosaic Backends
 
 ## 7.0.1 (2023-10-17)
 

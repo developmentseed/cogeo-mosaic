@@ -127,7 +127,7 @@ def test_mosaic_create_additional_metadata():
         quiet=True,
         tilematrixset=tms_3857,
         asset_type="COG",
-        asset_prefix="s3://my-bucket/",
+        asset_prefix=basepath,
         data_type="uint16",
         layers={
             "true-color": {
@@ -137,6 +137,7 @@ def test_mosaic_create_additional_metadata():
         },
     )
     assert mosaic.asset_type == "COG"
-    assert mosaic.asset_prefix == "s3://my-bucket/"
+    assert mosaic.asset_prefix == basepath
     assert mosaic.data_type == "uint16"
     assert mosaic.layers["true-color"]
+    assert mosaic.tiles["0302301"] == ["/cog1.tif", "/cog2.tif"]
