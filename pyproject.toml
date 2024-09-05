@@ -31,6 +31,10 @@ dependencies = [
   "rio-tiler>=6.0,<7.0",
   "supermorecado",
   "cachetools",
+  "numpy",
+  "click",
+  "cligj",
+  "click_plugins",
 ]
 
 [project.optional-dependencies]
