@@ -206,15 +206,18 @@ def _fetch(  # noqa: C901
         # {"page": 1, "limit": 1000, "matched": 5671, "returned": 1000}
         # SAT-API META
         # {"page": 4, "limit": 100, "found": 350, "returned": 50}
+        # STAC api `numberMatched` and `numberReturned` fields in ItemCollection
+        # {"numberMatched": 10, "numberReturned": 5, "features": [...]}
         # otherwise we don't break early
         ctx = results.get("context", results.get("meta"))
-        matched = ctx.get("matched", ctx.get("found"))
+        returned = ctx.get("returned", results.get("numberReturned"))
+        matched = ctx.get("matched", ctx.get("found") or results.get("numberMatched"))
 
         logger.debug(json.dumps(ctx))
 
         # Check if there is more data to fetch
-        if matched:
-            if matched <= ctx["returned"]:
+        if None not in (matched, returned):
+            if matched <= returned:
                 break
 
             # We shouldn't fetch more item than matched

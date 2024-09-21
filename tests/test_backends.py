@@ -893,7 +893,15 @@ def test_stac_search(post):
     assert len(stac_search("https://a_stac.api/search", {}, max_items=2, limit=1)) == 2
     assert post.call_count == 2
     post.reset_mock()
+    stac_search.cache_clear()
 
+    post.side_effect = [
+        STACMockResponse({"features": [{"id": "1"}], "numberMatched": 2, "numberReturned": 1, "context": {}}),
+        STACMockResponse({"features": [{"id": "2"}], "numberMatched": 2, "numberReturned": 1, "context": {}}),
+    ]
+    assert len(stac_search("https://a_stac.api/search", {}, max_items=2, limit=1)) == 2
+    assert post.call_count == 2
+    post.reset_mock()
 
 
 def test_stac_accessor():
