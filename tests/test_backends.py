@@ -884,6 +884,16 @@ def test_stac_search(post):
         ]
 
     assert len(stac_search("https://a_stac.api/search", {}, max_items=7)) == 7
+    post.reset_mock()
+
+    post.side_effect = [
+        STACMockResponse({"features": [{"id": "1"}], "context": {"returned": 1, "limit": 1}}),
+        STACMockResponse({"features": [{"id": "2"}], "context": {"returned": 1, "limit": 1}})
+    ]
+    assert len(stac_search("https://a_stac.api/search", {}, max_items=2, limit=1)) == 2
+    assert post.call_count == 2
+    post.reset_mock()
+
 
 
 def test_stac_accessor():
