@@ -887,8 +887,12 @@ def test_stac_search(post):
     post.reset_mock()
 
     post.side_effect = [
-        STACMockResponse({"features": [{"id": "1"}], "context": {"returned": 1, "limit": 1}}),
-        STACMockResponse({"features": [{"id": "2"}], "context": {"returned": 1, "limit": 1}})
+        STACMockResponse(
+            {"features": [{"id": "1"}], "context": {"returned": 1, "limit": 1}}
+        ),
+        STACMockResponse(
+            {"features": [{"id": "2"}], "context": {"returned": 1, "limit": 1}}
+        ),
     ]
     assert len(stac_search("https://a_stac.api/search", {}, max_items=2, limit=1)) == 2
     assert post.call_count == 2
@@ -896,8 +900,22 @@ def test_stac_search(post):
     stac_search.cache_clear()
 
     post.side_effect = [
-        STACMockResponse({"features": [{"id": "1"}], "numberMatched": 2, "numberReturned": 1, "context": {}}),
-        STACMockResponse({"features": [{"id": "2"}], "numberMatched": 2, "numberReturned": 1, "context": {}}),
+        STACMockResponse(
+            {
+                "features": [{"id": "1"}],
+                "numberMatched": 2,
+                "numberReturned": 1,
+                "context": {},
+            }
+        ),
+        STACMockResponse(
+            {
+                "features": [{"id": "2"}],
+                "numberMatched": 2,
+                "numberReturned": 1,
+                "context": {},
+            }
+        ),
     ]
     assert len(stac_search("https://a_stac.api/search", {}, max_items=2, limit=1)) == 2
     assert post.call_count == 2
