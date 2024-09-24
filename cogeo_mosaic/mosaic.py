@@ -275,7 +275,13 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             >>> MosaicJSON.from_urls(["1.tif", "2.tif"])
 
         """
-        features = get_footprints(urls, max_threads=max_threads, quiet=quiet)
+        tms = kwargs.pop('tilematrixset', WEB_MERCATOR_TMS)
+        features = get_footprints(
+            urls, 
+            max_threads=max_threads, 
+            tms = tms,
+            quiet=quiet
+        )
 
         if minzoom is None:
             data_minzoom = {feat["properties"]["minzoom"] for feat in features}
@@ -301,7 +307,7 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             raise MultipleDataTypeError("Dataset should have the same data type")
 
         return cls._create_mosaic(
-            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, **kwargs
+            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, tilematrixset=tms, **kwargs
         )
 
     @classmethod

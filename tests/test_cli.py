@@ -26,6 +26,7 @@ def test_create_valid():
         result = runner.invoke(cogeo_cli, ["create", "list.txt", "--quiet"])
         assert not result.exception
         assert result.exit_code == 0
+        #breakpoint()
         assert mosaic_content == MosaicJSON(**json.loads(result.output))
 
         result = runner.invoke(cogeo_cli, ["create", "list.txt", "-o", "mosaic.json"])
@@ -41,6 +42,8 @@ def test_create_valid():
                 "list.txt",
                 "-o",
                 "mosaic.json",
+                "--tms",
+                "WorldMercatorWGS84Quad",
                 "--name",
                 "my_mosaic",
                 "--description",

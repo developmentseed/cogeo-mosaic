@@ -49,7 +49,7 @@ def test_mosaic_create():
     assert mosaic.minzoom == mosaic_content["minzoom"]
     assert list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
     assert mosaic.tiles == mosaic_content["tiles"]
-    assert not mosaic.tilematrixset
+    assert mosaic.tilematrixset.id == "WebMercatorQuad"
 
     mosaic = MosaicJSON.from_urls(assets, minzoom=7, maxzoom=9)
     assert [round(b, 3) for b in list(mosaic.bounds)] == [
