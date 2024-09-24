@@ -216,7 +216,7 @@ def _fetch(  # noqa: C901
         logger.debug(json.dumps(ctx))
 
         # Check if there is more data to fetch
-        if None not in (matched, returned):
+        if matched is not None and returned is not None:
             if matched <= returned:
                 break
 
