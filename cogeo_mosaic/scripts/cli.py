@@ -15,7 +15,7 @@ from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import get_footprints
 
-tms = morecantile.tms.get("WebMercatorQuad")
+default_tms = morecantile.tms.get("WebMercatorQuad")
 
 
 @with_plugins(iter_entry_points("cogeo_mosaic.plugins"))
@@ -54,6 +54,11 @@ def cogeo_cli():
     default=lambda: os.environ.get("MAX_THREADS", multiprocessing.cpu_count() * 5),
     help="threads",
 )
+@click.option(
+    "--tms",
+    help="Path to TileMatrixSet JSON file.",
+    type=click.Path(),
+)
 @click.option("--name", type=str, help="Mosaic name")
 @click.option("--description", type=str, help="Mosaic description")
 @click.option("--attribution", type=str, help="Image attibution")
@@ -73,12 +78,17 @@ def create(
     min_tile_cover,
     tile_cover_sort,
     threads,
+    tms,
     name,
     description,
     attribution,
     quiet,
 ):
     """Create mosaic definition file."""
+    tilematrixset = default_tms
+    if tms:
+        with open(tms, "r") as f:
+            tilematrixset = morecantile.TileMatrixSet(**json.load(f))
     input_files = [file.strip() for file in input_files if file.strip()]
     mosaicjson = MosaicJSON.from_urls(
         input_files,
@@ -87,6 +97,7 @@ def create(
         quadkey_zoom=quadkey_zoom,
         minimum_tile_cover=min_tile_cover,
         tile_cover_sort=tile_cover_sort,
+        tilematrixset=tilematrixset,
         max_threads=threads,
         quiet=quiet,
     )
@@ -99,7 +110,7 @@ def create(
         mosaicjson.attribution = attribution
 
     if output:
-        with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
+        with MosaicBackend(output, mosaic_def=mosaicjson, tms=tilematrixset) as mosaic:
             mosaic.write(overwrite=True)
     else:
         click.echo(mosaicjson.model_dump_json(exclude_none=True))
@@ -110,11 +121,20 @@ def create(
 @click.option(
     "--url", type=str, required=True, help="URL to which the mosaic should be uploaded."
 )
-def upload(file, url):
+@click.option(
+    "--tms",
+    help="Path to TileMatrixSet JSON file.",
+    type=click.Path(),
+)
+def upload(file, url, tms):
     """Upload mosaic definition file."""
+    tilematrixset = default_tms
+    if tms:
+        with open(tms, "r") as f:
+            tilematrixset = morecantile.TileMatrixSet(**json.load(f))
     mosaicjson = json.load(file)
 
-    with MosaicBackend(url, mosaic_def=mosaicjson) as mosaic:
+    with MosaicBackend(url, mosaic_def=mosaicjson, tms=tilematrixset) as mosaic:
         mosaic.write(overwrite=True)
 
 
@@ -135,6 +155,11 @@ def upload(file, url):
 @click.option(
     "--tile-cover-sort", help="Sort files by covering %", is_flag=True, default=False
 )
+@click.option(
+    "--tms",
+    help="Path to TileMatrixSet JSON file.",
+    type=click.Path(),
+)
 @click.option("--name", type=str, help="Mosaic name")
 @click.option("--description", type=str, help="Mosaic description")
 @click.option("--attribution", type=str, help="Image attibution")
@@ -154,12 +179,17 @@ def create_from_features(
     quadkey_zoom,
     min_tile_cover,
     tile_cover_sort,
+    tms,
     name,
     description,
     attribution,
     quiet,
 ):
     """Create mosaic definition file."""
+    tilematrixset = default_tms
+    if tms:
+        with open(tms, "r") as f:
+            tilematrixset = morecantile.TileMatrixSet(**json.load(f))
     mosaicjson = MosaicJSON.from_features(
         list(features),
         minzoom,
@@ -168,6 +198,7 @@ def create_from_features(
         accessor=lambda feature: feature["properties"][property],
         minimum_tile_cover=min_tile_cover,
         tile_cover_sort=tile_cover_sort,
+        tilematrixset=tilematrixset,
         quiet=quiet,
     )
 
@@ -179,7 +210,7 @@ def create_from_features(
         mosaicjson.attribution = attribution
 
     if output:
-        with MosaicBackend(output, mosaic_def=mosaicjson) as mosaic:
+        with MosaicBackend(output, mosaic_def=mosaicjson, tms=tilematrixset) as mosaic:
             mosaic.write(overwrite=True)
     else:
         click.echo(mosaicjson.model_dump_json(exclude_none=True))
@@ -280,7 +311,7 @@ def info(input, to_json):
         }
 
         geo = {
-            "TileMatrixSet": "WebMercatorQuad",
+            "TileMatrixSet": mosaic.tms.id, # TODO this may require deeper and more changes
             "BoundingBox": mosaic.mosaic_def.bounds,
             "Center": mosaic.mosaic_def.center,
             "Min Zoom": mosaic.mosaic_def.minzoom,
@@ -347,8 +378,8 @@ def to_geojson(input, collect):
     features = []
     with MosaicBackend(input) as mosaic:
         for qk, assets in mosaic.mosaic_def.tiles.items():
-            tile = tms.quadkey_to_tile(qk)
-            west, south, east, north = tms.bounds(tile)
+            tile = mosaic.tms.quadkey_to_tile(qk)
+            west, south, east, north = mosaic.tms.bounds(tile)
 
             geom = {
                 "type": "Polygon",
