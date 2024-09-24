@@ -248,6 +248,7 @@ class MosaicJSON(BaseModel, validate_assignment=True):
     def from_urls(
         cls,
         urls: Sequence[str],
+        tilematrixset: Optional[morecantile.TileMatrixSet] = WEB_MERCATOR_TMS,
         minzoom: Optional[int] = None,
         maxzoom: Optional[int] = None,
         max_threads: int = 20,
@@ -258,6 +259,7 @@ class MosaicJSON(BaseModel, validate_assignment=True):
 
         Attributes:
             urls (list): List of COGs.
+            tilematrixset: (morecantile.TileMatrixSet), optional (default: "WebMercatorQuad")
             minzoom (int): Force mosaic min-zoom.
             maxzoom (int): Force mosaic max-zoom.
             max_threads (int): Max threads to use (default: 20).
@@ -275,11 +277,10 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             >>> MosaicJSON.from_urls(["1.tif", "2.tif"])
 
         """
-        tms = kwargs.pop('tilematrixset', WEB_MERCATOR_TMS)
         features = get_footprints(
             urls, 
             max_threads=max_threads, 
-            tms = tms,
+            tms = tilematrixset,
             quiet=quiet
         )
 
@@ -307,7 +308,7 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             raise MultipleDataTypeError("Dataset should have the same data type")
 
         return cls._create_mosaic(
-            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, tilematrixset=tms, **kwargs
+            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, tilematrixset=tilematrixset, **kwargs
         )
 
     @classmethod
