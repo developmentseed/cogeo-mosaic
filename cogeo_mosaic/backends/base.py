@@ -173,11 +173,13 @@ class BaseBackend(BaseReader):
         self,
         lng: float,
         lat: float,
-        coord_crs: CRS = WGS84_CRS,
+        coord_crs: Optional[CRS] = None,
     ) -> List[str]:
         """Retrieve assets for point."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
-
+        # default coord_sys should be the mosaic's geographic CRS
+        if not coord_crs:
+            coord_crs = self.tms.rasterio_geographic_crs
         # If coord_crs is not the same as the mosaic's geographic CRS
         # we reproject the coordinates
         if coord_crs != mosaic_tms.rasterio_geographic_crs:
@@ -197,11 +199,13 @@ class BaseBackend(BaseReader):
         ymin: float,
         xmax: float,
         ymax: float,
-        coord_crs: Optional[CRS] = WGS84_CRS,
+        coord_crs: Optional[CRS] = None,
     ) -> List[str]:
         """Retrieve assets for bbox."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
-
+        # default coord_sys should be the mosaic's geographic CRS
+        if not coord_crs:
+            coord_crs = self.tms.rasterio_geographic_crs
         # If coord_crs is not the same as the mosaic's geographic CRS
         # we reproject the bounding box
         if coord_crs != mosaic_tms.rasterio_geographic_crs:
@@ -315,11 +319,14 @@ class BaseBackend(BaseReader):
         self,
         lon: float,
         lat: float,
-        coord_crs: CRS = WGS84_CRS,
+        coord_crs: Optional[CRS] = None,
         reverse: bool = False,
         **kwargs: Any,
     ) -> List[PointData]:
         """Get Point value from multiple observation."""
+        # default coord_sys should be the mosaic's geographic CRS
+        if not coord_crs:
+            coord_crs = self.tms.rasterio_geographic_crs
         mosaic_assets = self.assets_for_point(lon, lat, coord_crs=coord_crs)
         if not mosaic_assets:
             raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
