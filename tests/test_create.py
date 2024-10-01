@@ -6,10 +6,10 @@ import morecantile
 import pyproj
 import pytest
 
-from cogeo_mosaic.errors import MultipleDataTypeError
-from cogeo_mosaic.mosaic import MosaicJSON, default_filter
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.backends.file import FileBackend
+from cogeo_mosaic.errors import MultipleDataTypeError
+from cogeo_mosaic.mosaic import MosaicJSON, default_filter
 
 tms_3857 = morecantile.tms.get("WebMercatorQuad")
 tms_4326 = morecantile.tms.get("WorldCRS84Quad")
@@ -159,7 +159,10 @@ def test_mosaic_create_additional_metadata():
     assert mosaic.tiles["0302301"] == ["/cog1.tif", "/cog2.tif"]
 
 
-@pytest.mark.skipif(tuple(map(int, pyproj.__version__.split('.'))) < (3, 6, 0), reason="requires proj >= 9.2.1")
+@pytest.mark.skipif(
+    tuple(map(int, pyproj.__version__.split("."))) < (3, 6, 0),
+    reason="requires proj >= 9.2.1",
+)
 def test_mars_mosaic_create():
     # first define the tilematrixset manually
     MARS2000_SPHERE = pyproj.CRS.from_user_input("IAU_2015:49900")
@@ -178,15 +181,17 @@ def test_mars_mosaic_create():
         geographic_crs=MARS2000_SPHERE,
     )
     # load the mars_ctx_stac_assset.json file
-    with open(mars_ctx_asset, 'r') as f:
+    with open(mars_ctx_asset, "r") as f:
         stac_asset = json.load(f)
     # these stac item has multiple assets so grab the DTM
-    stac_asset['properties']['path'] = stac_asset['assets']['dtm']['href']
+    stac_asset["properties"]["path"] = stac_asset["assets"]["dtm"]["href"]
     # now construct the mosaicjson object
     mosaic_json = MosaicJSON.from_features(
-        [stac_asset,],
-        minzoom=7, 
-        maxzoom=30, 
+        [
+            stac_asset,
+        ],
+        minzoom=7,
+        maxzoom=30,
         tilematrixset=mars_tms,
     )
     assert mosaic_json is not None
@@ -199,8 +204,20 @@ def test_mars_mosaic_create():
         assert mosaic.crs == mars_tms.rasterio_geographic_crs
         assert mosaic.geographic_crs == mars_tms.rasterio_geographic_crs
         assert len(mosaic.assets_for_point(77.28, 18, mars_tms.geographic_crs)) > 0
-        assert len(mosaic.assets_for_bbox(77.2, 17.5, 77.4, 18.5, mars_tms.geographic_crs)) > 0
-        assert len(mosaic.assets_for_point(77.28, 18, mars_tms.rasterio_geographic_crs)) > 0
-        assert len(mosaic.assets_for_bbox(77.2, 17.5, 77.4, 18.5, mars_tms.rasterio_geographic_crs)) > 0
+        assert (
+            len(mosaic.assets_for_bbox(77.2, 17.5, 77.4, 18.5, mars_tms.geographic_crs))
+            > 0
+        )
+        assert (
+            len(mosaic.assets_for_point(77.28, 18, mars_tms.rasterio_geographic_crs)) > 0
+        )
+        assert (
+            len(
+                mosaic.assets_for_bbox(
+                    77.2, 17.5, 77.4, 18.5, mars_tms.rasterio_geographic_crs
+                )
+            )
+            > 0
+        )
         assert len(mosaic.assets_for_point(77.25, 18.0)) > 0
         assert len(mosaic.assets_for_bbox(77.2, 17.5, 77.4, 18.5)) > 0
