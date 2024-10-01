@@ -1,3 +1,7 @@
+## Unreleased
+
+* update BaseBackend to use a default coord_crs from the tms (author @AndrewAnnex, https://github.com/developmentseed/cogeo-mosaic/pull/234)
+
 ## 7.1.0 (2023-12-06)
 
 * Automatically remove/add `asset_prefix` in Mosaic Backends
