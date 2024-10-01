@@ -3,23 +3,27 @@
 import json
 import multiprocessing
 import os
+import sys
 
 import click
 import cligj
 import morecantile
 from click_plugins import with_plugins
-from pkg_resources import iter_entry_points
 
 from cogeo_mosaic import __version__ as cogeo_mosaic_version
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import get_footprints
 
+if sys.version_info < (3, 10):
+    from importlib_metadata import entry_points
+else:
+    from importlib.metadata import entry_points
 
 default_tms = morecantile.tms.get("WebMercatorQuad")
 
 
-@with_plugins(iter_entry_points("cogeo_mosaic.plugins"))
+@with_plugins(entry_points(group="cogeo_mosaic.plugins"))
 @click.group()
 @click.version_option(version=cogeo_mosaic_version, message="%(version)s")
 def cogeo_cli():
@@ -88,7 +92,7 @@ def create(
     """Create mosaic definition file."""
     tilematrixset = default_tms
     if tms:
-        if tms.endswith('.json'):
+        if tms.endswith(".json"):
             with open(tms, "r") as f:
                 tilematrixset = morecantile.TileMatrixSet(**json.load(f))
         else:
@@ -134,7 +138,7 @@ def upload(file, url, tms):
     """Upload mosaic definition file."""
     tilematrixset = default_tms
     if tms:
-        if tms.endswith('.json'):
+        if tms.endswith(".json"):
             with open(tms, "r") as f:
                 tilematrixset = morecantile.TileMatrixSet(**json.load(f))
         else:
@@ -195,7 +199,7 @@ def create_from_features(
     """Create mosaic definition file."""
     tilematrixset = default_tms
     if tms:
-        if tms.endswith('.json'):
+        if tms.endswith(".json"):
             with open(tms, "r") as f:
                 tilematrixset = morecantile.TileMatrixSet(**json.load(f))
         else:
@@ -258,17 +262,13 @@ def update(input_files, input_mosaic, min_tile_cover, tms, add_first, threads, q
     """Update mosaic definition file."""
     tilematrixset = default_tms
     if tms:
-        if tms.endswith('.json'):
+        if tms.endswith(".json"):
             with open(tms, "r") as f:
                 tilematrixset = morecantile.TileMatrixSet(**json.load(f))
         else:
             tilematrixset = morecantile.tms.get(tms)
     input_files = input_files.read().splitlines()
-    features = get_footprints(
-        input_files, 
-        tms=tilematrixset,
-        max_threads=threads
-    )
+    features = get_footprints(input_files, tms=tilematrixset, max_threads=threads)
     with MosaicBackend(input_mosaic) as mosaic:
         mosaic.update(
             features,
@@ -337,7 +337,7 @@ def info(input, to_json):
         }
 
         geo = {
-            "TileMatrixSet": mosaic.tms.id, # TODO this may require deeper and more changes
+            "TileMatrixSet": mosaic.tms.id,  # TODO this may require deeper and more changes
             "BoundingBox": mosaic.mosaic_def.bounds,
             "Center": mosaic.mosaic_def.center,
             "Min Zoom": mosaic.mosaic_def.minzoom,

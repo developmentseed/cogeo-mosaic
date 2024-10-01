@@ -58,8 +58,7 @@ def test_file_backend():
         assert mosaic._backend_name == "File"
         assert isinstance(mosaic, FileBackend)
         assert (
-            mosaic.mosaicid
-            == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
+            mosaic.mosaicid == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
         )
         assert mosaic.quadkey_zoom == 7
         assert mosaic.minzoom == mosaic.mosaic_def.minzoom
@@ -226,8 +225,7 @@ def test_http_backend(httpx):
         assert mosaic._backend_name == "HTTP"
         assert isinstance(mosaic, HttpBackend)
         assert (
-            mosaic.mosaicid
-            == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
+            mosaic.mosaicid == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
         )
         assert mosaic.quadkey_zoom == 7
         assert list(
@@ -263,9 +261,7 @@ def test_http_backend(httpx):
 
     # The HttpBackend is Read-Only, you can't pass mosaic_def
     with pytest.raises(TypeError):
-        with MosaicBackend(
-            "https://mymosaic.json", mosaic_def=mosaic_content
-        ) as mosaic:
+        with MosaicBackend("https://mymosaic.json", mosaic_def=mosaic_content) as mosaic:
             pass
 
     with open(mosaic_gz, "rb") as f:
@@ -274,8 +270,7 @@ def test_http_backend(httpx):
     with MosaicBackend("https://mymosaic.json.gz") as mosaic:
         assert isinstance(mosaic, HttpBackend)
         assert (
-            mosaic.mosaicid
-            == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
+            mosaic.mosaicid == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
         )
 
 
@@ -293,8 +288,7 @@ def test_s3_backend(session):
         assert mosaic._backend_name == "AWS S3"
         assert isinstance(mosaic, S3Backend)
         assert (
-            mosaic.mosaicid
-            == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
+            mosaic.mosaicid == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
         )
         assert mosaic.quadkey_zoom == 7
         assert list(
@@ -373,23 +367,16 @@ def test_s3_backend(session):
 def test_gs_backend(session):
     """Test GS backend."""
     with open(mosaic_gz, "rb") as f:
-        session.return_value.bucket.return_value.blob.return_value.download_as_bytes.return_value = (
-            f.read()
-        )
+        session.return_value.bucket.return_value.blob.return_value.download_as_bytes.return_value = f.read()
 
-    session.return_value.bucket.return_value.blob.return_value.upload_from_string.return_value = (
-        True
-    )
-    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
-        False
-    )
+    session.return_value.bucket.return_value.blob.return_value.upload_from_string.return_value = True
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = False
 
     with MosaicBackend("gs://mybucket/mymosaic.json.gz") as mosaic:
         assert mosaic._backend_name == "Google Cloud Storage"
         assert isinstance(mosaic, GCSBackend)
         assert (
-            mosaic.mosaicid
-            == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
+            mosaic.mosaicid == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
         )
         assert mosaic.quadkey_zoom == 7
         assert list(
@@ -415,16 +402,10 @@ def test_gs_backend(session):
         session.reset_mock()
 
     with open(mosaic_gz, "rb") as f:
-        session.return_value.bucket.return_value.blob.return_value.download_as_bytes.return_value = (
-            f.read()
-        )
+        session.return_value.bucket.return_value.blob.return_value.download_as_bytes.return_value = f.read()
 
-    session.return_value.bucket.return_value.blob.return_value.upload_from_string.return_value = (
-        True
-    )
-    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
-        False
-    )
+    session.return_value.bucket.return_value.blob.return_value.upload_from_string.return_value = True
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = False
 
     with MosaicBackend(
         "gs://mybucket/mymosaic.json.gz", mosaic_def=mosaic_content
@@ -436,9 +417,7 @@ def test_gs_backend(session):
     session.return_value.bucket.return_value.blob.return_value.exists.assert_called_once()
     session.reset_mock()
 
-    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
-        False
-    )
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = False
     with MosaicBackend("gs://mybucket/00000.json", mosaic_def=mosaic_content) as mosaic:
         assert isinstance(mosaic, GCSBackend)
         mosaic.write()
@@ -446,9 +425,7 @@ def test_gs_backend(session):
     session.return_value.bucket.return_value.blob.return_value.exists.assert_called_once()
     session.reset_mock()
 
-    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
-        True
-    )
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = True
     with MosaicBackend("gs://mybucket/00000.json", mosaic_def=mosaic_content) as mosaic:
         assert isinstance(mosaic, GCSBackend)
         with pytest.raises(MosaicExistsError):
@@ -457,9 +434,7 @@ def test_gs_backend(session):
     session.return_value.bucket.return_value.blob.return_value.exists.assert_called_once()
     session.reset_mock()
 
-    session.return_value.bucket.return_value.blob.return_value.exists.return_value = (
-        True
-    )
+    session.return_value.bucket.return_value.blob.return_value.exists.return_value = True
     with MosaicBackend("gs://mybucket/00000.json", mosaic_def=mosaic_content) as mosaic:
         assert isinstance(mosaic, GCSBackend)
         mosaic.write(overwrite=True)
@@ -472,16 +447,10 @@ def test_gs_backend(session):
 def test_abs_backend(session):
     """Test ABS backend."""
     with open(mosaic_gz, "rb") as f:
-        session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.return_value.readall.return_value = (
-            f.read()
-        )
+        session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.return_value.readall.return_value = f.read()
 
-    session.return_value.get_container_client.return_value.get_blob_client.return_value.upload_blob.return_value = (
-        True
-    )
-    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
-        False
-    )
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.upload_blob.return_value = True
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = False
 
     with MosaicBackend(
         "az://storage_account.blob.core.windows.net/container/mymosaic.json.gz"
@@ -489,8 +458,7 @@ def test_abs_backend(session):
         assert mosaic._backend_name == "Azure Blob Storage"
         assert isinstance(mosaic, ABSBackend)
         assert (
-            mosaic.mosaicid
-            == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
+            mosaic.mosaicid == "24d43802c19ef67cc498c327b62514ecf70c2bbb1bbc243dda1ee075"
         )
         assert mosaic.quadkey_zoom == 7
         assert list(
@@ -516,16 +484,10 @@ def test_abs_backend(session):
         session.reset_mock()
 
     with open(mosaic_gz, "rb") as f:
-        session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.return_value.readall.return_value = (
-            f.read()
-        )
+        session.return_value.get_container_client.return_value.get_blob_client.return_value.download_blob.return_value.readall.return_value = f.read()
 
-    session.return_value.get_container_client.return_value.get_blob_client.return_value.upload_blob.return_value = (
-        True
-    )
-    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
-        False
-    )
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.upload_blob.return_value = True
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = False
 
     with MosaicBackend(
         "az://storage_account.blob.core.windows.net/container/mymosaic.json.gz",
@@ -538,9 +500,7 @@ def test_abs_backend(session):
     session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.assert_called_once()
     session.reset_mock()
 
-    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
-        False
-    )
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = False
     with MosaicBackend(
         "az://storage_account.blob.core.windows.net/container/00000.json",
         mosaic_def=mosaic_content,
@@ -551,9 +511,7 @@ def test_abs_backend(session):
     session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.assert_called_once()
     session.reset_mock()
 
-    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
-        True
-    )
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = True
     with MosaicBackend(
         "az://storage_account.blob.core.windows.net/container/00000.json",
         mosaic_def=mosaic_content,
@@ -565,9 +523,7 @@ def test_abs_backend(session):
     session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.assert_called_once()
     session.reset_mock()
 
-    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = (
-        True
-    )
+    session.return_value.get_container_client.return_value.get_blob_client.return_value.exists.return_value = True
     with MosaicBackend(
         "az://storage_account.blob.core.windows.net/container/00000.json",
         mosaic_def=mosaic_content,
@@ -884,6 +840,42 @@ def test_stac_search(post):
         ]
 
     assert len(stac_search("https://a_stac.api/search", {}, max_items=7)) == 7
+    post.reset_mock()
+
+    post.side_effect = [
+        STACMockResponse(
+            {"features": [{"id": "1"}], "context": {"returned": 1, "limit": 1}}
+        ),
+        STACMockResponse(
+            {"features": [{"id": "2"}], "context": {"returned": 1, "limit": 1}}
+        ),
+    ]
+    assert len(stac_search("https://a_stac.api/search", {}, max_items=2, limit=1)) == 2
+    assert post.call_count == 2
+    post.reset_mock()
+    stac_search.cache_clear()
+
+    post.side_effect = [
+        STACMockResponse(
+            {
+                "features": [{"id": "1"}],
+                "numberMatched": 2,
+                "numberReturned": 1,
+                "context": {},
+            }
+        ),
+        STACMockResponse(
+            {
+                "features": [{"id": "2"}],
+                "numberMatched": 2,
+                "numberReturned": 1,
+                "context": {},
+            }
+        ),
+    ]
+    assert len(stac_search("https://a_stac.api/search", {}, max_items=2, limit=1)) == 2
+    assert post.call_count == 2
+    post.reset_mock()
 
 
 def test_stac_accessor():
@@ -1032,8 +1024,7 @@ def test_sqlite_backend():
         assert mosaic._backend_name == "SQLite"
         assert isinstance(mosaic, SQLiteBackend)
         assert (
-            mosaic.mosaicid
-            == "f7fc24d47a79f1496dcdf9997de83e6305c252a931fba2c7d006b7d8"
+            mosaic.mosaicid == "f7fc24d47a79f1496dcdf9997de83e6305c252a931fba2c7d006b7d8"
         )
         assert mosaic.quadkey_zoom == 7
 

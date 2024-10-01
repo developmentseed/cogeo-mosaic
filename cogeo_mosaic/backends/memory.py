@@ -1,6 +1,5 @@
 """cogeo-mosaic In-Memory backend."""
 
-
 import attr
 
 from cogeo_mosaic.backends.base import BaseBackend
