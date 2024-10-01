@@ -244,10 +244,10 @@ class MosaicJSON(BaseModel, validate_assignment=True):
     def from_urls(
         cls,
         urls: Sequence[str],
-        tilematrixset: Optional[morecantile.TileMatrixSet] = WEB_MERCATOR_TMS,
         minzoom: Optional[int] = None,
         maxzoom: Optional[int] = None,
         max_threads: int = 20,
+        tilematrixset: Optional[morecantile.TileMatrixSet] = None,
         quiet: bool = True,
         **kwargs,
     ):
@@ -304,8 +304,8 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             features,
             minzoom=minzoom,
             maxzoom=maxzoom,
-            quiet=quiet,
             tilematrixset=tilematrixset,
+            quiet=quiet,
             **kwargs,
         )
 

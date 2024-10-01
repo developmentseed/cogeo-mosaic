@@ -5,7 +5,7 @@ import os
 import sys
 from concurrent import futures
 from contextlib import ExitStack
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import click
 import morecantile
@@ -78,7 +78,7 @@ def get_dataset_info(
 
 def get_footprints(
     dataset_list: Sequence[str],
-    tms: morecantile.TileMatrixSet = WEB_MERCATOR_TMS,
+    tms: Optional[morecantile.TileMatrixSet] = None,
     max_threads: int = 20,
     quiet: bool = True,
 ) -> List:
@@ -100,6 +100,8 @@ def get_footprints(
         tuple of footprint feature.
 
     """
+    tms = tms or WEB_MERCATOR_TMS
+
     with ExitStack() as ctx:
         fout = ctx.enter_context(open(os.devnull, "w")) if quiet else sys.stderr
         with futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
