@@ -4,6 +4,7 @@ import json
 import multiprocessing
 import os
 import sys
+from typing import Optional
 
 import click
 import cligj
@@ -90,7 +91,7 @@ def create(
     quiet,
 ):
     """Create mosaic definition file."""
-    tilematrixset: morecantile.TileMatrixSet = default_tms
+    tilematrixset: Optional[morecantile.TileMatrixSet] = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -120,7 +121,11 @@ def create(
         mosaicjson.attribution = attribution
 
     if output:
-        with MosaicBackend(output, mosaic_def=mosaicjson, tms=tilematrixset) as mosaic:
+        with MosaicBackend(
+            output,
+            mosaic_def=mosaicjson,
+            tms=tilematrixset or default_tms,
+        ) as mosaic:
             mosaic.write(overwrite=True)
     else:
         click.echo(mosaicjson.model_dump_json(exclude_none=True))
@@ -138,7 +143,7 @@ def create(
 )
 def upload(file, url, tms):
     """Upload mosaic definition file."""
-    tilematrixset: morecantile.TileMatrixSet = default_tms
+    tilematrixset: Optional[morecantile.TileMatrixSet] = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -147,8 +152,9 @@ def upload(file, url, tms):
         else:
             tilematrixset = morecantile.tms.get(tms)
 
-    mosaicjson = json.load(file)
+    mosaicjson = MosaicJSON.model_validate(json.load(file))
 
+    tilematrixset = tilematrixset or mosaicjson.tilematrixset or default_tms
     with MosaicBackend(url, mosaic_def=mosaicjson, tms=tilematrixset) as mosaic:
         mosaic.write(overwrite=True)
 
@@ -201,7 +207,7 @@ def create_from_features(
     quiet,
 ):
     """Create mosaic definition file."""
-    tilematrixset: morecantile.TileMatrixSet = default_tms
+    tilematrixset: Optional[morecantile.TileMatrixSet] = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -230,7 +236,11 @@ def create_from_features(
         mosaicjson.attribution = attribution
 
     if output:
-        with MosaicBackend(output, mosaic_def=mosaicjson, tms=tilematrixset) as mosaic:
+        with MosaicBackend(
+            output,
+            mosaic_def=mosaicjson,
+            tms=tilematrixset or default_tms,
+        ) as mosaic:
             mosaic.write(overwrite=True)
     else:
         click.echo(mosaicjson.model_dump_json(exclude_none=True))
@@ -266,7 +276,7 @@ def create_from_features(
 )
 def update(input_files, input_mosaic, min_tile_cover, tms, add_first, threads, quiet):
     """Update mosaic definition file."""
-    tilematrixset: morecantile.TileMatrixSet = default_tms
+    tilematrixset: Optional[morecantile.TileMatrixSet] = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -277,7 +287,7 @@ def update(input_files, input_mosaic, min_tile_cover, tms, add_first, threads, q
 
     input_files = input_files.read().splitlines()
     features = get_footprints(input_files, tms=tilematrixset, max_threads=threads)
-    with MosaicBackend(input_mosaic) as mosaic:
+    with MosaicBackend(input_mosaic, tms=tilematrixset or default_tms) as mosaic:
         mosaic.update(
             features,
             add_first=add_first,
@@ -309,7 +319,7 @@ def update(input_files, input_mosaic, min_tile_cover, tms, add_first, threads, q
 )
 def footprint(input_files, output, threads, tms, quiet):
     """Create mosaic definition file."""
-    tilematrixset: morecantile.TileMatrixSet = default_tms
+    tilematrixset: Optional[morecantile.TileMatrixSet] = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -342,9 +352,26 @@ def footprint(input_files, output, threads, tms, quiet):
     is_flag=True,
     help="Print as JSON.",
 )
-def info(input, to_json):
+@click.option(
+    "--tms",
+    help="Path to TileMatrixSet JSON file or valid TMS id.",
+    type=str,
+)
+def info(input, to_json, tms):
     """Return info about the mosaic."""
-    with MosaicBackend(input) as mosaic:
+    tilematrixset: Optional[morecantile.TileMatrixSet] = None
+    if tms:
+        if tms.endswith(".json"):
+            with open(tms, "r") as f:
+                tilematrixset = morecantile.TileMatrixSet(**json.load(f))
+
+        else:
+            tilematrixset = morecantile.tms.get(tms)
+
+    with MosaicBackend(
+        input,
+        tms=tilematrixset or default_tms,
+    ) as mosaic:
         _info = {
             "Path": input,
             "Backend": mosaic._backend_name,
