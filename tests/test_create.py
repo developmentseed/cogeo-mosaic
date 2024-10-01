@@ -159,6 +159,7 @@ def test_mosaic_create_additional_metadata():
     assert mosaic.tiles["0302301"] == ["/cog1.tif", "/cog2.tif"]
 
 
+@pytest.mark.skipif(tuple(map(int, pyproj.__version__.split('.'))) < (3, 6, 0), reason="requires proj >= 9.2.1")
 def test_mars_mosaic_create():
     # first define the tilematrixset manually
     MARS2000_SPHERE = pyproj.CRS.from_user_input("IAU_2015:49900")
