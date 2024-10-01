@@ -51,7 +51,8 @@ test = [
   "pytest", "pytest-cov", "boto3",
 ]
 dev = [
-  "pytest", "pytest-cov", "pre-commit"
+  "pre-commit",
+  "bump-my-version",
 ]
 docs = [
   "mkdocs", "mkdocs-material", "pygments", "mkdocs-jupyter"
@@ -127,6 +128,9 @@ default_section = "THIRDPARTY"
 no_strict_optional = "True"
 
 [tool.ruff]
+line-length = 90
+
+[tool.ruff.lint]
 select = [
     "D1",  # pydocstyle errors
     "E",  # pycodestyle errors
@@ -142,5 +146,22 @@ ignore = [
     "B028",  # ignore No explicit stacklevel keyword argument found
 ]
 
-[tool.ruff.extend-per-file-ignores]
+[tool.ruff.lint.mccabe]
+max-complexity = 14
+
+[tool.ruff.lint.extend-per-file-ignores]
 "tests/*.py" = ["D1"]
+
+[tool.bumpversion]
+current_version = "7.1.0"
+search = "{current_version}"
+replace = "{new_version}"
+regex = false
+tag = true
+commit = true
+tag_name = "{new_version}"
+
+[[tool.bumpversion.files]]
+filename = "cogeo_mosaic/__init__.py]"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'

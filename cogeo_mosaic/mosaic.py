@@ -37,9 +37,7 @@ def default_filter(
     indices = list(range(len(dataset)))
 
     if minimum_tile_cover or tile_cover_sort:
-        tile_geom = polygons(
-            WEB_MERCATOR_TMS.feature(tile)["geometry"]["coordinates"][0]
-        )
+        tile_geom = polygons(WEB_MERCATOR_TMS.feature(tile)["geometry"]["coordinates"][0])
         int_pcts = _intersect_percent(tile_geom, geoms)
 
         if minimum_tile_cover:
@@ -50,7 +48,7 @@ def default_filter(
 
         if tile_cover_sort:
             # https://stackoverflow.com/a/9764364
-            _, indices = zip(*sorted(zip(int_pcts, indices), reverse=True))
+            _, indices = zip(*sorted(zip(int_pcts, indices), reverse=True))  # type: ignore
 
     if maximum_items_per_tile:
         indices = indices[:maximum_items_per_tile]
@@ -208,9 +206,7 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             ) as bar:
                 for tile in bar:
                     quadkey = tms.quadkey(tile)
-                    tile_geom = polygons(
-                        tms.feature(tile)["geometry"]["coordinates"][0]
-                    )
+                    tile_geom = polygons(tms.feature(tile)["geometry"]["coordinates"][0])
 
                     # Find intersections from rtree
                     intersections_idx = sorted(
