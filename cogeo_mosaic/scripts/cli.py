@@ -388,7 +388,7 @@ def info(input, to_json, tms):
         }
 
         geo = {
-            "TileMatrixSet": mosaic.tms.id,  # TODO this may require deeper and more changes
+            "TileMatrixSet": mosaic.tms.id,
             "BoundingBox": mosaic.mosaic_def.bounds,
             "Center": mosaic.mosaic_def.center,
             "Min Zoom": mosaic.mosaic_def.minzoom,
