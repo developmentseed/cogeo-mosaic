@@ -27,6 +27,8 @@ asset2 = os.path.join(basepath, "cog2.tif")
 asset1_uint32 = os.path.join(basepath, "cog1_uint32.tif")
 asset1_small = os.path.join(basepath, "cog1_small.tif")
 
+mars_ctx_asset = os.path.join(basepath, "mars_ctx_stac_asset.json")
+
 with open(mosaic_json, "r") as f:
     mosaic_content = json.loads(f.read())
     for qk, asset in mosaic_content["tiles"].items():
