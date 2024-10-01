@@ -3,22 +3,27 @@
 import json
 import multiprocessing
 import os
+import sys
 
 import click
 import cligj
 import morecantile
 from click_plugins import with_plugins
-from pkg_resources import iter_entry_points
 
 from cogeo_mosaic import __version__ as cogeo_mosaic_version
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import get_footprints
 
+if sys.version_info < (3, 10):
+    from importlib_metadata import entry_points
+else:
+    from importlib.metadata import entry_points
+
 tms = morecantile.tms.get("WebMercatorQuad")
 
 
-@with_plugins(iter_entry_points("cogeo_mosaic.plugins"))
+@with_plugins(entry_points(group="cogeo_mosaic.plugins"))
 @click.group()
 @click.version_option(version=cogeo_mosaic_version, message="%(version)s")
 def cogeo_cli():

@@ -1,6 +1,7 @@
 ## Unreleased
 
 * update BaseBackend to use a default coord_crs from the tms (author @AndrewAnnex, https://github.com/developmentseed/cogeo-mosaic/pull/234)
+* add python 3.12 support
 
 ## 7.1.0 (2023-12-06)
 

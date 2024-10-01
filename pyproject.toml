@@ -17,6 +17,7 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: GIS",
 ]
 dynamic = ["version", "readme"]
@@ -35,6 +36,7 @@ dependencies = [
   "click",
   "cligj",
   "click_plugins",
+  "importlib_metadata; python_version < '3.10'",
 ]
 
 [project.optional-dependencies]
