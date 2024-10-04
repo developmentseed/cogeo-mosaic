@@ -164,6 +164,6 @@ commit = true
 tag_name = "{new_version}"
 
 [[tool.bumpversion.files]]
-filename = "cogeo_mosaic/__init__.py]"
+filename = "cogeo_mosaic/__init__.py"
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'
