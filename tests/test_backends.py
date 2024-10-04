@@ -1160,6 +1160,29 @@ def test_sqlite_backend():
             mosaic.update(features)
 
 
+def test_sqlite_backend_tms():
+    tilematrixset = morecantile.tms.get("WebMercatorQuad")
+
+    mosaic_oneasset = MosaicJSON.from_urls(
+        [asset1], tilematrixset=tilematrixset, quiet=True
+    )
+    features = get_footprints([asset2], tms=tilematrixset, quiet=True)
+
+    # Test update methods
+    with MosaicBackend("sqlite:///:memory::test", mosaic_def=mosaic_oneasset) as m:
+        m.write()
+        meta = m.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"})
+        assert len(m.get_assets(150, 182, 9)) == 1
+
+        m.update(features)
+        assert not m.mosaic_def.model_dump(exclude_none=True, exclude={"tiles"}) == meta
+
+        assets = m.get_assets(150, 182, 9)
+        assert len(assets) == 2
+        assert assets[0] == asset2
+        assert assets[1] == asset1
+
+
 def test_tms_and_coordinates():
     """use MemoryBackend for data read tests."""
     assets = [asset1, asset2]

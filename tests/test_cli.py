@@ -41,6 +41,8 @@ def test_create_valid():
                 "list.txt",
                 "-o",
                 "mosaic.json",
+                "--tms",
+                "WorldMercatorWGS84Quad",
                 "--name",
                 "my_mosaic",
                 "--description",

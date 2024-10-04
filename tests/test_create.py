@@ -6,6 +6,8 @@ import morecantile
 import pyproj
 import pytest
 
+from cogeo_mosaic.backends import MosaicBackend
+from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.errors import MultipleDataTypeError
 from cogeo_mosaic.mosaic import MosaicJSON, default_filter
 
@@ -26,6 +28,8 @@ asset2 = os.path.join(basepath, "cog2.tif")
 
 asset1_uint32 = os.path.join(basepath, "cog1_uint32.tif")
 asset1_small = os.path.join(basepath, "cog1_small.tif")
+
+mars_ctx_asset = os.path.join(basepath, "mars_ctx_stac_asset.json")
 
 with open(mosaic_json, "r") as f:
     mosaic_content = json.loads(f.read())
@@ -50,6 +54,18 @@ def test_mosaic_create():
     assert list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
     assert mosaic.tiles == mosaic_content["tiles"]
     assert not mosaic.tilematrixset
+
+    mosaic = MosaicJSON.from_urls(
+        assets, tilematrixset=morecantile.tms.get("WebMercatorQuad"), quiet=True
+    )
+    assert [round(b, 3) for b in list(mosaic.bounds)] == [
+        round(b, 3) for b in mosaic_content["bounds"]
+    ]
+    assert mosaic.maxzoom == mosaic_content["maxzoom"]
+    assert mosaic.minzoom == mosaic_content["minzoom"]
+    assert list(mosaic.tiles.keys()) == list(mosaic_content["tiles"].keys())
+    assert mosaic.tiles == mosaic_content["tiles"]
+    assert mosaic.tilematrixset.id == "WebMercatorQuad"
 
     mosaic = MosaicJSON.from_urls(assets, minzoom=7, maxzoom=9)
     assert [round(b, 3) for b in list(mosaic.bounds)] == [
@@ -141,3 +157,67 @@ def test_mosaic_create_additional_metadata():
     assert mosaic.data_type == "uint16"
     assert mosaic.layers["true-color"]
     assert mosaic.tiles["0302301"] == ["/cog1.tif", "/cog2.tif"]
+
+
+@pytest.mark.skipif(
+    tuple(map(int, pyproj.__version__.split("."))) < (3, 6, 0),
+    reason="requires proj >= 9.2.1",
+)
+def test_mars_mosaic_create():
+    # first define the tilematrixset manually
+    MARS2000_SPHERE = pyproj.CRS.from_user_input("IAU_2015:49900")
+    MARS_MERCATOR = pyproj.CRS.from_user_input("IAU_2015:49990")
+    # same boundaries as Earth mercator
+    mars_tms = morecantile.TileMatrixSet.custom(
+        [
+            -179.9999999999996,
+            -85.05112877980656,
+            179.9999999999996,
+            85.05112877980656,
+        ],
+        MARS_MERCATOR,
+        extent_crs=MARS2000_SPHERE,
+        title="Web Mercator Mars",
+        geographic_crs=MARS2000_SPHERE,
+    )
+    # load the mars_ctx_stac_assset.json file
+    with open(mars_ctx_asset, "r") as f:
+        stac_asset = json.load(f)
+    # these stac item has multiple assets so grab the DTM
+    stac_asset["properties"]["path"] = stac_asset["assets"]["dtm"]["href"]
+    # now construct the mosaicjson object
+    mosaic_json = MosaicJSON.from_features(
+        [
+            stac_asset,
+        ],
+        minzoom=7,
+        maxzoom=30,
+        tilematrixset=mars_tms,
+    )
+    assert mosaic_json is not None
+    assert mosaic_json.tilematrixset == mars_tms
+    assert len(mosaic_json.tiles) > 0
+    # now test the mosaic backend
+    with MosaicBackend("mosaic.json", mosaic_def=mosaic_json, tms=mars_tms) as mosaic:
+        assert isinstance(mosaic, FileBackend)
+        assert mosaic.tms == mars_tms
+        assert mosaic.crs == mars_tms.rasterio_geographic_crs
+        assert mosaic.geographic_crs == mars_tms.rasterio_geographic_crs
+        assert len(mosaic.assets_for_point(77.28, 18, mars_tms.geographic_crs)) > 0
+        assert (
+            len(mosaic.assets_for_bbox(77.2, 17.5, 77.4, 18.5, mars_tms.geographic_crs))
+            > 0
+        )
+        assert (
+            len(mosaic.assets_for_point(77.28, 18, mars_tms.rasterio_geographic_crs)) > 0
+        )
+        assert (
+            len(
+                mosaic.assets_for_bbox(
+                    77.2, 17.5, 77.4, 18.5, mars_tms.rasterio_geographic_crs
+                )
+            )
+            > 0
+        )
+        assert len(mosaic.assets_for_point(77.25, 18.0)) > 0
+        assert len(mosaic.assets_for_bbox(77.2, 17.5, 77.4, 18.5)) > 0

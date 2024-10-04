@@ -247,6 +247,7 @@ class MosaicJSON(BaseModel, validate_assignment=True):
         minzoom: Optional[int] = None,
         maxzoom: Optional[int] = None,
         max_threads: int = 20,
+        tilematrixset: Optional[morecantile.TileMatrixSet] = None,
         quiet: bool = True,
         **kwargs,
     ):
@@ -254,6 +255,7 @@ class MosaicJSON(BaseModel, validate_assignment=True):
 
         Attributes:
             urls (list): List of COGs.
+            tilematrixset: (morecantile.TileMatrixSet), optional (default: "WebMercatorQuad")
             minzoom (int): Force mosaic min-zoom.
             maxzoom (int): Force mosaic max-zoom.
             max_threads (int): Max threads to use (default: 20).
@@ -271,7 +273,9 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             >>> MosaicJSON.from_urls(["1.tif", "2.tif"])
 
         """
-        features = get_footprints(urls, max_threads=max_threads, quiet=quiet)
+        features = get_footprints(
+            urls, max_threads=max_threads, tms=tilematrixset, quiet=quiet
+        )
 
         if minzoom is None:
             data_minzoom = {feat["properties"]["minzoom"] for feat in features}
@@ -297,7 +301,12 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             raise MultipleDataTypeError("Dataset should have the same data type")
 
         return cls._create_mosaic(
-            features, minzoom=minzoom, maxzoom=maxzoom, quiet=quiet, **kwargs
+            features,
+            minzoom=minzoom,
+            maxzoom=maxzoom,
+            tilematrixset=tilematrixset,
+            quiet=quiet,
+            **kwargs,
         )
 
     @classmethod
