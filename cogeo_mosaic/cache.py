@@ -10,7 +10,7 @@ class CacheSettings(BaseSettings):
     # TTL of the cache in seconds
     ttl: int = 300
 
-    # Maximum size of the LRU cache in MB
+    # Maximum size of the LRU cache in Number of Items
     maxsize: int = 512
 
     # Whether or not caching is enabled

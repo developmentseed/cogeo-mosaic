@@ -23,13 +23,13 @@ classifiers = [
 dynamic = ["version", "readme"]
 dependencies = [
   "attrs",
-  "morecantile>=5.0,<6.0",
+  "morecantile",
   "shapely>=2.0,<3.0",
   "pydantic~=2.0",
   "pydantic-settings~=2.0",
   "httpx",
   "rasterio",
-  "rio-tiler>=6.0,<7.0",
+  "rio-tiler>=7.0,<8.0",
   "supermorecado",
   "cachetools",
   "numpy",
@@ -155,7 +155,7 @@ max-complexity = 14
 "tests/*.py" = ["D1"]
 
 [tool.bumpversion]
-current_version = "7.2.0"
+current_version = "8.0.0"
 search = "{current_version}"
 replace = "{new_version}"
 regex = false

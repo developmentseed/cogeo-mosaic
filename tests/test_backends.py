@@ -65,17 +65,16 @@ def test_file_backend():
 
         info = mosaic.info()
         assert not info.quadkeys
-        with pytest.warns(DeprecationWarning):
-            assert not info["quadkeys"]
 
         assert list(info.model_dump()) == [
             "bounds",
+            "crs",
             "center",
-            "minzoom",
-            "maxzoom",
             "name",
             "quadkeys",
-            "tilematrixset",
+            "mosaic_tilematrixset",
+            "mosaic_minzoom",
+            "mosaic_maxzoom",
         ]
 
         info = mosaic.info(quadkeys=True)
@@ -652,12 +651,13 @@ def test_dynamoDB_backend(client):
         assert not info.quadkeys
         assert list(info.model_dump()) == [
             "bounds",
+            "crs",
             "center",
-            "minzoom",
-            "maxzoom",
             "name",
             "quadkeys",
-            "tilematrixset",
+            "mosaic_tilematrixset",
+            "mosaic_minzoom",
+            "mosaic_maxzoom",
         ]
 
         info = mosaic.info(quadkeys=True)
@@ -998,12 +998,13 @@ def test_InMemoryReader():
         info = mosaic.info()
         assert list(info.model_dump()) == [
             "bounds",
+            "crs",
             "center",
-            "minzoom",
-            "maxzoom",
             "name",
             "quadkeys",
-            "tilematrixset",
+            "mosaic_tilematrixset",
+            "mosaic_minzoom",
+            "mosaic_maxzoom",
         ]
 
     mosaic_oneasset = MosaicJSON.from_urls([asset1], quiet=True)
@@ -1032,12 +1033,13 @@ def test_sqlite_backend():
         assert not info.quadkeys
         assert list(info.model_dump()) == [
             "bounds",
+            "crs",
             "center",
-            "minzoom",
-            "maxzoom",
             "name",
             "quadkeys",
-            "tilematrixset",
+            "mosaic_tilematrixset",
+            "mosaic_minzoom",
+            "mosaic_maxzoom",
         ]
 
         info = mosaic.info(quadkeys=True)

@@ -46,12 +46,8 @@ def get_dataset_info(
     tms: morecantile.TileMatrixSet = WEB_MERCATOR_TMS,
 ) -> Dict:
     """Get rasterio dataset meta."""
-    with Reader(
-        src_path,
-        tms=tms,
-        geographic_crs=tms.rasterio_geographic_crs,
-    ) as src:
-        bounds = src.geographic_bounds
+    with Reader(src_path, tms=tms) as src:
+        bounds = src.get_geographic_bounds(tms.rasterio_geographic_crs)
         return {
             "geometry": {
                 "type": "Polygon",
