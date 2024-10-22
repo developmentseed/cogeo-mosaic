@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 import click
 import morecantile
 from pydantic import BaseModel, Field, field_validator, model_validator
+from rio_tiler.types import BBox
 from shapely import linearrings, polygons, total_bounds
 from shapely.strtree import STRtree
 from supermorecado import burnTiles
@@ -71,7 +72,7 @@ class MosaicJSON(BaseModel, validate_assignment=True):
     minzoom: int = Field(0, ge=0, le=30)
     maxzoom: int = Field(30, ge=0, le=30)
     quadkey_zoom: Optional[int] = None
-    bounds: Tuple[float, float, float, float] = Field(default=(-180, -90, 180, 90))
+    bounds: BBox = Field(default=(-180, -90, 180, 90))
     center: Optional[Tuple[float, float, int]] = None
     tiles: Dict[str, List[str]]
     tilematrixset: Optional[morecantile.TileMatrixSet] = None

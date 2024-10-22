@@ -178,7 +178,6 @@ def test_mars_mosaic_create():
         MARS_MERCATOR,
         extent_crs=MARS2000_SPHERE,
         title="Web Mercator Mars",
-        geographic_crs=MARS2000_SPHERE,
     )
     # load the mars_ctx_stac_assset.json file
     with open(mars_ctx_asset, "r") as f:
@@ -202,7 +201,6 @@ def test_mars_mosaic_create():
         assert isinstance(mosaic, FileBackend)
         assert mosaic.tms == mars_tms
         assert mosaic.crs == mars_tms.rasterio_geographic_crs
-        assert mosaic.geographic_crs == mars_tms.rasterio_geographic_crs
         assert len(mosaic.assets_for_point(77.28, 18, mars_tms.geographic_crs)) > 0
         assert (
             len(mosaic.assets_for_bbox(77.2, 17.5, 77.4, 18.5, mars_tms.geographic_crs))

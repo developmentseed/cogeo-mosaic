@@ -11,12 +11,14 @@ from cachetools.keys import hashkey
 from morecantile import Tile, TileMatrixSet
 from rasterio.crs import CRS
 from rasterio.warp import transform, transform_bounds
-from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
+from rio_tiler.constants import WEB_MERCATOR_TMS
 from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, MultiBandReader, MultiBaseReader, Reader
 from rio_tiler.models import ImageData, PointData
 from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.tasks import multi_values
+from rio_tiler.types import BBox
+from rio_tiler.utils import CRS_to_uri
 
 from cogeo_mosaic.backends.utils import get_hash
 from cogeo_mosaic.cache import cache_config
@@ -63,11 +65,8 @@ class BaseBackend(BaseReader):
     ] = attr.ib(default=Reader)
     reader_options: Dict = attr.ib(factory=dict)
 
-    bounds: Tuple[float, float, float, float] = attr.ib(
-        init=False, default=(-180, -90, 180, 90)
-    )
-    crs: CRS = attr.ib(init=False, default=WGS84_CRS)
-    geographic_crs: CRS = attr.ib(init=False, default=WGS84_CRS)
+    bounds: BBox = attr.ib(init=False)
+    crs: CRS = attr.ib(init=False)
 
     _backend_name: str
     _file_byte_size: Optional[int] = 0
@@ -81,10 +80,8 @@ class BaseBackend(BaseReader):
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
 
         # By mosaic definition, its `bounds` is defined using the mosaic's TMS
-        # Geographic CRS so we define both `crs` and `geographic_crs` using the mosaic
-        # TMS geographic_crs.
+        # Geographic CRS.
         self.crs = mosaic_tms.rasterio_geographic_crs
-        self.geographic_crs = mosaic_tms.rasterio_geographic_crs
 
         # if we open the Mosaic with a TMS which is not the mosaic TMS
         # the min/max zoom will default to the TMS (read) zooms
@@ -177,8 +174,10 @@ class BaseBackend(BaseReader):
     ) -> List[str]:
         """Retrieve assets for point."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
         # default coord_crs should be the TMS's geographic CRS
         coord_crs = coord_crs or self.tms.rasterio_geographic_crs
+
         # If coord_crs is not the same as the mosaic's geographic CRS
         # we reproject the coordinates
         if coord_crs != mosaic_tms.rasterio_geographic_crs:
@@ -202,8 +201,10 @@ class BaseBackend(BaseReader):
     ) -> List[str]:
         """Retrieve assets for bbox."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
+
         # default coord_crs should be the TMS's geographic CRS
         coord_crs = coord_crs or self.tms.rasterio_geographic_crs
+
         # If coord_crs is not the same as the mosaic's geographic CRS
         # we reproject the bounding box
         if coord_crs != mosaic_tms.rasterio_geographic_crs:
@@ -324,6 +325,7 @@ class BaseBackend(BaseReader):
         """Get Point value from multiple observation."""
         # default coord_crs should be the TMS's geographic CRS
         coord_crs = coord_crs or self.tms.rasterio_geographic_crs
+
         mosaic_assets = self.assets_for_point(lon, lat, coord_crs=coord_crs)
         if not mosaic_assets:
             raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
@@ -347,13 +349,14 @@ class BaseBackend(BaseReader):
     def info(self, quadkeys: bool = False) -> Info:  # type: ignore
         """Mosaic info."""
         return Info(
-            bounds=self.geographic_bounds,
+            bounds=self.bounds,
+            crs=CRS_to_uri(self.crs) or self.crs.to_wkt(),
             center=self.center,
-            maxzoom=self.maxzoom,
-            minzoom=self.minzoom,
             name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
             quadkeys=[] if not quadkeys else self._quadkeys,
-            tilematrixset=repr(self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS),
+            mosaic_tilematrixset=repr(self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS),
+            mosaic_minzoom=self.mosaic_def.minzoom,
+            mosaic_maxzoom=self.mosaic_def.maxzoom,
         )
 
     @property

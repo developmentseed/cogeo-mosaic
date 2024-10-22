@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Dict, List, Optional, Sequence, Tuple, Type
+from typing import Dict, List, Optional, Sequence, Type
 
 import attr
 import httpx
@@ -12,6 +12,7 @@ from morecantile import TileMatrixSet
 from rasterio.crs import CRS
 from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.io import STACReader
+from rio_tiler.types import BBox
 
 from cogeo_mosaic.backends.base import BaseBackend
 from cogeo_mosaic.cache import cache_config
@@ -66,11 +67,8 @@ class STACBackend(BaseBackend):
     reader: Type[STACReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
 
-    bounds: Tuple[float, float, float, float] = attr.ib(
-        init=False, default=(-180, -90, 180, 90)
-    )
+    bounds: BBox = attr.ib(init=False, default=(-180, -90, 180, 90))
     crs: CRS = attr.ib(init=False, default=WGS84_CRS)
-    geographic_crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     # STAC API related options
     # max_items |  next_link_key | limit

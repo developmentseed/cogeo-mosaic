@@ -1,5 +1,38 @@
 ## Unreleased
 
+## 8.0.0 (2024-10-21)
+
+* remove deprecated methods
+
+* update morecantile requirement to `>=5.0,<7.0`
+
+* update rio-tiler requirement to `>=7.0,<8.0`
+
+* update `Info` model
+
+    ```python
+    # before
+    class Info(BaseModel):
+        bounds: BBox = Field(default=(-180, -90, 180, 90))
+        center: Optional[Tuple[float, float, int]] = None
+        minzoom: int = Field(0, ge=0, le=30)
+        maxzoom: int = Field(30, ge=0, le=30)
+        name: Optional[str] = None
+        quadkeys: List[str] = []
+        tilematrixset: Optional[str] = None
+
+    # now
+    class Info(BaseModel):
+        bounds: BBox = Field(default=(-180, -90, 180, 90))
+        crs: str
+        center: Optional[Tuple[float, float, int]] = None
+        name: Optional[str] = None
+        quadkeys: List[str] = []
+        mosaic_tilematrixset: Optional[str] = None
+        mosaic_minzoom: int = Field(0, ge=0, le=30)
+        mosaic_maxzoom: int = Field(30, ge=0, le=30)
+    ```
+
 ## 7.2.0 (2024-10-04)
 
 * update BaseBackend to use a default coord_crs from the tms (author @AndrewAnnex, https://github.com/developmentseed/cogeo-mosaic/pull/234)
