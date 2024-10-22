@@ -71,10 +71,8 @@ with S3Backend("s3://mybucket/amosaic.json") as mosaic:
     mosaic.maxzoom                                 # attribute - Mosaic (default to tms or mosaic maxzoom)
 
     mosaic.crs                                     # property - CRS (from mosaic's TMS geographic CRS)
-    mosaic.geographic_crs                          # property - CRS (from mosaic's TMS geographic CRS)
     mosaic.bounds                                  # property - Mosaic bounds in `mosaic.crs`
     mosaic.center                                  # property - Mosaic center (lon, lat, minzoom)
-    mosaic.geographic_bounds                       # property - Mosaic bounds in `mosaic.geographic_crs`
 
     mosaic.mosaicid                                # property - Return sha224 id from the mosaicjson doc
     mosaic.quadkey_zoom                            # property - Return Quadkey zoom of the mosaic
@@ -83,6 +81,8 @@ with S3Backend("s3://mybucket/amosaic.json") as mosaic:
     mosaic.update([features])                      # method - Update the mosaicjson data with a list of features
 
     mosaic.info(quadkeys=True/False)               # method -  spatial_info, list of quadkeys and mosaic name
+
+    mosaic.get_geographic_bounds(crs: CRS)         # method - Return mosaic bounds in a geographic CRS
 
     mosaic.assets_for_tile(x, y, z)                # method - Find assets for a specific mercator tile
     mosaic.assets_for_point(lng, lat)              # method - Find assets for a specific point

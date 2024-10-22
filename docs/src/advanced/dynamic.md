@@ -63,7 +63,6 @@ class DynamicStacBackend(BaseBackend):
         default=(-180, -90, 180, 90)
     )
     crs: CRS = attr.ib(default=WGS84_CRS)
-    geographic_crs: CRS = attr.ib(default=WGS84_CRS)
 
     # STAC API related options
     # max_items |  next_link_key | limit
