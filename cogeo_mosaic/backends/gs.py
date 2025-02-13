@@ -1,6 +1,7 @@
 """cogeo-mosaic Google Cloud Storage backend."""
 
 import json
+from threading import Lock
 from typing import Any
 from urllib.parse import urlparse
 
@@ -60,6 +61,7 @@ class GCSBackend(BaseBackend):
     @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self: hashkey(self.input),
+        lock=Lock(),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get mosaicjson document."""

@@ -1,5 +1,9 @@
 ## Unreleased
 
+## 8.0.1 (2025-02-13)
+
+* add `lock=Lock()` to cachetools `cached` instance to avoid thread corruption
+
 ## 8.0.0 (2024-10-21)
 
 * remove deprecated methods

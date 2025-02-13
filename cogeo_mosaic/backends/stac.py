@@ -2,6 +2,7 @@
 
 import json
 import os
+from threading import Lock
 from typing import Dict, List, Optional, Sequence, Type
 
 import attr
@@ -151,6 +152,7 @@ def query_from_link(link: Dict, query: Dict):
 @cached(  # type: ignore
     TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
     key=lambda url, query, **kwargs: hashkey(url, json.dumps(query), **kwargs),
+    lock=Lock(),
 )
 def _fetch(  # noqa: C901
     stac_url: str,
