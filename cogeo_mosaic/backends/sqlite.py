@@ -6,6 +6,7 @@ import re
 import sqlite3
 import warnings
 from pathlib import Path
+from threading import Lock
 from typing import Dict, List, Sequence
 from urllib.parse import urlparse
 
@@ -94,6 +95,7 @@ class SQLiteBackend(BaseBackend):
     @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self: hashkey(self.input),
+        lock=Lock(),
     )
     def _read(self) -> MosaicJSON:  # type: ignore
         """Get Mosaic definition info."""
@@ -311,6 +313,7 @@ class SQLiteBackend(BaseBackend):
     @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
+        lock=Lock(),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""

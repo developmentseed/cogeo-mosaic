@@ -3,6 +3,7 @@
 import abc
 import itertools
 import warnings
+from threading import Lock
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import attr
@@ -235,6 +236,7 @@ class BaseBackend(BaseReader):
     @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
         key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
+        lock=Lock(),
     )
     def get_assets(self, x: int, y: int, z: int) -> List[str]:
         """Find assets."""

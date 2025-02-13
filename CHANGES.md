@@ -1,5 +1,11 @@
 ## Unreleased
 
+## 8.1.0 (2025-02-13)
+
+* add `lock=Lock()` to cachetools `cached` instance to avoid thread corruption
+* remove python 3.8 support
+* add python 3.13 support
+
 ## 8.0.0 (2024-10-21)
 
 * remove deprecated methods
