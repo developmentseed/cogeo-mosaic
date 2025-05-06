@@ -150,11 +150,11 @@ class BaseBackend(BaseReader):
         self.bounds = bounds
         self.write(overwrite=True)
 
-    def assets_for_tile(self, x: int, y: int, z: int) -> List[str]:
+    def assets_for_tile(self, x: int, y: int, z: int, **kwargs: Any) -> List[str]:
         """Retrieve assets for tile."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
         if self.tms == mosaic_tms:
-            return self.get_assets(x, y, z)
+            return self.get_assets(x, y, z, **kwargs)
 
         # If TMS are different, then use Tile's geographic coordinates
         # and `assets_for_bbox` to get the assets
@@ -165,6 +165,7 @@ class BaseBackend(BaseReader):
             xmax,
             ymax,
             coord_crs=self.tms.rasterio_geographic_crs,
+            **kwargs,
         )
 
     def assets_for_point(
@@ -172,6 +173,7 @@ class BaseBackend(BaseReader):
         lng: float,
         lat: float,
         coord_crs: Optional[CRS] = None,
+        **kwargs: Any,
     ) -> List[str]:
         """Retrieve assets for point."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
@@ -190,7 +192,7 @@ class BaseBackend(BaseReader):
         # Find the tile index using geographic coordinates
         tile = mosaic_tms.tile(lng, lat, self.quadkey_zoom)
 
-        return self.get_assets(tile.x, tile.y, tile.z)
+        return self.get_assets(tile.x, tile.y, tile.z, **kwargs)
 
     def assets_for_bbox(
         self,
@@ -199,6 +201,7 @@ class BaseBackend(BaseReader):
         xmax: float,
         ymax: float,
         coord_crs: Optional[CRS] = None,
+        **kwargs,
     ) -> List[str]:
         """Retrieve assets for bbox."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
@@ -229,7 +232,9 @@ class BaseBackend(BaseReader):
 
         return list(
             dict.fromkeys(
-                itertools.chain.from_iterable([self.get_assets(*t) for t in tiles])
+                itertools.chain.from_iterable(
+                    [self.get_assets(*t, **kwargs) for t in tiles]
+                )
             )
         )
 
