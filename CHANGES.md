@@ -1,5 +1,9 @@
 ## Unreleased
 
+## 8.2.0 (2025-05-06)
+
+* allow `kwargs` to be forwarded to backend's `get_assets` method from `assets_for_tile`, `assets_for_point` and `assets_for_bbox` methods
+
 ## 8.1.0 (2025-02-13)
 
 * add `lock=Lock()` to cachetools `cached` instance to avoid thread corruption
