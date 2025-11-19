@@ -2,18 +2,23 @@
 
 Issues and pull requests are more than welcome.
 
-**Dev install & Pull-Request**
+We recommand using [`uv`](https://docs.astral.sh/uv) as project manager for development.
+
+See https://docs.astral.sh/uv/getting-started/installation/ for installation 
+
+### dev install
 
 ```
 git clone http://github.com/developmentseed/cogeo-mosaic.git
 cd cogeo-mosaic
-python -m pip install -e .["test,az"]
+
+uv sync --all-extras
 ```
 
 You can then run the tests with the following command:
 
 ```sh
-python -m pytest --cov cogeo_mosaic --cov-report term-missing
+uv run pytest  --cov cogeo_mosaic --cov-report term-missing
 ```
 
 ### pre-commit
@@ -21,7 +26,7 @@ python -m pytest --cov cogeo_mosaic --cov-report term-missing
 This repo is set to use `pre-commit` to run *isort*, *flake8*, *pydocstring*, *black* ("uncompromising Python code formatter") and mypy when committing new code.
 
 ```bash
-pre-commit install
+uv run pre-commit install
 
 git add .
 
@@ -40,18 +45,17 @@ git push origin
 ```bash
 git clone https://github.com/developmentseed/cogeo-mosaic.git
 cd cogeo-mosaic
-python -m pip install -e .["docs"]
 ```
 
 Hot-reloading docs:
 
 ```bash
-mkdocs serve
+uv run --group docs mkdocs serve -f docs/mkdocs.yml
 ```
 
 To manually deploy docs (note you should never need to do this because Github
 Actions deploys automatically for new commits.):
 
 ```bash
-mkdocs gh-deploy -f docs/mkdocs.yml
+uv run --group docs mkdocs gh-deploy -f docs/mkdocs.yml
 ```
