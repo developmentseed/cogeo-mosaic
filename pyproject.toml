@@ -1,7 +1,7 @@
 [project]
 name = "cogeo-mosaic"
 description = 'CLI and Backends to work with MosaicJSON.'
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {file = "LICENSE"}
 authors = [
   { name = "Vincent Sarago", email = "vincent@developmentseed.com" },
@@ -13,8 +13,6 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -36,7 +34,6 @@ dependencies = [
   "click",
   "cligj",
   "click_plugins",
-  "importlib_metadata; python_version < '3.10'",
 ]
 
 [project.optional-dependencies]
@@ -44,20 +41,29 @@ aws = [
   "boto3",
 ]
 az = [
-  "azure-identity", "azure-storage-blob",
+  "azure-identity", 
+  "azure-storage-blob",
 ]
 gcp = [
   "google-cloud-storage"
 ]
-test = [
-  "pytest", "pytest-cov", "boto3",
-]
+
+[dependency-groups]
 dev = [
+  "pytest", 
+  "pytest-cov", 
+  "boto3",
   "pre-commit",
   "bump-my-version",
 ]
 docs = [
-  "mkdocs", "mkdocs-material", "pygments", "mkdocs-jupyter"
+    "mkdocs", 
+    "mkdocs-material", 
+    "pygments", 
+    "mkdocs-jupyter",
+]
+deploy = [
+    "hatch",
 ]
 
 [project.urls]
@@ -85,23 +91,18 @@ substitutions = [
     {pattern = '@@', replacement = '@'},
 ]
 
+[build-system]
+requires = ["hatchling", "hatch-fancy-pypi-readme>=22.5.0"]
+build-backend = "hatchling.build"
+
 [tool.hatch.version]
 path = "cogeo_mosaic/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-exclude = [
-  "/tests",
-  "/docs",
-  ".github",
-  ".bumpversion.cfg",
-  ".flake8",
-  ".gitignore",
-  ".pre-commit-config.yaml",
-]
+only-include = ["cogeo_mosaic/"]
 
-[build-system]
-requires = ["hatchling", "hatch-fancy-pypi-readme>=22.5.0"]
-build-backend = "hatchling.build"
+[tool.hatch.build.targets.wheel]
+only-include = ["cogeo_mosaic/"]
 
 [tool.coverage.run]
 branch = true
