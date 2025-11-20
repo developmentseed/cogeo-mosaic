@@ -2,15 +2,13 @@
 
 from typing import List, Optional, Tuple
 
-from pydantic import BaseModel, Field
-from rio_tiler.types import BBox
+from pydantic import Field
+from rio_tiler.mosaic.backend import MosaicInfo
 
 
-class Info(BaseModel):
+class Info(MosaicInfo):
     """Mosaic info responses."""
 
-    bounds: BBox = Field(default=(-180, -90, 180, 90))
-    crs: str
     center: Optional[Tuple[float, float, int]] = None
     name: Optional[str] = None
     quadkeys: List[str] = []

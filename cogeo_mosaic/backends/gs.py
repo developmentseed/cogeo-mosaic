@@ -9,7 +9,7 @@ import attr
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
-from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.base import MosaicJSONBackend
 from cogeo_mosaic.backends.utils import _compress_gz_json, _decompress_gz
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError, MosaicExistsError
@@ -24,7 +24,7 @@ except ImportError:  # pragma: nocover
 
 
 @attr.s
-class GCSBackend(BaseBackend):
+class GCSBackend(MosaicJSONBackend):
     """GCS Backend Adapter"""
 
     client: Any = attr.ib(default=None)

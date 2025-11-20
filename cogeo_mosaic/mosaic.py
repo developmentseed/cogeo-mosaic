@@ -207,7 +207,11 @@ class MosaicJSON(BaseModel, validate_assignment=True):
             ) as bar:
                 for tile in bar:
                     quadkey = tms.quadkey(tile)
-                    tile_geom = polygons(tms.feature(tile)["geometry"]["coordinates"][0])
+                    tile_geom = polygons(
+                        tms.feature(tile, geographic_crs=tms.geographic_crs)["geometry"][
+                            "coordinates"
+                        ][0]
+                    )
 
                     # Find intersections from rtree
                     intersections_idx = sorted(

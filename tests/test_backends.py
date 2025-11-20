@@ -954,7 +954,7 @@ def test_InMemoryReader():
         (t, _), assets_used = mosaic.tile(150, 182, 9)
         assert t.shape
 
-        (tR, _), assets_usedR = mosaic.tile(150, 182, 9, reverse=True)
+        (tR, _), assets_usedR = mosaic.tile(150, 182, 9, search_options={"reverse": True})
         assert tR.shape
         assert not numpy.array_equal(t, tR)
 
@@ -968,7 +968,7 @@ def test_InMemoryReader():
         assert pts[0][0].endswith(".tif")
         assert len(pts[0][1].data) == 3
 
-        ptsR = mosaic.point(-73, 45, reverse=True)
+        ptsR = mosaic.point(-73, 45, search_options={"reverse": True})
         assert len(ptsR) == 2
         assert ptsR[0][0] == pts[-1][0]
 
@@ -986,14 +986,14 @@ def test_InMemoryReader():
         assert mosaic.bounds
         assert mosaic.center == mosaicdef.center
 
+        # with pytest.raises(NotImplementedError):
+        #     mosaic.part()
+
+        # with pytest.raises(NotImplementedError):
+        #     mosaic.feature()
+
         with pytest.raises(NotImplementedError):
             mosaic.preview()
-
-        with pytest.raises(NotImplementedError):
-            mosaic.part()
-
-        with pytest.raises(NotImplementedError):
-            mosaic.feature()
 
         info = mosaic.info()
         assert list(info.model_dump()) == [

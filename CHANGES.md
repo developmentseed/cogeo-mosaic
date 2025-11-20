@@ -1,5 +1,23 @@
 ## Unreleased
 
+## 9.0.0 (TBD)
+
+* update rio-tiler requirement to `>=8.0,<9.0`
+* rename `cogeo_mosaic.backends.base.BaseBackend` to `cogeo_mosaic.backends.base.MosaicJSONBackend` **breaking change**
+* `cogeo_mosaic.backends.base.MosaicJSONBackend` subclass `rio_tiler.mosaic.backend.BaseBackend`
+* remove `.center` property from `MosaicJSONBackend` **breaking change**
+* `reverse` option should be passed via `search_options` **breaking change**
+
+    ```python
+    # before
+    with MemoryBackend(mosaic_def=...) as mosaic:
+        ptsR = mosaic.point(-73, 45, reverse=True)
+
+    # now
+    with MemoryBackend(mosaic_def=...) as mosaic:
+        ptsR = mosaic.point(-73, 45, search_options={"reverse": True})
+    ```
+
 ## 8.2.0 (2025-05-06)
 
 * allow `kwargs` to be forwarded to backend's `get_assets` method from `assets_for_tile`, `assets_for_point` and `assets_for_bbox` methods
