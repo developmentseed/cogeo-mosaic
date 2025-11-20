@@ -501,7 +501,7 @@ requires-dist = [
     { name = "pydantic", specifier = "~=2.0" },
     { name = "pydantic-settings", specifier = "~=2.0" },
     { name = "rasterio" },
-    { name = "rio-tiler", git = "https://github.com/cogeotiff/rio-tiler.git" },
+    { name = "rio-tiler", specifier = ">=8.0,<9.0" },
     { name = "shapely", specifier = ">=2.0,<3.0" },
     { name = "supermorecado" },
 ]
@@ -2532,8 +2532,8 @@ wheels = [
 
 [[package]]
 name = "rio-tiler"
-version = "7.8.1"
-source = { git = "https://github.com/cogeotiff/rio-tiler.git#a8a08bbce1b6221aa95fea94cee97b99cb5ed2c9" }
+version = "8.0.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
     { name = "cachetools" },
@@ -2546,6 +2546,10 @@ dependencies = [
     { name = "pystac" },
     { name = "rasterio" },
     { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/64/5d/64609bf13ae98402e295e4a7f2a333ff5a01de801d8f17803f28c05f8231/rio_tiler-8.0.0.tar.gz", hash = "sha256:dccbfdcf61c9bdd34182e6a3f3fe9fe2d936ab6dd3faab99f461d599a1f04147", size = 180958, upload-time = "2025-11-20T21:06:51.039Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/77/af/525fca04697fde34a552db49d73a1ab434306fb8231c9ba6a03d69425805/rio_tiler-8.0.0-py3-none-any.whl", hash = "sha256:9b4bfe72535fce409b5321a3b5e4977906879c68f5ef706aee01b833606265c3", size = 276761, upload-time = "2025-11-20T21:06:52.434Z" },
 ]
 
 [[package]]
