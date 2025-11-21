@@ -156,7 +156,7 @@ max-complexity = 14
 "tests/*.py" = ["D1"]
 
 [tool.bumpversion]
-current_version = "8.2.0"
+current_version = "9.0.0"
 search = "{current_version}"
 replace = "{new_version}"
 regex = false
