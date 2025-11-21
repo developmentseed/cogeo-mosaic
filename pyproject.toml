@@ -104,9 +104,6 @@ only-include = ["cogeo_mosaic/"]
 [tool.hatch.build.targets.wheel]
 only-include = ["cogeo_mosaic/"]
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
 [tool.coverage.run]
 branch = true
 parallel = true
