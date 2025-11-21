@@ -2,12 +2,12 @@
 
 import attr
 
-from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.base import MosaicJSONBackend
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
 @attr.s
-class MemoryBackend(BaseBackend):
+class MemoryBackend(MosaicJSONBackend):
     """InMemory Backend Adapter
 
     Examples:

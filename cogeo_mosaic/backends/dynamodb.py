@@ -17,7 +17,7 @@ from cachetools.keys import hashkey
 from morecantile import Tile
 from rio_tiler.constants import WEB_MERCATOR_TMS
 
-from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.base import MosaicJSONBackend
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import (
     _HTTP_EXCEPTIONS,
@@ -40,7 +40,7 @@ except ImportError:  # pragma: nocover
 
 
 @attr.s
-class DynamoDBBackend(BaseBackend):
+class DynamoDBBackend(MosaicJSONBackend):
     """DynamoDB Backend Adapter."""
 
     client: Any = attr.ib(default=None)

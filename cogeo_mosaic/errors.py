@@ -1,5 +1,7 @@
 """Custom exceptions"""
 
+from rio_tiler.errors import NoAssetFoundError  # noqa
+
 
 class MosaicError(Exception):
     """Base exception"""
@@ -11,10 +13,6 @@ class MosaicAuthError(MosaicError):
 
 class MosaicNotFoundError(MosaicError):
     """Mosaic not found error"""
-
-
-class NoAssetFoundError(MosaicError):
-    """No Asset found"""
 
 
 class MosaicExists(MosaicError):

@@ -4,7 +4,7 @@ import abc
 import itertools
 import warnings
 from threading import Lock
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 import attr
 from cachetools import TTLCache, cached
@@ -13,17 +13,13 @@ from morecantile import Tile, TileMatrixSet
 from rasterio.crs import CRS
 from rasterio.warp import transform, transform_bounds
 from rio_tiler.constants import WEB_MERCATOR_TMS
-from rio_tiler.errors import PointOutsideBounds
 from rio_tiler.io import BaseReader, MultiBandReader, MultiBaseReader, Reader
-from rio_tiler.models import ImageData, PointData
-from rio_tiler.mosaic import mosaic_reader
-from rio_tiler.tasks import multi_values
+from rio_tiler.mosaic.backend import BaseBackend
 from rio_tiler.types import BBox
 from rio_tiler.utils import CRS_to_uri
 
 from cogeo_mosaic.backends.utils import get_hash
 from cogeo_mosaic.cache import cache_config
-from cogeo_mosaic.errors import NoAssetFoundError
 from cogeo_mosaic.models import Info
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
@@ -35,7 +31,7 @@ def _convert_to_mosaicjson(value: Union[Dict, MosaicJSON]):
 
 
 @attr.s
-class BaseBackend(BaseReader):
+class MosaicJSONBackend(BaseBackend):
     """Base Class for cogeo-mosaic backend storage.
 
     Attributes:
@@ -54,8 +50,8 @@ class BaseBackend(BaseReader):
 
     input: str = attr.ib()
     mosaic_def: MosaicJSON = attr.ib(default=None, converter=_convert_to_mosaicjson)
-
     tms: TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
+
     minzoom: int = attr.ib(default=None)
     maxzoom: int = attr.ib(default=None)
 
@@ -240,10 +236,12 @@ class BaseBackend(BaseReader):
 
     @cached(  # type: ignore
         TTLCache(maxsize=cache_config.maxsize, ttl=cache_config.ttl),
-        key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
+        key=lambda self, x, y, z, **kwargs: hashkey(
+            self.input, x, y, z, self.mosaicid, **kwargs
+        ),
         lock=Lock(),
     )
-    def get_assets(self, x: int, y: int, z: int) -> List[str]:
+    def get_assets(self, x: int, y: int, z: int, reverse: bool = False) -> List[str]:
         """Find assets."""
         quadkeys = self.find_quadkeys(Tile(x=x, y=y, z=z), self.quadkey_zoom)
         assets = list(
@@ -255,6 +253,9 @@ class BaseBackend(BaseReader):
         )
         if self.mosaic_def.asset_prefix:
             assets = [self.mosaic_def.asset_prefix + asset for asset in assets]
+
+        if reverse:
+            assets = list(reversed(assets))
 
         return assets
 
@@ -299,80 +300,16 @@ class BaseBackend(BaseReader):
         else:
             return [mosaic_tms.quadkey(*tile)]
 
-    def tile(  # type: ignore
-        self,
-        x: int,
-        y: int,
-        z: int,
-        reverse: bool = False,
-        **kwargs: Any,
-    ) -> Tuple[ImageData, List[str]]:
-        """Get Tile from multiple observation."""
-        mosaic_assets = self.assets_for_tile(x, y, z)
-        if not mosaic_assets:
-            raise NoAssetFoundError(f"No assets found for tile {z}-{x}-{y}")
-
-        if reverse:
-            mosaic_assets = list(reversed(mosaic_assets))
-
-        def _reader(asset: str, x: int, y: int, z: int, **kwargs: Any) -> ImageData:
-            with self.reader(asset, tms=self.tms, **self.reader_options) as src_dst:
-                return src_dst.tile(x, y, z, **kwargs)
-
-        return mosaic_reader(mosaic_assets, _reader, x, y, z, **kwargs)
-
-    def point(
-        self,
-        lon: float,
-        lat: float,
-        coord_crs: Optional[CRS] = None,
-        reverse: bool = False,
-        **kwargs: Any,
-    ) -> List[PointData]:
-        """Get Point value from multiple observation."""
-        # default coord_crs should be the TMS's geographic CRS
-        coord_crs = coord_crs or self.tms.rasterio_geographic_crs
-
-        mosaic_assets = self.assets_for_point(lon, lat, coord_crs=coord_crs)
-        if not mosaic_assets:
-            raise NoAssetFoundError(f"No assets found for point ({lon},{lat})")
-
-        if reverse:
-            mosaic_assets = list(reversed(mosaic_assets))
-
-        def _reader(
-            asset: str, lon: float, lat: float, coord_crs: CRS, **kwargs
-        ) -> PointData:
-            with self.reader(asset, **self.reader_options) as src_dst:
-                return src_dst.point(lon, lat, coord_crs=coord_crs, **kwargs)
-
-        if "allowed_exceptions" not in kwargs:
-            kwargs.update({"allowed_exceptions": (PointOutsideBounds,)})
-
-        return list(
-            multi_values(mosaic_assets, _reader, lon, lat, coord_crs, **kwargs).items()
-        )
-
     def info(self, quadkeys: bool = False) -> Info:  # type: ignore
         """Mosaic info."""
         return Info(
             bounds=self.bounds,
             crs=CRS_to_uri(self.crs) or self.crs.to_wkt(),
-            center=self.center,
             name=self.mosaic_def.name if self.mosaic_def.name else "mosaic",
             quadkeys=[] if not quadkeys else self._quadkeys,
             mosaic_tilematrixset=repr(self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS),
             mosaic_minzoom=self.mosaic_def.minzoom,
             mosaic_maxzoom=self.mosaic_def.maxzoom,
-        )
-
-    @property
-    def center(self):
-        """Return center from the mosaic definition."""
-        return (
-            (self.bounds[0] + self.bounds[2]) / 2,
-            (self.bounds[1] + self.bounds[3]) / 2,
-            self.minzoom,
         )
 
     @property
@@ -389,22 +326,3 @@ class BaseBackend(BaseReader):
     def quadkey_zoom(self) -> int:
         """Return Quadkey zoom property."""
         return self.mosaic_def.quadkey_zoom or self.mosaic_def.minzoom
-
-    ############################################################################
-    # Not Implemented methods
-    # BaseReader required those method to be implemented
-    def statistics(self):
-        """PlaceHolder for BaseReader.statistics."""
-        raise NotImplementedError
-
-    def preview(self):
-        """PlaceHolder for BaseReader.preview."""
-        raise NotImplementedError
-
-    def part(self):
-        """PlaceHolder for BaseReader.part."""
-        raise NotImplementedError
-
-    def feature(self):
-        """PlaceHolder for BaseReader.feature."""
-        raise NotImplementedError

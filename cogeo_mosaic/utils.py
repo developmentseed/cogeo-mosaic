@@ -53,11 +53,11 @@ def get_dataset_info(
                 "type": "Polygon",
                 "coordinates": [
                     [
-                        tms.truncate_lnglat(bounds[0], bounds[3]),
-                        tms.truncate_lnglat(bounds[0], bounds[1]),
-                        tms.truncate_lnglat(bounds[2], bounds[1]),
-                        tms.truncate_lnglat(bounds[2], bounds[3]),
-                        tms.truncate_lnglat(bounds[0], bounds[3]),
+                        (bounds[0], bounds[3]),
+                        (bounds[0], bounds[1]),
+                        (bounds[2], bounds[1]),
+                        (bounds[2], bounds[3]),
+                        (bounds[0], bounds[3]),
                     ]
                 ],
             },

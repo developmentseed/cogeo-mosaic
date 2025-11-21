@@ -16,7 +16,7 @@ from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
 from cogeo_mosaic import __version__ as cogeo_mosaic_version
-from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.base import MosaicJSONBackend
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import MosaicExistsError, MosaicNotFoundError
 from cogeo_mosaic.logger import logger
@@ -33,7 +33,7 @@ MOSAIC_JSON_VERSION = 3
 
 
 @attr.s
-class SQLiteBackend(BaseBackend):
+class SQLiteBackend(MosaicJSONBackend):
     """SQLite Backend Adapter."""
 
     db_path: str = attr.ib(init=False)

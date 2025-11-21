@@ -47,14 +47,14 @@ Lear more on MosaicJSON class [API/mosaic](../API/mosaic).
 
 ### Backends
 
-`backends` are python classes, based on rio-tiler [BaseReader](https://github.com/cogeotiff/rio-tiler/blob/main/rio_tiler/io/base.py#L16), which are used to interact with MosaicJSON documents, stored on AWS DynamoDB, AWS S3, locally, or on the web (http://).
+MosaicJSON `backends` are python classes, based on rio-tiler [BaseBackend](https://github.com/cogeotiff/rio-tiler/blob/main/rio_tiler/mosaic/backend.py), which are used to interact with MosaicJSON documents, stored on AWS DynamoDB, AWS S3, locally, or on the web (http://).
 
-Because each Backends extend rio-tiler [BaseReader](https://github.com/cogeotiff/rio-tiler/blob/main/rio_tiler/io/base.py#L16) they share the same minimal methods/properties
+Because each Backends extend rio-tiler [BaseBackend](https://github.com/cogeotiff/rio-tiler/blob/main/rio_tiler/mosaic/backend.py) they share the same minimal methods/properties
 
 ```python
-from cogeo_mosaic.backends import BaseBackend
-print(BaseBackend.__bases__)
->> <class 'rio_tiler.io.base.BaseReader'>
+from cogeo_mosaic.backends import MosaicJSONBackend
+print(MosaicJSONBackend.__bases__)
+>> (<class 'rio_tiler.mosaic.backend.BaseBackend'>,)
 ```
 
 ```python
@@ -72,7 +72,6 @@ with S3Backend("s3://mybucket/amosaic.json") as mosaic:
 
     mosaic.crs                                     # property - CRS (from mosaic's TMS geographic CRS)
     mosaic.bounds                                  # property - Mosaic bounds in `mosaic.crs`
-    mosaic.center                                  # property - Mosaic center (lon, lat, minzoom)
 
     mosaic.mosaicid                                # property - Return sha224 id from the mosaicjson doc
     mosaic.quadkey_zoom                            # property - Return Quadkey zoom of the mosaic
@@ -90,11 +89,13 @@ with S3Backend("s3://mybucket/amosaic.json") as mosaic:
 
     mosaic.tile(1,2,3)                             # method - Create mosaic tile
     mosaic.point(lng, lat)                         # method - Read point value from multiple assets
+    mosaic.part(bbox)                              # method - Create image from part of multiple assets
+    mosaic.feature(feature)                        # method - Create image from GeoJSON feature of multiple assets
 ```
 
 !!! Important
 
-    `statistics()`, `preview()`, `part()` and `feature()` methods are not implemented in BaseBackend
+    `statistics()`, `preview()` methods are not implemented in BaseBackend
 
 #### Open Mosaic and Get assets list for a tile
 

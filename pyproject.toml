@@ -27,7 +27,7 @@ dependencies = [
   "pydantic-settings~=2.0",
   "httpx",
   "rasterio",
-  "rio-tiler>=7.0,<8.0",
+  "rio-tiler>=8.0,<9.0",
   "supermorecado",
   "cachetools",
   "numpy",
@@ -103,6 +103,9 @@ only-include = ["cogeo_mosaic/"]
 
 [tool.hatch.build.targets.wheel]
 only-include = ["cogeo_mosaic/"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.coverage.run]
 branch = true

@@ -15,7 +15,7 @@ from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.io import STACReader
 from rio_tiler.types import BBox
 
-from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.base import MosaicJSONBackend
 from cogeo_mosaic.cache import cache_config
 from cogeo_mosaic.errors import _HTTP_EXCEPTIONS, MosaicError
 from cogeo_mosaic.logger import logger
@@ -43,7 +43,7 @@ def default_stac_accessor(feature: Dict):
 
 
 @attr.s
-class STACBackend(BaseBackend):
+class STACBackend(MosaicJSONBackend):
     """STAC Backend Adapter
 
     Examples:

@@ -69,7 +69,6 @@ def test_file_backend():
         assert list(info.model_dump()) == [
             "bounds",
             "crs",
-            "center",
             "name",
             "quadkeys",
             "mosaic_tilematrixset",
@@ -166,7 +165,9 @@ def test_file_backend():
             )
 
     with MosaicBackend(mosaic_gz) as mosaic:
-        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+        tile = mosaic.tms.tile(
+            mosaic.mosaic_def.center[0], mosaic.mosaic_def.center[1], mosaic.minzoom
+        )
 
         assert mosaic.assets_for_tile(*tile) == ["cog1.tif", "cog2.tif"]
         assert mosaic.assets_for_bbox(
@@ -652,7 +653,6 @@ def test_dynamoDB_backend(client):
         assert list(info.model_dump()) == [
             "bounds",
             "crs",
-            "center",
             "name",
             "quadkeys",
             "mosaic_tilematrixset",
@@ -954,7 +954,7 @@ def test_InMemoryReader():
         (t, _), assets_used = mosaic.tile(150, 182, 9)
         assert t.shape
 
-        (tR, _), assets_usedR = mosaic.tile(150, 182, 9, reverse=True)
+        (tR, _), assets_usedR = mosaic.tile(150, 182, 9, search_options={"reverse": True})
         assert tR.shape
         assert not numpy.array_equal(t, tR)
 
@@ -968,7 +968,7 @@ def test_InMemoryReader():
         assert pts[0][0].endswith(".tif")
         assert len(pts[0][1].data) == 3
 
-        ptsR = mosaic.point(-73, 45, reverse=True)
+        ptsR = mosaic.point(-73, 45, search_options={"reverse": True})
         assert len(ptsR) == 2
         assert ptsR[0][0] == pts[-1][0]
 
@@ -984,22 +984,28 @@ def test_InMemoryReader():
         assert mosaic.minzoom
         assert mosaic.maxzoom
         assert mosaic.bounds
-        assert mosaic.center == mosaicdef.center
+
+        bbox = [-74, 45, -73, 46]
+        _, assets_used = mosaic.part(bbox, bounds_crs="epsg:4326", max_size=256)
+        assert len(assets_used) == 2
+
+        feat = {
+            "coordinates": [[[-74, 45], [-73, 45], [-73, 46], [-74, 46], [-74, 45]]],
+            "type": "Polygon",
+        }
+        _, assets_used = mosaic.feature(feat, shape_crs="epsg:4326", max_size=256)
+        assert len(assets_used) == 2
 
         with pytest.raises(NotImplementedError):
             mosaic.preview()
 
         with pytest.raises(NotImplementedError):
-            mosaic.part()
-
-        with pytest.raises(NotImplementedError):
-            mosaic.feature()
+            mosaic.statistics()
 
         info = mosaic.info()
         assert list(info.model_dump()) == [
             "bounds",
             "crs",
-            "center",
             "name",
             "quadkeys",
             "mosaic_tilematrixset",
@@ -1034,7 +1040,6 @@ def test_sqlite_backend():
         assert list(info.model_dump()) == [
             "bounds",
             "crs",
-            "center",
             "name",
             "quadkeys",
             "mosaic_tilematrixset",
@@ -1192,7 +1197,9 @@ def test_tms_and_coordinates():
     with MemoryBackend(mosaic_def=mosaicdef) as mosaic:
         assert mosaic.minzoom == mosaic.mosaic_def.minzoom
         assert mosaic.maxzoom == mosaic.mosaic_def.maxzoom
-        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+        tile = mosaic.tms.tile(
+            mosaic.mosaic_def.center[0], mosaic.mosaic_def.center[1], mosaic.minzoom
+        )
         img, assets = mosaic.tile(*tile)
         assert assets == [asset1, asset2]
         assert img.crs == "epsg:3857"
@@ -1201,7 +1208,9 @@ def test_tms_and_coordinates():
     with MemoryBackend(mosaic_def=mosaicdef, tms=tms, minzoom=4, maxzoom=7) as mosaic:
         assert mosaic.minzoom == 4
         assert mosaic.maxzoom == 7
-        tile = mosaic.tms.tile(mosaic.center[0], mosaic.center[1], mosaic.minzoom)
+        tile = mosaic.tms.tile(
+            mosaic.mosaic_def.center[0], mosaic.mosaic_def.center[1], mosaic.minzoom
+        )
         img, assets = mosaic.tile(*tile)
         assert assets == [asset1, asset2]
         assert img.crs == "epsg:4326"

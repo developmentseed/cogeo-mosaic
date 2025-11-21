@@ -4,7 +4,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from cogeo_mosaic.backends.az import ABSBackend
-from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.base import MosaicJSONBackend
 from cogeo_mosaic.backends.dynamodb import DynamoDBBackend
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.backends.gs import GCSBackend
@@ -15,7 +15,7 @@ from cogeo_mosaic.backends.stac import STACBackend
 from cogeo_mosaic.backends.web import HttpBackend
 
 
-def MosaicBackend(input: str, *args: Any, **kwargs: Any) -> BaseBackend:  # noqa: C901
+def MosaicBackend(input: str, *args: Any, **kwargs: Any) -> MosaicJSONBackend:  # noqa: C901
     """Select mosaic backend for input."""
     parsed = urlparse(input)
 
