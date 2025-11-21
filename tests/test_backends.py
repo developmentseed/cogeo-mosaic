@@ -986,14 +986,22 @@ def test_InMemoryReader():
         assert mosaic.bounds
         assert mosaic.center == mosaicdef.center
 
-        # with pytest.raises(NotImplementedError):
-        #     mosaic.part()
+        bbox = [-74, 45, -73, 46]
+        _, assets_used = mosaic.part(bbox, bounds_crs="epsg:4326", max_size=256)
+        assert len(assets_used) == 2
 
-        # with pytest.raises(NotImplementedError):
-        #     mosaic.feature()
+        feat = {
+            "coordinates": [[[-74, 45], [-73, 45], [-73, 46], [-74, 46], [-74, 45]]],
+            "type": "Polygon",
+        }
+        _, assets_used = mosaic.feature(feat, shape_crs="epsg:4326", max_size=256)
+        assert len(assets_used) == 2
 
         with pytest.raises(NotImplementedError):
             mosaic.preview()
+
+        with pytest.raises(NotImplementedError):
+            mosaic.statistics()
 
         info = mosaic.info()
         assert list(info.model_dump()) == [
