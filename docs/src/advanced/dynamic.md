@@ -1,7 +1,9 @@
 
-The mosaic backend abstract `BaseBackend` has been designed to be really flexible and compatible with dynamic tiler built for rio-tiler `BaseReader`. It also enables the creation of `dynamic` mosaic where NO mosaicJSON document really exists.
+**Deprecated**: With rio-tiler 8.0, creating dynamtic mosaic backend doesn't need to be done with the `MosaicJSONBaseBackend`. See https://cogeotiff.github.io/rio-tiler/advanced/mosaic_backend/.
 
-The `BaseBackend` ABC class defines that the sub class should:
+The mosaic backend abstract `MosaicJSONBaseBackend` has been designed to be really flexible and compatible with dynamic tiler built for rio-tiler `BaseReader`. It also enables the creation of `dynamic` mosaic where NO mosaicJSON document really exists.
+
+The `MosaicJSONBaseBackend` ABC class defines that the sub class should:
 
 - have a `mosaic_def` object (MosaicJSON) or a path as input
 - have `_read`, `write` and `update` methods defined
@@ -36,13 +38,13 @@ from rio_tiler.constants import WEB_MERCATOR_TMS, WGS84_CRS
 from rio_tiler.io import BaseReader
 from rio_tiler.io import STACReader
 
-from cogeo_mosaic.backends.base import BaseBackend
+from cogeo_mosaic.backends.base import MosaicJSONBaseBackend
 from cogeo_mosaic.backends.stac import _fetch, default_stac_accessor
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
 @attr.s
-class DynamicStacBackend(BaseBackend):
+class DynamicStacBackend(MosaicJSONBaseBackend):
     """Like a STAC backend but dynamic"""
 
     # input should be the STAC-API url
@@ -51,10 +53,10 @@ class DynamicStacBackend(BaseBackend):
     # Addition required attribute (STAC Query)
     query: Dict = attr.ib(factory=dict)
 
-    minzoom: int = attr.ib()
-    maxzoom: int = attr.ib()
-
     tms: morecantile.TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
+
+    minzoom: int = attr.ib(default=None)
+    maxzoom: int = attr.ib(default=None)
 
     reader: Type[BaseReader] = attr.ib(default=STACReader)
     reader_options: Dict = attr.ib(factory=dict)
@@ -73,16 +75,11 @@ class DynamicStacBackend(BaseBackend):
 
     _backend_name = "DynamicSTAC"
 
-    @minzoom.default
-    def _minzoom(self):
-        return self.tms.minzoom
-
-    @maxzoom.default
-    def _maxzoom(self):
-        return self.tms.maxzoom
-
     def __attrs_post_init__(self):
         """Post Init."""
+        self.minzoom = self.minzoom if self.minzoom is not None else self.tms.minzoom
+        self.maxzoom = self.maxzoom if self.maxzoom is not None else self.tms.maxzoom
+        
         # Construct a FAKE/Empty mosaicJSON
         # mosaic_def has to be defined. As we do for the DynamoDB and SQLite backend
         self.mosaic_def = MosaicJSON(
@@ -91,7 +88,7 @@ class DynamicStacBackend(BaseBackend):
             bounds=self.bounds,
             minzoom=self.minzoom,
             maxzoom=self.maxzoom,
-            tiles=[]  # we set `tiles` to an empty list.
+            tiles={}  # we set `tiles` to an empty list.
         )
 
     def write(self, overwrite: bool = True):

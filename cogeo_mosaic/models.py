@@ -1,6 +1,6 @@
 """cogeo-mosaic models."""
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from pydantic import Field
 from rio_tiler.mosaic.backend import MosaicInfo
@@ -9,7 +9,6 @@ from rio_tiler.mosaic.backend import MosaicInfo
 class Info(MosaicInfo):
     """Mosaic info responses."""
 
-    center: Optional[Tuple[float, float, int]] = None
     name: Optional[str] = None
     quadkeys: List[str] = []
     mosaic_tilematrixset: Optional[str] = None

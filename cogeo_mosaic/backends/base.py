@@ -313,20 +313,6 @@ class MosaicJSONBackend(BaseBackend):
         )
 
     @property
-    def center(self):
-        """Return center from the mosaic definition."""
-        warnings.warn(
-            "`center` property is deprecated and will be removed in a future release.",
-            DeprecationWarning,
-        )
-
-        return (
-            (self.bounds[0] + self.bounds[2]) / 2,
-            (self.bounds[1] + self.bounds[3]) / 2,
-            self.minzoom,
-        )
-
-    @property
     def mosaicid(self) -> str:
         """Return sha224 id of the mosaicjson document."""
         return get_hash(**self.mosaic_def.model_dump(exclude_none=True))

@@ -34,7 +34,7 @@ with MemoryBackend(mosaic_def=mosaicjson) as mosaic:
 
 ### Abstract Class
 
-All backends are built from a `BaseBackend` which is a sub-class or `rio-tiler.io.BaseReader`.
+All backends are built from a `MosaicJSONBackend` which is a sub-class or `rio-tiler.mosaic.backend.BaseBackend`.
 
 ## MosaicBackend
 
@@ -199,7 +199,6 @@ with STACBackend(
 ) as mosaic:
     print(mosaic.mosaic_def.dict(exclude={"tiles"}))
 ```
-
 
 #### Specification
 
