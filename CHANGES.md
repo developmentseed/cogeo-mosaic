@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 9.0.0 (TBD)
+## 9.0.0 (2025-11-21)
 
 * update rio-tiler requirement to `>=8.0,<9.0`
 * rename `cogeo_mosaic.backends.base.BaseBackend` to `cogeo_mosaic.backends.base.MosaicJSONBackend` **breaking change**
