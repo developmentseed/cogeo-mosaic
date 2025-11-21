@@ -54,7 +54,7 @@ dev = [
   "pytest-cov", 
   "boto3",
   "pre-commit",
-  "bump-my-version",
+  "bump-my-version>=1.2.4",
 ]
 docs = [
     "mkdocs", 

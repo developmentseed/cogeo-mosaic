@@ -210,7 +210,7 @@ wheels = [
 
 [[package]]
 name = "bump-my-version"
-version = "1.2.2"
+version = "1.2.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -223,9 +223,9 @@ dependencies = [
     { name = "tomlkit" },
     { name = "wcmatch" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/df/1bec1ba4fcdbd65825b018a9f6598ca03531eafb6d7ec978d08121d44c06/bump_my_version-1.2.2.tar.gz", hash = "sha256:76292bf9f827bf0c039f351a00f8aa74f5348cb796d0d7b2d7d59755f403093c", size = 1147090, upload-time = "2025-09-13T13:09:33.227Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/fa/3ade689370780989831e574e82024d301ffa5ef75b3d169a7074c9419ce4/bump_my_version-1.2.4.tar.gz", hash = "sha256:998abb4f3774cf96137a77034a5a12a722b109b26a3afa044ec14622a0180fa3", size = 1157991, upload-time = "2025-10-04T14:13:31.658Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/ce/d92d04d91f13b41c8abc40f3f960bb1e6da9c97cf2c997f20ba9734e658c/bump_my_version-1.2.2-py3-none-any.whl", hash = "sha256:d8d2a2cddb2dae54f902f05b65f3fea6afd5e332218608360d7c92a4b9e51f57", size = 59543, upload-time = "2025-09-13T13:09:31.469Z" },
+    { url = "https://files.pythonhosted.org/packages/21/bb/893bcf542addd07f3ec92ca20ce028a0f254481f57039dc5b933a074d767/bump_my_version-1.2.4-py3-none-any.whl", hash = "sha256:b60ac52c8972c5a7e1e478d0334015a993ba5c27fad1b04bde558d25c667b0f5", size = 59732, upload-time = "2025-10-04T14:13:29.992Z" },
 ]
 
 [[package]]
@@ -400,14 +400,14 @@ wheels = [
 
 [[package]]
 name = "click"
-version = "8.3.1"
+version = "8.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/fa/656b739db8587d7b5dfa22e22ed02566950fbfbcdc20311993483657a5c0/click-8.3.1.tar.gz", hash = "sha256:12ff4785d337a1bb490bb7e9c2b1ee5da3112e94a8622f26a6c77f5d2fc6842a", size = 295065, upload-time = "2025-11-15T20:45:42.706Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/6c/8ca2efa64cf75a977a0d7fac081354553ebe483345c734fb6b6515d96bbc/click-8.2.1.tar.gz", hash = "sha256:27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202", size = 286342, upload-time = "2025-05-20T23:19:49.832Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/78/01c019cdb5d6498122777c1a43056ebb3ebfeef2076d9d026bfe15583b2b/click-8.3.1-py3-none-any.whl", hash = "sha256:981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6", size = 108274, upload-time = "2025-11-15T20:45:41.139Z" },
+    { url = "https://files.pythonhosted.org/packages/85/32/10bb5764d90a8eee674e9dc6f4db6a0ab47c8c4d0d83c27f7c39ac415a4d/click-8.2.1-py3-none-any.whl", hash = "sha256:61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b", size = 102215, upload-time = "2025-05-20T23:19:47.796Z" },
 ]
 
 [[package]]
@@ -511,7 +511,7 @@ provides-extras = ["aws", "az", "gcp"]
 deploy = [{ name = "hatch" }]
 dev = [
     { name = "boto3" },
-    { name = "bump-my-version" },
+    { name = "bump-my-version", specifier = ">=1.2.4" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
