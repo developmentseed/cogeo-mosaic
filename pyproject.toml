@@ -21,13 +21,13 @@ classifiers = [
 dynamic = ["version", "readme"]
 dependencies = [
   "attrs",
-  "morecantile",
+  "morecantile>=7.0",
+  "rio-tiler>=8.0,<9.0",
   "shapely>=2.0,<3.0",
   "pydantic~=2.0",
   "pydantic-settings~=2.0",
   "httpx",
   "rasterio",
-  "rio-tiler>=8.0,<9.0",
   "supermorecado",
   "cachetools",
   "numpy",

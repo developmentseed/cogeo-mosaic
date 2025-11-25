@@ -1,5 +1,9 @@
 ## Unreleased
 
+## 9.0.1 (2025-11-25)
+
+* update morecantile requirements to `>=7.0`
+
 ## 9.0.0 (2025-11-21)
 
 * update rio-tiler requirement to `>=8.0,<9.0`

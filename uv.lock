@@ -496,7 +496,7 @@ requires-dist = [
     { name = "cligj" },
     { name = "google-cloud-storage", marker = "extra == 'gcp'" },
     { name = "httpx" },
-    { name = "morecantile" },
+    { name = "morecantile", specifier = ">=7.0" },
     { name = "numpy" },
     { name = "pydantic", specifier = "~=2.0" },
     { name = "pydantic-settings", specifier = "~=2.0" },
