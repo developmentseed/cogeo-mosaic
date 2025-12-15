@@ -1,5 +1,9 @@
 ## Unreleased
 
+## 9.0.2 (2025-12-15)
+
+* add support for python 3.14
+
 ## 9.0.1 (2025-11-25)
 
 * update morecantile requirements to `>=7.0`
