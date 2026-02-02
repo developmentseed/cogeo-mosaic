@@ -1,5 +1,10 @@
 ## Unreleased
 
+## 9.1.0
+
+* update: rio-tiler requirements 
+* update: type hints
+
 ## 9.0.2 (2025-12-15)
 
 * add support for python 3.14

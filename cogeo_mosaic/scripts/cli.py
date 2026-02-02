@@ -3,8 +3,7 @@
 import json
 import multiprocessing
 import os
-import sys
-from typing import Optional
+from importlib.metadata import entry_points
 
 import click
 import cligj
@@ -15,11 +14,6 @@ from cogeo_mosaic import __version__ as cogeo_mosaic_version
 from cogeo_mosaic.backends import MosaicBackend
 from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import get_footprints
-
-if sys.version_info < (3, 10):
-    from importlib_metadata import entry_points
-else:
-    from importlib.metadata import entry_points
 
 default_tms = morecantile.tms.get("WebMercatorQuad")
 
@@ -91,7 +85,7 @@ def create(
     quiet,
 ):
     """Create mosaic definition file."""
-    tilematrixset: Optional[morecantile.TileMatrixSet] = None
+    tilematrixset: morecantile.TileMatrixSet | None = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -143,7 +137,7 @@ def create(
 )
 def upload(file, url, tms):
     """Upload mosaic definition file."""
-    tilematrixset: Optional[morecantile.TileMatrixSet] = None
+    tilematrixset: morecantile.TileMatrixSet | None = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -207,7 +201,7 @@ def create_from_features(
     quiet,
 ):
     """Create mosaic definition file."""
-    tilematrixset: Optional[morecantile.TileMatrixSet] = None
+    tilematrixset: morecantile.TileMatrixSet | None = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -276,7 +270,7 @@ def create_from_features(
 )
 def update(input_files, input_mosaic, min_tile_cover, tms, add_first, threads, quiet):
     """Update mosaic definition file."""
-    tilematrixset: Optional[morecantile.TileMatrixSet] = None
+    tilematrixset: morecantile.TileMatrixSet | None = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -319,7 +313,7 @@ def update(input_files, input_mosaic, min_tile_cover, tms, add_first, threads, q
 )
 def footprint(input_files, output, threads, tms, quiet):
     """Create mosaic definition file."""
-    tilematrixset: Optional[morecantile.TileMatrixSet] = None
+    tilematrixset: morecantile.TileMatrixSet | None = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:
@@ -359,7 +353,7 @@ def footprint(input_files, output, threads, tms, quiet):
 )
 def info(input, to_json, tms):
     """Return info about the mosaic."""
-    tilematrixset: Optional[morecantile.TileMatrixSet] = None
+    tilematrixset: morecantile.TileMatrixSet | None = None
     if tms:
         if tms.endswith(".json"):
             with open(tms, "r") as f:

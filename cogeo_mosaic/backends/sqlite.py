@@ -5,9 +5,9 @@ import json
 import re
 import sqlite3
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
 from threading import Lock
-from typing import Dict, List, Sequence
 from urllib.parse import urlparse
 
 import attr
@@ -215,7 +215,7 @@ class SQLiteBackend(MosaicJSONBackend):
 
     def update(
         self,
-        features: Sequence[Dict],
+        features: Sequence[dict],
         add_first: bool = True,
         quiet: bool = False,
         **kwargs,
@@ -315,7 +315,7 @@ class SQLiteBackend(MosaicJSONBackend):
         key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
         lock=Lock(),
     )
-    def get_assets(self, x: int, y: int, z: int) -> List[str]:
+    def get_assets(self, x: int, y: int, z: int) -> list[str]:
         """Find assets."""
         mercator_tile = morecantile.Tile(x=x, y=y, z=z)
         quadkeys = self.find_quadkeys(mercator_tile, self.quadkey_zoom)
@@ -330,7 +330,7 @@ class SQLiteBackend(MosaicJSONBackend):
         return assets
 
     @property
-    def _quadkeys(self) -> List[str]:
+    def _quadkeys(self) -> list[str]:
         """Return the list of quadkey tiles."""
         with self.db:
             rows = self.db.execute(
@@ -338,7 +338,7 @@ class SQLiteBackend(MosaicJSONBackend):
             ).fetchall()
         return [r["quadkey"] for r in rows]
 
-    def _fetch_metadata(self) -> Dict:
+    def _fetch_metadata(self) -> dict:
         with self.db:
             row = self.db.execute(
                 f"SELECT * FROM {self._metadata_table} WHERE name=?;",
@@ -346,7 +346,7 @@ class SQLiteBackend(MosaicJSONBackend):
             ).fetchone()
             return dict(row) if row else {}
 
-    def _fetch(self, quadkey: str) -> List:
+    def _fetch(self, quadkey: str) -> list:
         with self.db:
             row = self.db.execute(
                 f'SELECT assets FROM "{self.mosaic_name}" WHERE quadkey=?;', (quadkey,)
@@ -377,7 +377,7 @@ class SQLiteBackend(MosaicJSONBackend):
     def list_mosaics_in_db(
         cls,
         db_path: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """List Mosaic tables in SQLite database.
 
         Args:

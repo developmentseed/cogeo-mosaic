@@ -64,7 +64,7 @@ from cogeo_mosaic.backends.s3 import S3Backend
 with S3Backend("s3://mybucket/amosaic.json") as mosaic:
     mosaic.input                                   # attribute - MosaicJSON path
     mosaic.mosaic_def                              # attribute - MosaicJSON document, wrapped in a Pydantic Model
-    mosaic.reader                                  # attribute - BaseReader, MultiBaseReader, MultiBandReader to use to fetch tile data
+    mosaic.reader                                  # attribute - BaseReader, MultiBaseReader to use to fetch tile data
     mosaic.reader_options                          # attribute - Options for forward to `reader`
     mosaic.tms                                     # attribute - TileMatrixSet (default to WebMercatorQuad)
     mosaic.minzoom                                 # attribute - Mosaic (default to tms or mosaic minzoom)
