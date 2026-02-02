@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 9.1.0
+## 9.1.0 (2026-02-02)
 
 * update: rio-tiler requirements 
 * update: type hints
