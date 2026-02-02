@@ -2,8 +2,8 @@
 
 import json
 import os
+from collections.abc import Sequence
 from threading import Lock
-from typing import Dict, List, Optional, Sequence, Type
 
 import attr
 import httpx
@@ -22,7 +22,7 @@ from cogeo_mosaic.logger import logger
 from cogeo_mosaic.mosaic import MosaicJSON
 
 
-def default_stac_accessor(feature: Dict):
+def default_stac_accessor(feature: dict):
     """Return feature identifier."""
     link = list(filter(lambda link: link["rel"] == "self", feature["links"]))
     if link:
@@ -58,26 +58,26 @@ class STACBackend(MosaicJSONBackend):
     """
 
     input: str = attr.ib()
-    query: Dict = attr.ib()
+    query: dict = attr.ib()
 
     minzoom: int = attr.ib()
     maxzoom: int = attr.ib()
 
     tms: TileMatrixSet = attr.ib(default=WEB_MERCATOR_TMS)
 
-    reader: Type[STACReader] = attr.ib(default=STACReader)
-    reader_options: Dict = attr.ib(factory=dict)
+    reader: type[STACReader] = attr.ib(default=STACReader)
+    reader_options: dict = attr.ib(factory=dict)
 
     bounds: BBox = attr.ib(init=False, default=(-180, -90, 180, 90))
     crs: CRS = attr.ib(init=False, default=WGS84_CRS)
 
     # STAC API related options
     # max_items |  next_link_key | limit
-    stac_api_options: Dict = attr.ib(factory=dict)
+    stac_api_options: dict = attr.ib(factory=dict)
 
     # Mosaic Creation options
     # e.g `accessor`
-    mosaic_options: Dict = attr.ib(factory=dict)
+    mosaic_options: dict = attr.ib(factory=dict)
 
     # Because the STACBackend is a Read-Only backend, there is no need for
     # mosaic_def to be in the init method.
@@ -126,7 +126,7 @@ class STACBackend(MosaicJSONBackend):
 
     def update(
         self,
-        features: Sequence[Dict],
+        features: Sequence[dict],
         add_first: bool = True,
         quiet: bool = False,
         **kwargs,
@@ -135,7 +135,7 @@ class STACBackend(MosaicJSONBackend):
         raise NotImplementedError
 
 
-def query_from_link(link: Dict, query: Dict):
+def query_from_link(link: dict, query: dict):
     """Handle Next Link."""
     q = query.copy()
     if link["method"] != "POST":
@@ -156,13 +156,13 @@ def query_from_link(link: Dict, query: Dict):
 )
 def _fetch(  # noqa: C901
     stac_url: str,
-    query: Dict,
-    max_items: Optional[int] = None,
-    next_link_key: Optional[str] = None,
+    query: dict,
+    max_items: int | None = None,
+    next_link_key: str | None = None,
     limit: int = 500,
-) -> List[Dict]:
+) -> list[dict]:
     """Call STAC API."""
-    features: List[Dict] = []
+    features: list[dict] = []
     stac_query = query.copy()
 
     headers = {
@@ -174,7 +174,7 @@ def _fetch(  # noqa: C901
     if "limit" not in stac_query:
         stac_query.update({"limit": limit})
 
-    def _stac_search(url: str, q: Dict):
+    def _stac_search(url: str, q: dict):
         try:
             r = httpx.post(url, headers=headers, json=q)
             r.raise_for_status()

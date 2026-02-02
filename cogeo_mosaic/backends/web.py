@@ -5,8 +5,8 @@ lib module
 """
 
 import json
+from collections.abc import Sequence
 from threading import Lock
-from typing import Dict, Sequence
 
 import attr
 import httpx
@@ -64,7 +64,7 @@ class HttpBackend(MosaicJSONBackend):
 
     def update(
         self,
-        features: Sequence[Dict],
+        features: Sequence[dict],
         add_first: bool = True,
         quiet: bool = False,
         **kwargs,

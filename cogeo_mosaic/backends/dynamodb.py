@@ -5,9 +5,10 @@ import json
 import os
 import re
 import warnings
+from collections.abc import Sequence
 from decimal import Decimal
 from threading import Lock
-from typing import Any, Dict, List, Sequence
+from typing import Any
 from urllib.parse import urlparse
 
 import attr
@@ -136,7 +137,7 @@ class DynamoDBBackend(MosaicJSONBackend):
                 )
             self.delete()
 
-        items: List[Dict[str, Any]] = []
+        items: list[dict[str, Any]] = []
 
         # Create Metadata item
         # Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be
@@ -158,7 +159,7 @@ class DynamoDBBackend(MosaicJSONBackend):
 
     def update(
         self,
-        features: Sequence[Dict],
+        features: Sequence[dict],
         add_first: bool = True,
         quiet: bool = False,
         **kwargs,
@@ -193,7 +194,7 @@ class DynamoDBBackend(MosaicJSONBackend):
         )
         self.bounds = bounds
 
-        items: List[Dict[str, Any]] = []
+        items: list[dict[str, Any]] = []
 
         # Create Metadata item
         # Note: `parse_float=Decimal` is required because DynamoDB requires all numbers to be
@@ -222,7 +223,7 @@ class DynamoDBBackend(MosaicJSONBackend):
         key=lambda self, x, y, z: hashkey(self.input, x, y, z, self.mosaicid),
         lock=Lock(),
     )
-    def get_assets(self, x: int, y: int, z: int) -> List[str]:
+    def get_assets(self, x: int, y: int, z: int) -> list[str]:
         """Find assets."""
         quadkeys = self.find_quadkeys(Tile(x=x, y=y, z=z), self.quadkey_zoom)
         assets = list(
@@ -238,7 +239,7 @@ class DynamoDBBackend(MosaicJSONBackend):
         return assets
 
     @property
-    def _quadkeys(self) -> List[str]:
+    def _quadkeys(self) -> list[str]:
         """Return the list of quadkey tiles."""
         resp = self.table.query(
             KeyConditionExpression=Key("mosaicId").eq(self.mosaic_name),
@@ -288,7 +289,7 @@ class DynamoDBBackend(MosaicJSONBackend):
             warnings.warn("Unable to create table.")
             return
 
-    def _write_items(self, items: List[Dict]):
+    def _write_items(self, items: list[dict]):
         with self.table.batch_writer() as batch:
             with click.progressbar(
                 items,
@@ -299,7 +300,7 @@ class DynamoDBBackend(MosaicJSONBackend):
                 for item in progitems:
                     batch.put_item(item)
 
-    def _fetch_dynamodb(self, quadkey: str) -> Dict:
+    def _fetch_dynamodb(self, quadkey: str) -> dict:
         try:
             return self.table.get_item(
                 Key={"mosaicId": self.mosaic_name, "quadkey": quadkey}

@@ -3,8 +3,9 @@
 import abc
 import itertools
 import warnings
+from collections.abc import Sequence
 from threading import Lock
-from typing import Any, Dict, List, Optional, Sequence, Type, Union
+from typing import Any
 
 import attr
 from cachetools import TTLCache, cached
@@ -25,7 +26,7 @@ from cogeo_mosaic.mosaic import MosaicJSON
 from cogeo_mosaic.utils import bbox_union
 
 
-def _convert_to_mosaicjson(value: Union[Dict, MosaicJSON]):
+def _convert_to_mosaicjson(value: dict | MosaicJSON):
     if value is not None:
         return MosaicJSON(**dict(value))
 
@@ -55,18 +56,16 @@ class MosaicJSONBackend(BaseBackend):
     minzoom: int = attr.ib(default=None)
     maxzoom: int = attr.ib(default=None)
 
-    reader: Union[
-        Type[BaseReader],
-        Type[MultiBaseReader],
-        Type[MultiBandReader],
-    ] = attr.ib(default=Reader)
-    reader_options: Dict = attr.ib(factory=dict)
+    reader: type[BaseReader] | type[MultiBaseReader] | type[MultiBandReader] = attr.ib(
+        default=Reader
+    )
+    reader_options: dict = attr.ib(factory=dict)
 
     bounds: BBox = attr.ib(init=False)
     crs: CRS = attr.ib(init=False)
 
     _backend_name: str
-    _file_byte_size: Optional[int] = 0
+    _file_byte_size: int | None = 0
 
     def __attrs_post_init__(self):
         """Post Init: if not passed in init, try to read from self.input."""
@@ -103,7 +102,7 @@ class MosaicJSONBackend(BaseBackend):
 
     def update(
         self,
-        features: Sequence[Dict],
+        features: Sequence[dict],
         add_first: bool = True,
         quiet: bool = False,
         **kwargs,
@@ -146,7 +145,7 @@ class MosaicJSONBackend(BaseBackend):
         self.bounds = bounds
         self.write(overwrite=True)
 
-    def assets_for_tile(self, x: int, y: int, z: int, **kwargs: Any) -> List[str]:
+    def assets_for_tile(self, x: int, y: int, z: int, **kwargs: Any) -> list[str]:
         """Retrieve assets for tile."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
         if self.tms == mosaic_tms:
@@ -168,9 +167,9 @@ class MosaicJSONBackend(BaseBackend):
         self,
         lng: float,
         lat: float,
-        coord_crs: Optional[CRS] = None,
+        coord_crs: CRS | None = None,
         **kwargs: Any,
-    ) -> List[str]:
+    ) -> list[str]:
         """Retrieve assets for point."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
 
@@ -196,9 +195,9 @@ class MosaicJSONBackend(BaseBackend):
         ymin: float,
         xmax: float,
         ymax: float,
-        coord_crs: Optional[CRS] = None,
+        coord_crs: CRS | None = None,
         **kwargs,
-    ) -> List[str]:
+    ) -> list[str]:
         """Retrieve assets for bbox."""
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
 
@@ -241,7 +240,7 @@ class MosaicJSONBackend(BaseBackend):
         ),
         lock=Lock(),
     )
-    def get_assets(self, x: int, y: int, z: int, reverse: bool = False) -> List[str]:
+    def get_assets(self, x: int, y: int, z: int, reverse: bool = False) -> list[str]:
         """Find assets."""
         quadkeys = self.find_quadkeys(Tile(x=x, y=y, z=z), self.quadkey_zoom)
         assets = list(
@@ -259,7 +258,7 @@ class MosaicJSONBackend(BaseBackend):
 
         return assets
 
-    def find_quadkeys(self, tile: Tile, quadkey_zoom: int) -> List[str]:
+    def find_quadkeys(self, tile: Tile, quadkey_zoom: int) -> list[str]:
         """
         Find quadkeys at desired zoom for tile
 
@@ -273,7 +272,7 @@ class MosaicJSONBackend(BaseBackend):
         Returns
         -------
         list
-            List[str] of quadkeys
+            list[str] of quadkeys
 
         """
         mosaic_tms = self.mosaic_def.tilematrixset or WEB_MERCATOR_TMS
@@ -318,7 +317,7 @@ class MosaicJSONBackend(BaseBackend):
         return get_hash(**self.mosaic_def.model_dump(exclude_none=True))
 
     @property
-    def _quadkeys(self) -> List[str]:
+    def _quadkeys(self) -> list[str]:
         """Return the list of quadkey tiles."""
         return list(self.mosaic_def.tiles)
 
