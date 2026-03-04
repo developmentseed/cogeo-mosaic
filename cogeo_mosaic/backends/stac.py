@@ -210,8 +210,13 @@ def _fetch(  # noqa: C901
         # {"numberMatched": 10, "numberReturned": 5, "features": [...]}
         # otherwise we don't break early
         ctx = results.get("context", results.get("meta"))
-        returned = ctx.get("returned", results.get("numberReturned"))
-        matched = ctx.get("matched", ctx.get("found") or results.get("numberMatched"))
+
+        if ctx is None:
+            returned = results.get("numberReturned")
+            matched = results.get("numberMatched", returned)
+        else:
+            returned = ctx.get("returned", results.get("numberReturned"))
+            matched = ctx.get("matched", ctx.get("found") or results.get("numberMatched"))
 
         logger.debug(json.dumps(ctx))
 
