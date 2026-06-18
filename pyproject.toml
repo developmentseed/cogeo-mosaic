@@ -27,7 +27,7 @@ dependencies = [
   "shapely>=2.0,<3.0",
   "pydantic~=2.0",
   "pydantic-settings~=2.0",
-  "httpx",
+  "httpx2",
   "rasterio",
   "supermorecado",
   "cachetools",
