@@ -13,7 +13,7 @@ import morecantile
 import numpy
 import pytest
 from click.testing import CliRunner
-from httpx import HTTPStatusError, RequestError
+from httpx2 import HTTPStatusError, RequestError
 from pydantic import ValidationError
 from rio_tiler.errors import PointOutsideBounds
 

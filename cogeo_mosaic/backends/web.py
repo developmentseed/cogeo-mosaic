@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from threading import Lock
 
 import attr
-import httpx
+import httpx2 as httpx
 from cachetools import TTLCache, cached
 from cachetools.keys import hashkey
 
