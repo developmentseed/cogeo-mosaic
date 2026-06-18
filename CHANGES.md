@@ -1,5 +1,9 @@
 ## Unreleased
 
+## 9.2.0 (2026-06-18)
+
+* feat: switch to httpx2
+
 ## 9.1.0 (2026-02-02)
 
 * update: rio-tiler requirements 
